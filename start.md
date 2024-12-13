@@ -7,4 +7,4 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 nix-shell -p home-manager
 
 # activate system
-home-manager switch
+home-manager switch --impure
