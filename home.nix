@@ -9,13 +9,13 @@
   # environment.
   home.packages = [
     pkgs.neovim
-    pkgs.git
     pkgs.pnpm_8
     pkgs.nodePackages."@angular/cli"
   ];
 
   imports = [
     ./modules/fish.nix
+    ./modules/git.nix
     ];
 
   home.sessionVariables = {
