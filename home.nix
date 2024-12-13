@@ -1,8 +1,11 @@
 { config, pkgs, ... }:
 
+let
+  username = builtins.getEnv "USER";
+in
 {
-  home.username = "wiktor";
-  home.homeDirectory = "/home/wiktor";
+  home.username = "${username}";
+  home.homeDirectory = "/home/${username}";
 
   home.stateVersion = "24.05";
 
