@@ -11,7 +11,6 @@ in
 
   # environment.
   home.packages = [
-    pkgs.neovim
     pkgs.pnpm_8
     pkgs.nodePackages."@angular/cli"
   ];
@@ -19,6 +18,7 @@ in
   imports = [
     ./modules/fish.nix
     ./modules/git.nix
+    ./modules/nvim.nix
     ];
 
   home.sessionVariables = {
