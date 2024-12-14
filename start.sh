@@ -4,4 +4,4 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
 # run nix-shell with home-manager
-nix-shell -p home-manager --command home-manager switch -b backup --impure
+nix-shell -p home-manager --command "home-manager switch -b backup --impure"
