@@ -11,8 +11,11 @@ in
 
   # environment.
   home.packages = [
+    pkgs.nodejs_23
     pkgs.pnpm_8
     pkgs.nodePackages."@angular/cli"
+
+    pkgs.poetry
   ];
 
   imports = [
