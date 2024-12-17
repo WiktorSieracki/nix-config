@@ -16,6 +16,7 @@ in
     pkgs.nodePackages."@angular/cli"
 
     pkgs.poetry
+    pkgs.pre-commit
   ];
 
   imports = [
