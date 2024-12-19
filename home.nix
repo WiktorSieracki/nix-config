@@ -14,6 +14,7 @@ in
     pkgs.nodejs_23
     pkgs.pnpm_8
     pkgs.nodePackages."@angular/cli"
+    pkgs.tree
 
     pkgs.poetry
     pkgs.pre-commit
