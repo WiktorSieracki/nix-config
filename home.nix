@@ -24,6 +24,7 @@ in
     ./modules/fish.nix
     ./modules/git.nix
     ./modules/nvim.nix
+    ./customScripts/scriptHandler.nix
     ];
 
   home.sessionVariables = {
