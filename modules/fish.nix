@@ -26,5 +26,9 @@
         };
       }
  ];
+ shellInit = ''
+ ssh-add ~/.ssh/gitlab > /dev/null 2>&1
+ ssh-add ~/.ssh/github > /dev/null 2>&1
+ '';
  };
 } 
