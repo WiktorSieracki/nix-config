@@ -15,6 +15,7 @@ in
     pkgs.pnpm_8
     pkgs.nodePackages."@angular/cli"
     pkgs.tree
+    pkgs.treecat
 
     pkgs.poetry
     pkgs.pre-commit
