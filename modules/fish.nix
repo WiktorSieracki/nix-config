@@ -1,5 +1,8 @@
 { inputs, pkgs, ... }:
 
+let
+  java = import ./java.nix { inherit inputs pkgs; };
+in
 {
   programs.bash = {
   enable = true;
@@ -29,6 +32,7 @@
  shellInit = ''
  ssh-add ~/.ssh/gitlab > /dev/null 2>&1
  ssh-add ~/.ssh/github > /dev/null 2>&1
+ set -x JAVA_HOME ${java.home.sessionVariables.JAVA_HOME}
  '';
  };
 } 

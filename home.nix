@@ -25,6 +25,7 @@ in
     ./modules/fish.nix
     ./modules/git.nix
     ./modules/nvim.nix
+    ./modules/java.nix
     ./customScripts/scriptHandler.nix
     ];
 
