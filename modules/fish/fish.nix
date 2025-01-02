@@ -19,6 +19,7 @@ in
  enable = true;
  functions = {
   fish_prompt = (builtins.readFile ./fish_prompt.fish);
+  fish_right_prompt = (builtins.readFile ./fish_right_prompt.fish);
  };
  plugins = [
  { name = "z"; src = pkgs.fishPlugins.z.src; }
