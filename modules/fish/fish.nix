@@ -18,6 +18,9 @@ in
  programs.fish = {
  enable = true;
  functions = {
+# to change fish prompt using fish_config
+# you need to delete those two functions in fish/functions folder
+# then type fish_config and change some prompts
   fish_prompt = (builtins.readFile ./fish_prompt.fish);
   fish_right_prompt = (builtins.readFile ./fish_right_prompt.fish);
  };
