@@ -53,4 +53,12 @@ function fish_prompt
     set -l pwd (prompt_pwd)
 
     echo -n -s $prompt_host $cwd $pwd $normal $prompt_status $delim
+
+    # show <nix-shell> while in nix-shell
+    set -l nix_shell_info (
+        if test -n "$IN_NIX_SHELL"
+            echo -n "<nix-shell> "
+        end
+        )
+    echo -n -s "$nix_shell_info"
 end
