@@ -1,7 +1,7 @@
 { inputs, pkgs, ... }:
 
 let
-  java = import ./java.nix { inherit inputs pkgs; };
+  java = import ../java.nix { inherit inputs pkgs; };
 in
 {
   programs.bash = {
@@ -17,6 +17,9 @@ in
 
  programs.fish = {
  enable = true;
+ functions = {
+  fish_prompt = (builtins.readFile ./fish_prompt.fish);
+ };
  plugins = [
  { name = "z"; src = pkgs.fishPlugins.z.src; }
  {

@@ -22,7 +22,7 @@ in
   ];
 
   imports = [
-    ./modules/fish.nix
+    ./modules/fish/fish.nix
     ./modules/git.nix
     ./modules/nvim.nix
     ./modules/java.nix
