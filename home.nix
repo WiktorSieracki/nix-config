@@ -26,6 +26,7 @@ in
     ./modules/git.nix
     ./modules/nvim.nix
     ./modules/java.nix
+    ./modules/python.nix
     ./customScripts/scriptHandler.nix
     ];
 
