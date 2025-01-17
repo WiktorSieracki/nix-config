@@ -9,6 +9,7 @@
       python-pkgs.scipy
       python-pkgs.opencv4
       python-pkgs.scikit-image
+      python-pkgs.pygame
     ]))
   ];
 }
