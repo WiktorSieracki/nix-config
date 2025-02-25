@@ -12,7 +12,7 @@ in
   # environment.
   home.packages = [
     pkgs.nodejs_23
-    pkgs.pnpm_8
+    pkgs.pnpm_9
     pkgs.nodePackages."@angular/cli"
     pkgs.tree
     pkgs.treecat
