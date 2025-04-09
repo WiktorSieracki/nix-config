@@ -20,6 +20,7 @@ in
     pkgs.poetry
     pkgs.pre-commit
     pkgs.jq
+    pkgs.go
   ];
 
   imports = [
