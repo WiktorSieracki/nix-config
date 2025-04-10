@@ -2,18 +2,18 @@
 
 {
   programs.neovim = {
-  enable = true;
-  viAlias = true;
-  vimAlias = true;
-  vimdiffAlias = true;
-  plugins = with pkgs.vimPlugins; [
-  nvim-lspconfig
-  ];
+    enable = true;
+    viAlias = true;
+    vimAlias = true;
+    vimdiffAlias = true;
+    plugins = with pkgs.vimPlugins; [
+      nvim-lspconfig
+    ];
 
-  extraConfig = ''
+    extraConfig = ''
       set number
       set relativenumber
-  '';
- };
+    '';
+  };
 
 }

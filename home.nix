@@ -3,6 +3,7 @@
 let
   username = builtins.getEnv "USER";
 in
+
 {
   home.username = "${username}";
   home.homeDirectory = "/home/${username}";
@@ -11,6 +12,8 @@ in
 
   # environment.
   home.packages = [
+    # pkgs.nixfmt
+    pkgs.nixfmt-rfc-style
     pkgs.nodejs_23
     pkgs.pnpm_9
     pkgs.nodePackages."@angular/cli"
@@ -21,6 +24,7 @@ in
     pkgs.pre-commit
     pkgs.jq
     pkgs.go
+    pkgs.uv
   ];
 
   imports = [
@@ -30,7 +34,7 @@ in
     ./modules/java.nix
     ./modules/python.nix
     ./customScripts/scriptHandler.nix
-    ];
+  ];
 
   home.sessionVariables = {
     EDITOR = "nvim";
@@ -38,6 +42,5 @@ in
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
- 
 
 }
