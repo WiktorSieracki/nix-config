@@ -2,7 +2,7 @@
 
 {
   home.packages = [
-    (pkgs.python3.withPackages (python-pkgs: [
+    (pkgs.python312.withPackages (python-pkgs: [
       python-pkgs.numpy
       python-pkgs.pandas
       python-pkgs.matplotlib
