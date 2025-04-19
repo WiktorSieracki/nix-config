@@ -1,11 +1,8 @@
 {
     "servers": {
-        "nix-mcp-server": {
-            "type": "stdio",
-            "command": "uvx",
-            "args": [
-                "mcp-nixos"
-            ]
-        }
+        "nixos": {
+            "command": "nix",
+            "args": ["shell", "nixpkgs#uv", "--command", "uvx", "mcp-nixos@0.3.1"]
+          }
     }
 }
