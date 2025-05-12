@@ -14,6 +14,7 @@ in
   home.packages = [
     # pkgs.nixfmt
     pkgs.nixfmt-rfc-style
+    pkgs.nix-search-cli
     pkgs.nodejs_23
     pkgs.pnpm_9
     pkgs.nodePackages."@angular/cli"
@@ -33,6 +34,7 @@ in
     ./modules/nvim.nix
     ./modules/java.nix
     ./modules/python.nix
+    ./modules/typst.nix
     ./customScripts/scriptHandler.nix
   ];
 
