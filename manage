@@ -55,11 +55,17 @@ get_config_name() {
 build_config() {
     local env="${1:-$(detect_environment)}"
     local config_name=$(get_config_name "$env")
+    local host_dir="$FLAKE_DIR/hosts/$env"
     
     echo -e "${BLUE}Building Home Manager configuration for: ${YELLOW}$env${NC}"
     echo -e "${BLUE}Configuration name: ${YELLOW}$config_name${NC}"
     
-    cd "$FLAKE_DIR"
+    if [[ ! -d "$host_dir" ]]; then
+        echo -e "${RED}Error: Host directory $host_dir does not exist${NC}"
+        exit 1
+    fi
+    
+    cd "$host_dir"
     home-manager build --flake ".#$config_name"
     
     echo -e "${GREEN}✓ Build completed successfully${NC}"
@@ -68,11 +74,17 @@ build_config() {
 switch_config() {
     local env="${1:-$(detect_environment)}"
     local config_name=$(get_config_name "$env")
+    local host_dir="$FLAKE_DIR/hosts/$env"
     
     echo -e "${BLUE}Switching to Home Manager configuration for: ${YELLOW}$env${NC}"
     echo -e "${BLUE}Configuration name: ${YELLOW}$config_name${NC}"
     
-    cd "$FLAKE_DIR"
+    if [[ ! -d "$host_dir" ]]; then
+        echo -e "${RED}Error: Host directory $host_dir does not exist${NC}"
+        exit 1
+    fi
+    
+    cd "$host_dir"
     home-manager switch --flake ".#$config_name"
     
     echo -e "${GREEN}✓ Switch completed successfully${NC}"

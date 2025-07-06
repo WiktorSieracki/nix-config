@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, flakeRoot, ... }:
 
 {
   home.username = "wiktor";
@@ -21,13 +21,13 @@
 
   # Common imports for all environments
   imports = [
-    ../../modules/fish/fish.nix
-    ../../modules/git.nix
-    ../../modules/nvim.nix
-    ../../modules/java.nix
-    ../../modules/python.nix
-    ../../modules/typst.nix
-    ../../customScripts/scriptHandler.nix
+    (flakeRoot + /modules/fish/fish.nix)
+    (flakeRoot + /modules/git.nix)
+    (flakeRoot + /modules/nvim.nix)
+    (flakeRoot + /modules/java.nix)
+    (flakeRoot + /modules/python.nix)
+    (flakeRoot + /modules/typst.nix)
+    (flakeRoot + /customScripts/scriptHandler.nix)
   ];
 
   home.sessionVariables = {
