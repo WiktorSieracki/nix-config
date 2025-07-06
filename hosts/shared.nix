@@ -22,6 +22,11 @@
     pkgs.treecat
 
     pkgs.pre-commit
+    
+    # Custom scripts
+    (pkgs.writeShellScriptBin "gitHttpsToSsh" (builtins.readFile (flakeRoot + /customScripts/gitHttpsToSsh)))
+    (pkgs.writeShellScriptBin "pull" (builtins.readFile (flakeRoot + /customScripts/pull)))
+    (pkgs.writeShellScriptBin "manage" (builtins.readFile (flakeRoot + /customScripts/manage)))
   ];
 
   # Common imports for all environments
@@ -32,7 +37,6 @@
     (flakeRoot + /modules/java.nix)
     (flakeRoot + /modules/python.nix)
     (flakeRoot + /modules/typst.nix)
-    (flakeRoot + /customScripts/scriptHandler.nix)
   ];
 
   home.sessionVariables = {
