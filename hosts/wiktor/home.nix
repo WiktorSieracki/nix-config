@@ -1,12 +1,8 @@
 { config, pkgs, ... }:
 
-let
-  username = builtins.getEnv "USER";
-in
-
 {
-  home.username = "${username}";
-  home.homeDirectory = "/home/${username}";
+  home.username = "wiktor";
+  home.homeDirectory = "/home/wiktor";
 
   home.stateVersion = "24.05";
 
@@ -29,13 +25,13 @@ in
   ];
 
   imports = [
-    ./modules/fish/fish.nix
-    ./modules/git.nix
-    ./modules/nvim.nix
-    ./modules/java.nix
-    ./modules/python.nix
-    ./modules/typst.nix
-    ./customScripts/scriptHandler.nix
+    ../../modules/fish/fish.nix
+    ../../modules/git.nix
+    ../../modules/nvim.nix
+    ../../modules/java.nix
+    ../../modules/python.nix
+    ../../modules/typst.nix
+    ../../customScripts/scriptHandler.nix
   ];
 
   home.sessionVariables = {
