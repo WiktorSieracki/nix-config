@@ -22,9 +22,11 @@
     pkgs.treecat
 
     pkgs.pre-commit
-    
+
     # Custom scripts
-    (pkgs.writeShellScriptBin "gitHttpsToSsh" (builtins.readFile (flakeRoot + /customScripts/gitHttpsToSsh)))
+    (pkgs.writeShellScriptBin "gitHttpsToSsh" (
+      builtins.readFile (flakeRoot + /customScripts/gitHttpsToSsh)
+    ))
     (pkgs.writeShellScriptBin "pull" (builtins.readFile (flakeRoot + /customScripts/pull)))
     (pkgs.writeShellScriptBin "manage" (builtins.readFile (flakeRoot + /customScripts/manage)))
   ];
