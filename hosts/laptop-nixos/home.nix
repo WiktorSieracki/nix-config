@@ -6,6 +6,9 @@
     ../../modules/vscode.nix
   ];
 
+  # Allow unfree packages
+  nixpkgs.config.allowUnfree = true;
+
   # NixOS laptop-specific packages
   home.packages = with pkgs; [
 
