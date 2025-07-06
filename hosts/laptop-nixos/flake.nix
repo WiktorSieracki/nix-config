@@ -47,6 +47,7 @@
           inherit pkgs;
           modules = [ ./home.nix ];
           extraSpecialArgs = {
+            inherit inputs;
             hostname = "laptop-nixos";
             flakeRoot = ./../..;
           };
