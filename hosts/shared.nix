@@ -3,11 +3,10 @@
 {
   home.username = "wiktor";
   home.homeDirectory = "/home/wiktor";
-
   home.stateVersion = "24.05";
 
-  # environment.
-  home.packages = [
+  # Core packages that are common across all environments
+  home.packages = with pkgs; [
     # pkgs.nixfmt
     pkgs.nixfmt-rfc-style
     pkgs.nix-search-cli
@@ -17,13 +16,10 @@
     pkgs.tree
     pkgs.treecat
 
-    pkgs.poetry
     pkgs.pre-commit
-    pkgs.jq
-    pkgs.go
-    pkgs.uv
   ];
 
+  # Common imports for all environments
   imports = [
     ../../modules/fish/fish.nix
     ../../modules/git.nix
@@ -40,5 +36,4 @@
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
-
 }

@@ -17,15 +17,29 @@
       pkgs = nixpkgs.legacyPackages.${system};
     in
     {
-      homeConfigurations."wiktor" = home-manager.lib.homeManagerConfiguration {
-        inherit pkgs;
+      homeConfigurations = {
+        # Desktop WSL configuration
+        "wiktor@desktop-wsl" = home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+          modules = [ ./hosts/desktop-wsl/home.nix ];
+          extraSpecialArgs = {
+            hostname = "desktop-wsl";
+          };
+        };
 
-        # Specify your home configuration modules here, for example,
-        # the path to your home.nix.
-        modules = [ ./hosts/wiktor/home.nix ];
+        # Laptop NixOS configuration
+        "wiktor@laptop-nixos" = home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+          modules = [
+            ./hosts/laptop-nixos/home.nix
+            ./hosts/laptop-nixos/configuration.nix
+            ./hosts/laptop-nixos/hardware-configuration.nix
+          ];
+          extraSpecialArgs = {
+            hostname = "laptop-nixos";
+          };
+        };
 
-        # Optionally use extraSpecialArgs
-        # to pass through arguments to home.nix
       };
     };
 }

@@ -17,9 +17,6 @@ in
 
   programs.fish = {
     enable = true;
-    shellAliases = {
-      hms = "home-manager switch -b backup --impure";
-    };
     interactiveShellInit = ''
       # Enable Vi mode
       fish_vi_key_bindings
