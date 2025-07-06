@@ -3,6 +3,7 @@
 {
   imports = [
     ../shared.nix
+    ../../modules/vscode.nix
   ];
 
   # NixOS laptop-specific packages
