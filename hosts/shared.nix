@@ -15,7 +15,7 @@
     # pkgs.nixfmt
     pkgs.nixfmt-rfc-style
     pkgs.nix-search-cli
-    pkgs.nodejs_23
+    pkgs.nodejs_24
     pkgs.pnpm_9
     pkgs.nodePackages."@angular/cli"
     pkgs.tree
