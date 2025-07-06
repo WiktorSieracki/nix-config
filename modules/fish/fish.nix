@@ -17,10 +17,6 @@ in
 
   programs.fish = {
     enable = true;
-    interactiveShellInit = ''
-      # Enable Vi mode
-      fish_vi_key_bindings
-    '';
     functions = {
       # to change fish prompt using fish_config
       # you need to delete those two functions in fish/functions folder

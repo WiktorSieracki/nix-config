@@ -1,4 +1,9 @@
-{ config, pkgs, flakeRoot, ... }:
+{
+  config,
+  pkgs,
+  flakeRoot,
+  ...
+}:
 
 {
   home.username = "wiktor";
