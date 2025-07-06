@@ -18,4 +18,9 @@
 
   # WSL-specific configuration
   targets.genericLinux.enable = true;
+
+  programs.fish.interactiveShellInit = ''
+    # Enable Vi mode
+    fish_default_key_bindings
+  '';
 }
