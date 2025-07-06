@@ -1,9 +1,14 @@
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
     ../shared.nix
     ../../modules/vscode.nix
+    ../../modules/firefox.nix
   ];
 
   # Allow unfree packages
