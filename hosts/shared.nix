@@ -33,6 +33,7 @@
 
   # Common imports for all environments
   imports = [
+    (flakeRoot + /modules/ssh.nix)
     (flakeRoot + /modules/fish/fish.nix)
     (flakeRoot + /modules/git.nix)
     (flakeRoot + /modules/nvim.nix)
