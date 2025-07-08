@@ -19,14 +19,4 @@
   };
 
   services.ssh-agent.enable = true;
-
-  home.file.".ssh/config".text = ''
-    Host github.com
-      IdentityFile ~/.ssh/id_ed25519
-      User git
-
-    Host gitlab.com
-      IdentityFile ~/.ssh/id_ed25519
-      User git
-  '';
 }
