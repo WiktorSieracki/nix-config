@@ -76,8 +76,7 @@ switch_config() {
     local config_name=$(get_config_name "$env")
     local host_dir="$FLAKE_DIR/hosts/$env"
     
-    echo -e "${BLUE}Switching to Home Manager configuration for: ${YELLOW}$env${NC}"
-    echo -e "${BLUE}Configuration name: ${YELLOW}$config_name${NC}"
+    echo -e "${BLUE}Switching to configuration for: ${YELLOW}$env${NC}"
     
     if [[ ! -d "$host_dir" ]]; then
         echo -e "${RED}Error: Host directory $host_dir does not exist${NC}"
@@ -85,6 +84,16 @@ switch_config() {
     fi
     
     cd "$host_dir"
+    
+    # If this is NixOS, apply system configuration first
+    if [[ "$env" == "laptop-nixos" ]]; then
+        echo -e "${BLUE}Applying NixOS system configuration...${NC}"
+        sudo nixos-rebuild switch --flake ".#$env"
+        echo -e "${GREEN}✓ System configuration applied${NC}"
+    fi
+    
+    # Then apply Home Manager configuration
+    echo -e "${BLUE}Applying Home Manager configuration...${NC}"
     home-manager switch --flake ".#$config_name"
     
     echo -e "${GREEN}✓ Switch completed successfully${NC}"
