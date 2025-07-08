@@ -34,6 +34,7 @@
               home-manager.useUserPackages = true;
               home-manager.users.wiktor = import ./home.nix;
               home-manager.extraSpecialArgs = {
+                inherit inputs;
                 hostname = "laptop-nixos";
                 flakeRoot = ./../..;
               };
