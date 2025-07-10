@@ -36,7 +36,7 @@
     (flakeRoot + /modules/ssh.nix)
     (flakeRoot + /modules/fish/fish.nix)
     (flakeRoot + /modules/git.nix)
-    (flakeRoot + /modules/nvim.nix)
+    (flakeRoot + /modules/nixvim.nix)
     (flakeRoot + /modules/java.nix)
     (flakeRoot + /modules/python.nix)
     (flakeRoot + /modules/typst.nix)
