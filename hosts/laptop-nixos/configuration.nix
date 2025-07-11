@@ -108,6 +108,7 @@
     neovim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
     wget
     git
+    pkgs.nix-ld
   ];
 
   nix.settings.experimental-features = [
@@ -128,6 +129,7 @@
   # Enable the OpenSSH daemon.
   services.openssh.enable = true;
   services.openssh.settings.PasswordAuthentication = false;
+  programs.nix-ld.enable = true;
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
