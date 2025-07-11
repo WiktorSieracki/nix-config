@@ -16,7 +16,7 @@
 
   # NixOS laptop-specific packages
   home.packages = with pkgs; [
-
+    discord
   ];
 
   # NixOS-specific settings
