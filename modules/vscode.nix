@@ -12,9 +12,9 @@
       ];
 
       # VS Code settings
-      userSettings = {
-        "editor.formatOnSave" = true;
-      };
+      #userSettings = {
+      #  "editor.formatOnSave" = true;
+      #};
     };
   };
 }
