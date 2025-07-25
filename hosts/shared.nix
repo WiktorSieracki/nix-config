@@ -10,6 +10,9 @@
   home.homeDirectory = "/home/wiktor";
   home.stateVersion = "24.05";
 
+  # Allow unfree packages
+  nixpkgs.config.allowUnfree = true;
+
   # Core packages that are common across all environments
   home.packages = with pkgs; [
     # pkgs.nixfmt
