@@ -1,0 +1,11 @@
+# Hardware-specific configs
+hosts/*/hardware-configuration.nix
+
+# Secrets
+*.secret
+*.key
+secrets/
+
+# Build outputs
+result
+result-*
