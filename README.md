@@ -2,48 +2,6 @@
 
 This repository contains my personal [Home Manager](https://github.com/nix-community/home-manager) configuration using Nix flakes for declarative user environment management.
 
-## 📁 Repository Structure
-
-```text
-.
-├── README.md                    # This file
-├── nix-guide.md                # Comprehensive Nix usage guide
-├── start.sh                    # Quick setup script
-├── customScripts/              # Custom utility scripts
-│   ├── gitHttpsToSsh          # Convert git remotes from HTTPS to SSH
-│   ├── manage                 # Home Manager management wrapper
-│   ├── pull                   # Git pull utility
-│   └── scriptHandler.nix      # Script handling configuration
-├── hosts/                     # Host-specific configurations
-│   ├── shared.nix            # Common configuration across hosts
-│   ├── desktop-wsl/          # WSL desktop configuration
-│   │   ├── flake.nix
-│   │   ├── flake.lock
-│   │   └── home.nix
-│   └── laptop-nixos/         # NixOS laptop configuration
-│       ├── configuration.nix
-│       ├── flake.nix
-│       ├── flake.lock
-│       ├── hardware-configuration.nix
-│       ├── home.nix
-│       └── modules/
-│           └── fingerprint.nix
-└── modules/                   # Modular application configurations
-    ├── environment.nix       # Environment variables and shell config
-    ├── firefox.nix          # Firefox browser configuration
-    ├── git.nix              # Git configuration
-    ├── java.nix             # Java development environment
-    ├── nixvim.nix           # Neovim configuration via nixvim
-    ├── python.nix           # Python development environment
-    ├── ssh.nix              # SSH client configuration
-    ├── typst.nix            # Typst document preparation
-    ├── vscode.nix           # VS Code configuration
-    └── fish/                # Fish shell configuration
-        ├── fish.nix
-        ├── fish_prompt.fish
-        └── fish_right_prompt.fish
-```
-
 ## 🚀 Quick Start
 
 ### First Time Setup
