@@ -4,6 +4,8 @@ let
   java = import ../java.nix { inherit inputs pkgs; };
 in
 {
+  # fixes some problems because fish is not POSIX compliant
+  # https://nixos.wiki/wiki/Fish#Setting_fish_as_your_shell
   programs.bash = {
     enable = true;
     initExtra = ''
@@ -17,15 +19,16 @@ in
 
   programs.fish = {
     enable = true;
-    shellAliases = {
-      hms = "home-manager switch -b backup --impure";
-    };
     functions = {
       # to change fish prompt using fish_config
       # you need to delete those two functions in fish/functions folder
       # then type fish_config and change some prompts
       # fish_prompt = (builtins.readFile ./fish_prompt.fish);
       # fish_right_prompt = (builtins.readFile ./fish_right_prompt.fish);
+
+      nix-fish = ''
+        nix shell $argv --command fish
+      '';
     };
     plugins = [
       {
@@ -44,8 +47,7 @@ in
     ];
     shellInit = ''
       fish_config prompt choose disco
-      ssh-add ~/.ssh/gitlab > /dev/null 2>&1
-      ssh-add ~/.ssh/github > /dev/null 2>&1
+      ssh-add ~/.ssh/id_ed25519 > /dev/null 2>&1
       set -x JAVA_HOME ${java.home.sessionVariables.JAVA_HOME}
     '';
   };

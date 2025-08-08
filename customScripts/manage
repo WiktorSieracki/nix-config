@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+
+# Home Manager multi-environment build script
+
+set -euo pipefail
+
+# Use absolute path to home-manager config directory
+FLAKE_DIR="$HOME/.config/home-manager"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+print_usage() {
+    echo "Usage: $0 [COMMAND] [OPTIONS]"
+    echo ""
+    echo "Commands:"
+    echo "  build [desktop-wsl|laptop-nixos]  Build specific configuration"
+    echo "  switch [desktop-wsl|laptop-nixos] Build and switch to configuration"
+    echo "  list                              List available configurations"
+    echo "  current                           Show current environment"
+    echo "  help                              Show this help message"
+    echo ""
+    echo "If no environment is specified, auto-detection will be attempted."
+}
+
+detect_environment() {
+    if [[ -f /proc/sys/fs/binfmt_misc/WSLInterop ]]; then
+        echo "desktop-wsl"
+    elif [[ -f /etc/NIXOS ]]; then
+        echo "laptop-nixos"
+    else
+        echo "unknown"
+    fi
+}
+
+get_config_name() {
+    local env="$1"
+    case "$env" in
+        desktop-wsl)
+            echo "wiktor@desktop-wsl"
+            ;;
+        laptop-nixos)
+            echo "wiktor@laptop-nixos"
+            ;;
+        *)
+            echo "wiktor"
+            ;;
+    esac
+}
+
+build_config() {
+    local env="${1:-$(detect_environment)}"
+    local config_name=$(get_config_name "$env")
+    local host_dir="$FLAKE_DIR/hosts/$env"
+    
+    echo -e "${BLUE}Building Home Manager configuration for: ${YELLOW}$env${NC}"
+    echo -e "${BLUE}Configuration name: ${YELLOW}$config_name${NC}"
+    
+    if [[ ! -d "$host_dir" ]]; then
+        echo -e "${RED}Error: Host directory $host_dir does not exist${NC}"
+        exit 1
+    fi
+    
+    cd "$host_dir"
+    home-manager build --flake ".#$config_name"
+    
+    echo -e "${GREEN}✓ Build completed successfully${NC}"
+}
+
+switch_config() {
+    local env="${1:-$(detect_environment)}"
+    local config_name=$(get_config_name "$env")
+    local host_dir="$FLAKE_DIR/hosts/$env"
+    
+    echo -e "${BLUE}Switching to configuration for: ${YELLOW}$env${NC}"
+    
+    if [[ ! -d "$host_dir" ]]; then
+        echo -e "${RED}Error: Host directory $host_dir does not exist${NC}"
+        exit 1
+    fi
+    
+    cd "$host_dir"
+    
+    # If this is NixOS, apply system configuration first
+    if [[ "$env" == "laptop-nixos" ]]; then
+        echo -e "${BLUE}Applying NixOS system configuration...${NC}"
+        sudo nixos-rebuild switch --flake ".#$env"
+        echo -e "${GREEN}✓ System configuration applied${NC}"
+    fi
+    
+    # Then apply Home Manager configuration
+    echo -e "${BLUE}Applying Home Manager configuration...${NC}"
+    home-manager switch --flake ".#$config_name"
+    
+    echo -e "${GREEN}✓ Switch completed successfully${NC}"
+}
+
+list_configs() {
+    echo -e "${BLUE}Available configurations:${NC}"
+    echo "  desktop-wsl   - Desktop with WSL environment"
+    echo "  laptop-nixos  - Laptop with NixOS environment"
+    echo ""
+    echo -e "${BLUE}Current environment: ${YELLOW}$(detect_environment)${NC}"
+}
+
+show_current() {
+    local env=$(detect_environment)
+    echo -e "${BLUE}Current environment: ${YELLOW}$env${NC}"
+    
+    if [[ -n "${IS_WSL:-}" ]]; then
+        echo -e "${BLUE}WSL detected: ${YELLOW}$IS_WSL${NC}"
+    fi
+    
+    if [[ -n "${IS_NIXOS:-}" ]]; then
+        echo -e "${BLUE}NixOS detected: ${YELLOW}$IS_NIXOS${NC}"
+    fi
+    
+    if [[ -n "${CURRENT_HOSTNAME:-}" ]]; then
+        echo -e "${BLUE}Hostname: ${YELLOW}$CURRENT_HOSTNAME${NC}"
+    fi
+}
+
+# Main script logic
+case "${1:-help}" in
+    build)
+        build_config "${2:-}"
+        ;;
+    switch)
+        switch_config "${2:-}"
+        ;;
+    list)
+        list_configs
+        ;;
+    current)
+        show_current
+        ;;
+    help|--help|-h)
+        print_usage
+        ;;
+    *)
+        echo -e "${RED}Unknown command: $1${NC}"
+        echo ""
+        print_usage
+        exit 1
+        ;;
+esac
