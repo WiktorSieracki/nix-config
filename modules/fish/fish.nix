@@ -22,6 +22,8 @@ in
     aliases = {
       npx = 'pnpx';
       npm = 'pnpm';
+      nnpm = 'npm';
+      nnpx = 'npx';
     };
     functions = {
       # to change fish prompt using fish_config
