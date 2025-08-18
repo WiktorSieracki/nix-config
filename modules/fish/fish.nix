@@ -19,11 +19,11 @@ in
 
   programs.fish = {
     enable = true;
-    aliases = {
-      npx = 'pnpx';
-      npm = 'pnpm';
-      nnpm = 'npm';
-      nnpx = 'npx';
+    shellAliases = {
+      npx = "pnpx";
+      npm = "pnpm";
+      nnpm = "npm";
+      nnpx = "npx";
     };
     functions = {
       # to change fish prompt using fish_config
