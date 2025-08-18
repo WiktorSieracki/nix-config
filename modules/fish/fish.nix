@@ -19,6 +19,10 @@ in
 
   programs.fish = {
     enable = true;
+    aliases = {
+      npx = 'pnpx';
+      npm = 'pnpm';
+    };
     functions = {
       # to change fish prompt using fish_config
       # you need to delete those two functions in fish/functions folder
