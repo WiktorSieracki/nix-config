@@ -4,6 +4,7 @@
   home.packages = [
     (pkgs.python312.withPackages (python-pkgs: [
       python-pkgs.numpy
+      python-pkgs.pyautogui
       python-pkgs.pandas
       python-pkgs.matplotlib
       python-pkgs.scipy
