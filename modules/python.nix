@@ -11,6 +11,7 @@
       python-pkgs.opencv4
       python-pkgs.scikit-image
       python-pkgs.pygame
+      python-pkgs.requests
     ]))
   ];
 }
