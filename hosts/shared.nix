@@ -43,6 +43,7 @@
     (flakeRoot + /modules/java.nix)
     (flakeRoot + /modules/python.nix)
     (flakeRoot + /modules/typst.nix)
+    (flakeRoot + /modules/magisterka/scala.nix)
   ];
 
   home.sessionVariables = {
