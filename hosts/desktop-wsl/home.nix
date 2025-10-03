@@ -3,6 +3,7 @@
 {
   imports = [
     ../shared.nix
+    ../modules/magisterka/scala.nix
   ];
 
   # WSL-specific packages
