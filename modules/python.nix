@@ -13,5 +13,6 @@
       python-pkgs.pygame
       python-pkgs.requests
     ]))
+    pkgs.uv
   ];
 }
