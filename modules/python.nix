@@ -14,5 +14,6 @@
       python-pkgs.requests
     ]))
     pkgs.uv
+    pkgs.ruff
   ];
 }
