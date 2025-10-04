@@ -23,6 +23,7 @@
     pkgs.nodePackages."@angular/cli"
     pkgs.tree
     pkgs.treecat
+    pkgs.tealdeer
 
     pkgs.pre-commit
 
