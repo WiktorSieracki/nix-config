@@ -24,6 +24,8 @@ in
       npm = "pnpm";
       nnpm = "npm";
       nnpx = "npx";
+      # for using python on windows from WSL
+      winuv = "/mnt/c/Users/wikto/.local/bin/uv.exe";
     };
     functions = {
       # to change fish prompt using fish_config
