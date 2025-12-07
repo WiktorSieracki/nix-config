@@ -1,9 +1,10 @@
-{ inputs, pkgs, ... }:
-
-let
-  java = import ../java.nix { inherit inputs pkgs; };
-in
 {
+  inputs,
+  pkgs,
+  ...
+}: let
+  java = import ../java.nix {inherit inputs pkgs;};
+in {
   # fixes some problems because fish is not POSIX compliant
   # https://nixos.wiki/wiki/Fish#Setting_fish_as_your_shell
   programs.bash = {
@@ -24,6 +25,8 @@ in
       npm = "pnpm";
       nnpm = "npm";
       nnpx = "npx";
+      # for using python on windows from WSL
+      winuv = "/mnt/c/Users/wikto/.local/bin/uv.exe";
     };
     functions = {
       # to change fish prompt using fish_config

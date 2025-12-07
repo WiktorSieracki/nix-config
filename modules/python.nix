@@ -1,6 +1,4 @@
-{ pkgs, ... }:
-
-{
+{pkgs, ...}: {
   home.packages = [
     (pkgs.python312.withPackages (python-pkgs: [
       python-pkgs.numpy
