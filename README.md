@@ -113,7 +113,7 @@ For detailed Nix usage information, see [nix-guide.md](./nix-guide.md) which cov
 3. **Apply changes**:
 
    ```bash
-   home-manager switch --flake .#wiktor@desktop-wsl --impure
+   home-manager switch --flake .#wiktor@desktop-wsl
    ```
 
 4. **Commit changes**:
