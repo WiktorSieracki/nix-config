@@ -1,9 +1,10 @@
-{ inputs, pkgs, ... }:
-
-let
-  java = import ../java.nix { inherit inputs pkgs; };
-in
 {
+  inputs,
+  pkgs,
+  ...
+}: let
+  java = import ../java.nix {inherit inputs pkgs;};
+in {
   # fixes some problems because fish is not POSIX compliant
   # https://nixos.wiki/wiki/Fish#Setting_fish_as_your_shell
   programs.bash = {
