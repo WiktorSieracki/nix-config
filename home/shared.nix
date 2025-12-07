@@ -1,29 +1,26 @@
-{
-  config,
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   home.username = "wiktor";
   home.homeDirectory = "/home/wiktor";
   home.stateVersion = "25.11";
 
   # Core packages that are common across all environments
   home.packages = with pkgs; [
-    pkgs.alejandra
-    pkgs.nix-search-cli
-    pkgs.nodejs_25
-    pkgs.pnpm
-    pkgs.tree
-    pkgs.treecat
-    pkgs.tealdeer
+    alejandra
+    nixd
+    nix-search-cli
+    nodejs_25
+    pnpm
+    tree
+    treecat
+    tealdeer
 
-    pkgs.pre-commit
+    pre-commit
 
     # Custom scripts
-    (pkgs.writeShellScriptBin "gitHttpsToSsh" (
-      builtins.readFile (../customScripts/gitHttpsToSsh)
+    (writeShellScriptBin "gitHttpsToSsh" (
+      builtins.readFile ../customScripts/gitHttpsToSsh
     ))
-    (pkgs.writeShellScriptBin "pull" (builtins.readFile (../customScripts/pull)))
+    (writeShellScriptBin "pull" (builtins.readFile ../customScripts/pull))
   ];
 
   # Common imports for all environments

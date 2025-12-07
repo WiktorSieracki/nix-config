@@ -1,14 +1,10 @@
-{
-  config,
-  pkgs,
-  ...
-}: {
+{...}: {
   imports = [
     ../shared.nix
   ];
 
   # WSL-specific packages
-  home.packages = with pkgs; [
+  home.packages = [
   ];
 
   # WSL-specific environment variables
