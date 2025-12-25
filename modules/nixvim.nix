@@ -8,6 +8,8 @@
     opts = {
       number = true;
       relativenumber = true;
+      list = true;
+      listchars = "space:·";
     };
 
     # Plugins
