@@ -32,6 +32,7 @@
     ../modules/java.nix
     ../modules/python.nix
     ../modules/magisterka/scala.nix
+    ../modules/typst.nix
   ];
 
   home.sessionVariables = {
