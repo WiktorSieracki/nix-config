@@ -33,6 +33,7 @@
     ../modules/python.nix
     ../modules/magisterka/scala.nix
     ../modules/typst.nix
+    ../modules/fonts.nix
   ];
 
   home.sessionVariables = {
