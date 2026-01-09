@@ -30,4 +30,7 @@
   };
 in {
   home.packages = [nusmv];
+  programs.fish.shellAliases = {
+    nusmv = "NuSMV";
+  };
 }
