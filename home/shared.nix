@@ -32,6 +32,7 @@
     ../modules/java.nix
     ../modules/python.nix
     ../modules/magisterka/scala.nix
+    ../modules/magisterka/alloy.nix
     ../modules/typst.nix
     ../modules/fonts.nix
   ];
