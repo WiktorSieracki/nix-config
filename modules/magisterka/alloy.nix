@@ -1,8 +1,4 @@
-{
-  config,
-  pkgs,
-  ...
-}: let
+{pkgs, ...}: let
   alloy = pkgs.stdenv.mkDerivation rec {
     pname = "alloy";
     version = "6.2.0";
