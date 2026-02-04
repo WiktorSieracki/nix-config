@@ -19,5 +19,7 @@
   programs.fish.interactiveShellInit = ''
     # Enable Vi mode
     fish_default_key_bindings
+    # fish_vi_key_bindings
+
   '';
 }
