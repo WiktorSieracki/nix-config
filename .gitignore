@@ -1,6 +1,3 @@
-# Hardware-specific configs
-hosts/*/hardware-configuration.nix
-
 # Secrets
 *.secret
 *.key
