@@ -13,6 +13,11 @@
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    niri = {
+      url = "github:sodiboo/niri-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
@@ -20,7 +25,7 @@
     home-manager,
     nixvim,
     ...
-  }: let
+  } @ inputs: let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
   in {
@@ -35,6 +40,19 @@
           hostname = "desktop-wsl";
         };
       };
+    };
+    nixosConfigurations."wiktor@laptop-nixos" = nixpkgs.lib.nixosSystem {
+      specialArgs = {inherit inputs;};
+      modules = [
+        ./hosts/wiktor
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.extraSpecialArgs = {
+            inherit inputs;
+            hostname = "laptop-nixos";
+          };
+        }
+      ];
     };
   };
 }
