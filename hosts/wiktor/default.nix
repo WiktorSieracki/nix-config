@@ -100,7 +100,7 @@
   };
 
   # Import home-manager config
-  home-manager.users.wiktor = import ../../home/laptop-nixos/home.nix;
+  # home-manager.users.wiktor = import ../../home/laptop-nixos/home.nix;
   home-manager.backupFileExtension = "hm.bak";
 
   # Allow flakes
