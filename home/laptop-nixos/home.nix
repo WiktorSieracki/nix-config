@@ -2,6 +2,10 @@
   imports = [
     # ../shared.nix
     ../../modules/vscode.nix
-    ../../modules/niri
   ];
+
+  home.username = "wiktor";
+  home.homeDirectory = "/home/wiktor";
+  home.stateVersion = "25.11";
+  nixpkgs.config.allowUnfree = true;
 }
