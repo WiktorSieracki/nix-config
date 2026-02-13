@@ -10,16 +10,23 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
-    ../modules/niri
+#    ../modules/niri
     # inputs.home-manager.nixosModules.home-manager
   ];
 
   # Bootloader.
-  boot.loader.grub.enable = true;
-  boot.loader.grub.device = "/dev/sda";
-  boot.loader.grub.useOSProber = true;
-  boot.loader.grub.configurationLimit = 99999; # keep all generations
-  boot.loader.grub.timeout = 99999; # wait forever
+  boot.loader.systemd-boot.enable = false;
+  boot.loader.efi.canTouchEfiVariables = true;
+  #boot.loader.grub.configurationLimit = 99999; # keep all generations
+  #boot.loader.grub.timeout = 99999; # wait forever
+
+  # enable GRUB
+  boot.loader.grub = {
+    enable = true;
+    efiSupport = true;
+    device = "nodev";        # do not write to a raw device
+  };
+  boot.loader.efi.efiSysMountPoint = "/boot/efi";
 
   networking.hostName = "wiktor"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
@@ -53,9 +60,9 @@
   services.xserver.enable = true;
 
   # Enable the GNOME Desktop Environment.
-  # services.xserver.displayManager.gdm.enable = true;
+  services.xserver.displayManager.gdm.enable = true;
+  services.xserver.desktopManager.gnome.enable = true;
   # services.xserver.displayManager.gdm.wayland = true;
-  # services.xserver.desktopManager.gnome.enable = true;
 
   # Configure keymap in X11
   services.xserver.xkb = {
