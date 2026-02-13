@@ -22,7 +22,8 @@
             },
         },
         "editor.formatOnSave": true,
-        "files.autoSave": "onFocusChange"
+        "files.autoSave": "onFocusChange",
+        "git.autofetch": true
     }
   '';
 }
