@@ -34,7 +34,6 @@
         inherit pkgs;
         modules = [
           ./home/desktop-wsl/home.nix
-          nixvim.homeModules.nixvim
         ];
         extraSpecialArgs = {
           hostname = "desktop-wsl";

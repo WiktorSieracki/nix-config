@@ -31,9 +31,9 @@
     ../modules/nixvim.nix
     ../modules/java.nix
     ../modules/python.nix
-    ../modules/magisterka/scala.nix
-    ../modules/magisterka/alloy.nix
-    ../modules/magisterka/nusmv.nix
+    # ../modules/magisterka/scala.nix
+    # ../modules/magisterka/alloy.nix
+    # ../modules/magisterka/nusmv.nix
     ../modules/typst.nix
     ../modules/fonts.nix
   ];
