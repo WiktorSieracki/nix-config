@@ -84,6 +84,13 @@
     #media-session.enable = true;
   };
 
+  # Enable bluetooth.
+  hardware.bluetooth.enable = true;
+
+  services.power-profiles-daemon.enable = true;
+
+  services.upower.enable = true;
+
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
 
