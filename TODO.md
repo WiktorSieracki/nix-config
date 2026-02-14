@@ -1,6 +1,6 @@
-- niri waybar
-- connect to bluetooth
-- sound up/down
+<!-- - niri waybar -->
+<!-- - connect to bluetooth -->
+<!-- - sound up/down -->
 - docker
 - firefox
     - extensions
