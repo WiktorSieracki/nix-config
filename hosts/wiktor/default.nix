@@ -24,7 +24,7 @@
     useOSProber = true;
   };
   #boot.loader.grub.configurationLimit = 99999; # keep all generations
-  #boot.loader.grub.timeout = 99999; # wait forever
+  boot.loader.grub.timeout = 99999; # wait forever
 
   networking.hostName = "wiktor"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
