@@ -7,6 +7,8 @@
     inputs.niri.nixosModules.niri
   ];
 
+  services.xserver.displayManager.gdm.wayland = true;
+
   programs.niri.enable = true;
 
   environment.systemPackages = with pkgs; [
