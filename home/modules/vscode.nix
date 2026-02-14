@@ -22,6 +22,7 @@
       "editor.formatOnSave" = true;
       "files.autoSave" = "onFocusChange";
       "git.autofetch" = true;
+      "git.confirmSync" = false;
     };
   };
 }
