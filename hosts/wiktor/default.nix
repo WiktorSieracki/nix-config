@@ -10,14 +10,19 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
-#    ../modules/niri
+    #    ../modules/niri
     # inputs.home-manager.nixosModules.home-manager
   ];
 
   # Bootloader.
   boot.loader.systemd-boot.enable = false;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.loader.grub.enable = false;
+  boot.loader.grub = {
+    enable = true;
+    efiSupport = true;
+    device = "nodev";
+    useOSProber = true;
+  };
   #boot.loader.grub.configurationLimit = 99999; # keep all generations
   #boot.loader.grub.timeout = 99999; # wait forever
 
