@@ -8,3 +8,7 @@
         - ublock
         - bitwarden
 - workspaces with multiple browser tabs and programs
+- niri programs shortcuts
+    - super + A - chatgpt temporary chat
+    - super + N - notion
+    - super + B - firefox
