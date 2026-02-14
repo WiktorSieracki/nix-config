@@ -17,16 +17,9 @@
   # Bootloader.
   boot.loader.systemd-boot.enable = false;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader.grub.enable = false;
   #boot.loader.grub.configurationLimit = 99999; # keep all generations
   #boot.loader.grub.timeout = 99999; # wait forever
-
-  # enable GRUB
-  boot.loader.grub = {
-    enable = true;
-    efiSupport = true;
-    device = "nodev";        # do not write to a raw device
-  };
-  boot.loader.efi.efiSysMountPoint = "/boot/efi";
 
   networking.hostName = "wiktor"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
