@@ -112,9 +112,6 @@
   # Allow flakes
   nix.settings.experimental-features = ["nix-command" "flakes"];
 
-  # Install firefox.
-  programs.firefox.enable = true;
-
   # Install fish
   programs.fish.enable = true;
 
