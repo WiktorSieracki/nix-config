@@ -2,11 +2,11 @@
 <!-- - connect to bluetooth -->
 <!-- - sound up/down -->
 - docker
-- firefox
-    - extensions
-        - vimium
-        - ublock
-        - bitwarden
+<!-- - firefox -->
+    <!-- - extensions -->
+        <!-- - vimium -->
+        <!-- - ublock -->
+        <!-- - bitwarden -->
 - workspaces with multiple browser tabs and programs
 - niri programs shortcuts
     <!-- - super + A - chatgpt temporary chat -->
