@@ -11,5 +11,5 @@
 - niri programs shortcuts
     <!-- - super + A - chatgpt temporary chat -->
     - super + N - notion
-    - super + B - firefox
+    <!-- - super + B - firefox -->
     <!-- - super + C - nix-config -->
