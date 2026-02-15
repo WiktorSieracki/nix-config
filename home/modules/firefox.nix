@@ -34,30 +34,22 @@
         force = true;
         settings = [
           {
-            name = "wikipedia";
-            tags = ["wiki"];
-            keyword = "wiki";
-            url = "https://en.wikipedia.org/wiki/Special:Search?search=%s&go=Go";
-          }
-          {
-            toolbar = true;
-            name = "kernel.org";
-            url = "https://www.kernel.org";
-          }
-          "separator"
-          {
-            name = "Nix sites";
+            name = "toolbar";
             toolbar = true;
             bookmarks = [
               {
-                name = "homepage";
-                url = "https://nixos.org/";
+                name = "Personal Page";
+                url = "https://wiktorsieracki.com";
               }
-              {
-                name = "wiki";
-                tags = ["wiki" "nix"];
-                url = "https://wiki.nixos.org/";
-              }
+              # {
+              #   name = "folder";
+              #   bookmarks = [
+              #     {
+              #       name = "Nix Packages";
+              #       url = "https://search.nixos.org/packages";
+              #     }
+              #   ];
+              # }
             ];
           }
         ];
@@ -79,6 +71,7 @@
         ublock-origin
         sponsorblock
         darkreader
+        vimium-c
         # tridactyl
         # youtube-shorts-block
       ];
