@@ -15,6 +15,7 @@
     alacritty
     xwayland-satellite
     fuzzel
+    swaylock
   ];
 
   environment.sessionVariables.NIXOS_OZONE_WL = "1";

@@ -2,6 +2,10 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 {pkgs, ...}: {
+  nix.settings = {
+    download-buffer-size = 524288000; # 500 MiB
+  };
+
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
