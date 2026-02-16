@@ -3,6 +3,10 @@
   inputs,
   ...
 }: {
+  home.packages = with pkgs; [
+    pywalfox-native
+  ];
+
   programs.firefox = {
     enable = true;
     profiles.wiktor = {
@@ -72,6 +76,7 @@
         sponsorblock
         darkreader
         vimium-c
+        pywalfox
         # tridactyl
         # youtube-shorts-block
       ];
