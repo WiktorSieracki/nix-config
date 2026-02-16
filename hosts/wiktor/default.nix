@@ -23,7 +23,7 @@
     useOSProber = true;
   };
   #boot.loader.grub.configurationLimit = 99999; # keep all generations
-  boot.loader.grub.timeout = 99999; # wait forever
+  boot.loader.timeout = 99999; # wait forever
 
   networking.hostName = "wiktor"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
@@ -73,7 +73,7 @@
   services.printing.enable = true;
 
   # Enable sound with pipewire.
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;

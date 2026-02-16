@@ -7,7 +7,7 @@
     inputs.niri.nixosModules.niri
   ];
 
-  services.xserver.displayManager.gdm.wayland = true;
+  services.displayManager.gdm.wayland = true;
 
   programs.niri.enable = true;
 
