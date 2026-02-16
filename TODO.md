@@ -1,15 +1,10 @@
-<!-- - niri waybar -->
-<!-- - connect to bluetooth -->
-<!-- - sound up/down -->
-- docker
-<!-- - firefox -->
-    <!-- - extensions -->
-        <!-- - vimium -->
-        <!-- - ublock -->
-        <!-- - bitwarden -->
-- workspaces with multiple browser tabs and programs
+- firefox dark theme with noctalia (pywallfox)
+- named workspaces with multiple browser tabs and programs
+- setup SSH
+- setup lockscreen
+- niri blurred baackground on overview [https://docs.noctalia.dev/getting-started/compositor-settings/niri/#option-1-blurred-overview-wallpaper]
 - niri programs shortcuts
-    <!-- - super + A - chatgpt temporary chat -->
     - super + N - notion
-    <!-- - super + B - firefox -->
-    <!-- - super + C - nix-config -->
+- put niri settings in nix way
+- docker
+- create justfile for quick nixos-rebuild (maybe with nh)
