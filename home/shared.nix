@@ -25,22 +25,24 @@
 
   # Common imports for all environments
   imports = [
-    ../modules/ssh.nix
-    ../modules/fish/fish.nix
-    ../modules/git.nix
-    ../modules/nixvim.nix
-    ../modules/java.nix
-    ../modules/python.nix
-    ../modules/magisterka/scala.nix
-    ../modules/magisterka/alloy.nix
-    ../modules/magisterka/nusmv.nix
-    ../modules/typst.nix
-    ../modules/fonts.nix
+    ./modules/ssh.nix
+    ./modules/fish/fish.nix
+    ./modules/git.nix
+    ./modules/nixvim.nix
+    ./modules/java.nix
+    ./modules/python.nix
+    # modules/magisterka/scala.nix
+    # modules/magisterka/alloy.nix
+    # modules/magisterka/nusmv.nix
+    ./modules/typst.nix
+    ./modules/fonts.nix
   ];
 
   home.sessionVariables = {
     EDITOR = "nvim";
   };
+
+  nixpkgs.config.allowUnfree = true;
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;

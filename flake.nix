@@ -13,14 +13,28 @@
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    niri = {
+      url = "github:sodiboo/niri-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    noctalia = {
+      url = "github:noctalia-dev/noctalia-shell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    firefox-addons = {
+      url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
     nixpkgs,
     home-manager,
-    nixvim,
     ...
-  }: let
+  } @ inputs: let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
   in {
@@ -29,12 +43,25 @@
         inherit pkgs;
         modules = [
           ./home/desktop-wsl/home.nix
-          nixvim.homeModules.nixvim
         ];
         extraSpecialArgs = {
+          inherit inputs;
           hostname = "desktop-wsl";
         };
       };
+    };
+    nixosConfigurations."wiktor@laptop-nixos" = nixpkgs.lib.nixosSystem {
+      specialArgs = {inherit inputs;};
+      modules = [
+        ./hosts/wiktor
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.extraSpecialArgs = {
+            inherit inputs;
+            hostname = "laptop-nixos";
+          };
+        }
+      ];
     };
   };
 }
