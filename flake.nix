@@ -45,6 +45,7 @@
           ./home/desktop-wsl/home.nix
         ];
         extraSpecialArgs = {
+          inherit inputs;
           hostname = "desktop-wsl";
         };
       };
