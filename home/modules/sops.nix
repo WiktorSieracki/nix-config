@@ -23,6 +23,7 @@
       hello = {};
     };
 
+    # someOption = config.sops.secrets.hello.path;
     # if home-manager switch fails because of sops try running:
     # systemctl --user reset-failed
   };
