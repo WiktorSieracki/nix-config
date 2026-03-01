@@ -25,6 +25,7 @@
 
   # Common imports for all environments
   imports = [
+    ./modules/sops.nix
     ./modules/ssh.nix
     ./modules/fish/fish.nix
     ./modules/git.nix

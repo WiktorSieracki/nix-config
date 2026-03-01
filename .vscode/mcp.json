@@ -1,8 +1,0 @@
-{
-    "servers": {
-        "nixos": {
-            "command": "nix",
-            "args": ["shell", "nixpkgs#uv", "--command", "uvx", "mcp-nixos@0.3.1"]
-          }
-    }
-}
