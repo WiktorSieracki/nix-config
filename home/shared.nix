@@ -13,6 +13,7 @@
     tree
     treecat
     tealdeer
+    bruno-cli
 
     pre-commit
 
