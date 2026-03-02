@@ -1,15 +1,22 @@
 # Edit this configuration file to define what should be installed on
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
-{pkgs, ...}: {
+{
+  pkgs,
+  config,
+  inputs,
+  ...
+}: {
   nix.settings = {
     download-buffer-size = 524288000; # 500 MiB
   };
 
   imports = [
     # Include the results of the hardware scan.
+    inputs.sops-nix.nixosModules.sops
     ./hardware-configuration.nix
     ../modules/niri
+    ../modules/eduroam.nix
   ];
 
   # Bootloader.
@@ -25,7 +32,7 @@
   boot.loader.timeout = 99999; # wait forever
 
   networking.hostName = "wiktor"; # Define your hostname.
-  networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
+  # networking.wireless.enable = true; # Enables wireless support via wpa_supplicant.
 
   # Configure network proxy if necessary
   # networking.proxy.default = "http://user:password@proxy:port/";
@@ -33,6 +40,36 @@
 
   # Enable networking
   networking.networkmanager.enable = true;
+
+  # networking.networkmanager.ensureProfiles.profiles = {
+  #   eduroam = {
+  #     connection = {
+  #       id = "eduroam";
+  #       type = "wifi";
+  #       interface-name = "wlp3s0";
+  #     };
+  #     wifi = {
+  #       mode = "infrastructure";
+  #       ssid = "eduroam";
+  #     };
+  #     wifi-security = {
+  #       key-mgmt = "wpa-eap";
+  #     };
+  #     "802-1x" = {
+  #       eap = "peap";
+  #       phase2-auth = "mschapv2";
+  #       anonymous-identity = "anonymous@studms.ug.edu.pl";
+  #       identity = "w.sieracki.643@studms.ug.edu.pl";
+  #       password = builtins.readFile config.sops.secrets.eduroamPassword.path;
+  #     };
+  #     ipv4 = {
+  #       method = "auto";
+  #     };
+  #     ipv6 = {
+  #       method = "auto";
+  #     };
+  #   };
+  # };
 
   # Set your time zone.
   time.timeZone = "Europe/Warsaw";
@@ -128,6 +165,7 @@
     alejandra
     nixd
     git
+    bitwarden-desktop
     #  wget
   ];
 

@@ -16,11 +16,8 @@
     validateSopsFiles = false;
 
     secrets = {
-      # This decrypts the "hello" key from secrets.yaml
-      # and makes it available as a file at:
-      #   /run/user/<uid>/secrets/hello (on NixOS)
-      #   or ~/.config/sops-nix/secrets/hello
-      hello = {};
+      # This decrypts the "eduroamPassword" key from secrets.yaml
+      eduroamPassword = {};
     };
 
     # someOption = config.sops.secrets.hello.path;
