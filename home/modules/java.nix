@@ -1,6 +1,7 @@
 {pkgs, ...}: {
-  home.packages = [
-    pkgs.zulu25
+  home.packages = with pkgs; [
+    zulu25
+    gradle
   ];
 
   home.sessionVariables = {
