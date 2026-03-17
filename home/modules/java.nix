@@ -1,7 +1,7 @@
 {pkgs, ...}: {
   home.packages = with pkgs; [
     zulu25
-    gradle
+    gradle_9
   ];
 
   home.sessionVariables = {
