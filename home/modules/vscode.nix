@@ -6,7 +6,7 @@
       extensions = with pkgs.vscode-extensions; [
         bbenoist.nix
         jnoortheen.nix-ide
-        vscodevim.vim
+        # vscodevim.vim
       ];
       userSettings = {
         "nix.serverPath" = "nixd";

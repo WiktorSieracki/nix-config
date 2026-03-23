@@ -58,12 +58,25 @@
     nixosConfigurations."wiktor@laptop-nixos" = nixpkgs.lib.nixosSystem {
       specialArgs = {inherit inputs;};
       modules = [
-        ./hosts/wiktor
+        ./hosts/laptop
         home-manager.nixosModules.home-manager
         {
           home-manager.extraSpecialArgs = {
             inherit inputs;
             hostname = "laptop-nixos";
+          };
+        }
+      ];
+    };
+    nixosConfigurations."wiktor@desktop-nixos" = nixpkgs.lib.nixosSystem {
+      specialArgs = {inherit inputs;};
+      modules = [
+        ./hosts/desktop
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.extraSpecialArgs = {
+            inherit inputs;
+            hostname = "desktop-nixos";
           };
         }
       ];
