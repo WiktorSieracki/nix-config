@@ -44,8 +44,8 @@
 
         binds = {
           "Mod+C hotkey-overlay-title=\"Open nix-config in an editor\"".spawn-sh = "code ~/.config/nix-config";
-          "Mod+A hotkey-overlay-title=\"Open gemini in Firefox\"".spawn = ["firefox" "--new-window" "https://gemini.google.com"];
-          "Mod+B hotkey-overlay-title=\"Open a Browser: Firefox\"".spawn = "firefox";
+          "Mod+A hotkey-overlay-title=\"Open gemini in Firefox\"".spawn = ["${lib.getExe pkgs.firefox}" "--new-window" "https://gemini.google.com"];
+          "Mod+B hotkey-overlay-title=\"Open a Browser: Firefox\"".spawn = "${lib.getExe pkgs.firefox}";
 
           "Mod+Return".spawn-sh = lib.getExe pkgs.alacritty;
           "Mod+W repeat=false".close-window = null;
