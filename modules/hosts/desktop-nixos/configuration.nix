@@ -12,10 +12,13 @@
     imports = [
       self.nixosModules.desktopNixosHardware
       self.nixosModules.niri
-      # self.homeConfigurations.wiktor
+      inputs.home-manager.nixosModules.home-manager
     ];
 
-    # Bootloader.
+    # Home Manager configuration for user wiktor
+    home-manager.useGlobalPkgs = true;
+    home-manager.useUserPackages = true;
+    home-manager.users.wiktor = self.homeModules.wiktor;
     # boot.loader.systemd-boot.enable = true;
     boot.loader.efi.canTouchEfiVariables = true;
     boot.loader.grub.enable = true;
@@ -68,10 +71,6 @@
       layout = "pl";
       variant = "";
     };
-
-    # Import home-manager config
-    # inputs.home-manager.users.wiktor = self.homeModules.wiktor;
-    # home-manager.backupFileExtension = "hm.bak";
 
     nix.settings.experimental-features = ["nix-command" "flakes"];
 

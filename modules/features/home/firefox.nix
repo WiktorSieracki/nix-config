@@ -1,8 +1,4 @@
-{
-  self,
-  inputs,
-  ...
-}: {
+{inputs, ...}: {
   flake.homeModules.firefox = {pkgs, ...}: {
     programs.firefox = {
       enable = true;
@@ -61,6 +57,8 @@
           "browser.download.panel.shown" = true;
           "identity.fxaccounts.enabled" = false;
           # "signon.rememberSignons" = false;
+
+          "browser.toolbars.bookmarks.visibility" = "always";
         };
 
         userChrome = ''
