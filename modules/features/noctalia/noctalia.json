@@ -5,7 +5,7 @@
       "barType": "simple",
       "position": "top",
       "monitors": [],
-      "density": "default",
+      "density": "compact",
       "showOutline": false,
       "showCapsule": true,
       "capsuleOpacity": 1,
@@ -451,7 +451,7 @@
       "onlySameOutput": true,
       "monitors": [],
       "pinnedApps": [],
-      "colorizeIcons": false,
+      "colorizeIcons": true,
       "showLauncherIcon": false,
       "launcherPosition": "end",
       "launcherIconColor": "none",
@@ -619,7 +619,24 @@
       "monitorForColors": ""
     },
     "templates": {
-      "activeTemplates": [],
+      "activeTemplates": [
+        {
+          "enabled": true,
+          "id": "code"
+        },
+        {
+          "enabled": true,
+          "id": "pywalfox"
+        },
+        {
+          "enabled": true,
+          "id": "discord"
+        },
+        {
+          "enabled": true,
+          "id": "alacritty"
+        }
+      ],
       "enableUserTheming": false
     },
     "nightLight": {
@@ -674,24 +691,43 @@
     "openedPanel": "",
     "lockScreenActive": false,
     "wallpapers": {
+      "DP-3": "/home/wiktor/Pictures/Wallpapers/nature.jpg",
+      "DP-6": "/home/wiktor/Pictures/Wallpapers/nature.jpg",
+      "HDMI-A-1": "/home/wiktor/Pictures/Wallpapers/nature.jpg",
+      "HDMI-A-2": "/home/wiktor/Pictures/Wallpapers/nature.jpg",
       "winit": "/home/wiktor/Pictures/Wallpapers/nature.jpg"
     },
     "desktopWidgetsEditMode": false,
     "display": {
-      "winit": {
-        "name": "winit",
+      "HDMI-A-2": {
+        "name": "HDMI-A-2",
         "connected": true,
         "scale": 1,
-        "width": 1280,
-        "height": 800,
-        "x": 0,
+        "width": 1920,
+        "height": 1080,
+        "x": 1920,
         "y": 0,
-        "physical_width": 0,
-        "physical_height": 0,
+        "physical_width": 510,
+        "physical_height": 290,
         "refresh_rate": 60000,
         "vrr_supported": false,
         "vrr_enabled": false,
-        "transform": "Flipped180"
+        "transform": "Normal"
+      },
+      "DP-6": {
+        "name": "DP-6",
+        "connected": true,
+        "scale": 1,
+        "width": 1920,
+        "height": 1080,
+        "x": 0,
+        "y": 0,
+        "physical_width": 530,
+        "physical_height": 300,
+        "refresh_rate": 60000,
+        "vrr_supported": false,
+        "vrr_enabled": false,
+        "transform": "Normal"
       }
     },
     "notificationsState": {

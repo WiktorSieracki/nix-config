@@ -26,11 +26,11 @@
         input.keyboard.xkb.layout = "us,pl";
         layout.gaps = 5;
 
-        outputs."DP-6" = {
+        outputs."HP Inc. HP E243 CNC0171FR8" = {
           mode = "1920x1080@60.000";
           "position x=0 y=0" = null;
         };
-        outputs."HDMI-A-2" = {
+        outputs."Ancor Communications Inc ASUS VX239 G6LMTJ040329" = {
           mode = "1920x1080@60.000";
           "position x=1920 y=0" = null;
         };

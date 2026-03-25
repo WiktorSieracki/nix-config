@@ -12,6 +12,7 @@
     imports = [
       self.nixosModules.desktopNixosHardware
       self.nixosModules.niri
+      # self.homeConfigurations.wiktor
     ];
 
     # Bootloader.
@@ -69,7 +70,7 @@
     };
 
     # Import home-manager config
-    # home-manager.users.wiktor = import ../../home/desktop-nixos/home.nix;
+    # inputs.home-manager.users.wiktor = self.homeModules.wiktor;
     # home-manager.backupFileExtension = "hm.bak";
 
     nix.settings.experimental-features = ["nix-command" "flakes"];
