@@ -1,10 +1,5 @@
 {self, ...}: {
-  flake.homeModules.wiktor = {pkgs, ...}: {
-    imports = [
-      self.homeModules.firefox
-      self.homeModules.git
-      self.homeModules.ssh
-    ];
+  flake.modules.homeManager.wiktor = {pkgs, ...}: {
 
     home.username = "wiktor";
     home.homeDirectory = "/home/wiktor";

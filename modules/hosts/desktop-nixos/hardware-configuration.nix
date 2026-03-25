@@ -3,7 +3,7 @@
   inputs,
   ...
 }: {
-  flake.nixosModules.desktopNixosHardware = {
+  flake.modules.nixos."hosts/desktopNixos" = {
     config,
     lib,
     modulesPath,

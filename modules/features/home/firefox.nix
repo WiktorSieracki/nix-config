@@ -1,5 +1,5 @@
 {inputs, ...}: {
-  flake.homeModules.firefox = {pkgs, ...}: {
+  flake.modules.homeManager.firefox = {pkgs, ...}: {
     programs.firefox = {
       enable = true;
       profiles.wiktor = {

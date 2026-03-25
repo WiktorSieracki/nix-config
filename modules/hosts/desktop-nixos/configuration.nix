@@ -3,22 +3,22 @@
   inputs,
   ...
 }: {
-  flake.nixosModules.desktopNixosConfiguration = {
+  flake.modules.nixos."hosts/desktopNixos" = {
     pkgs,
     lib,
     ...
   }: {
     # import any other modules from here
-    imports = [
-      self.nixosModules.desktopNixosHardware
-      self.nixosModules.niri
-      inputs.home-manager.nixosModules.home-manager
-    ];
+    # imports = [
+      # self.nixosModules.desktopNixosHardware
+      # self.nixosModules.niri
+      # inputs.home-manager.nixosModules.home-manager
+    # ];
 
     # Home Manager configuration for user wiktor
     home-manager.useGlobalPkgs = true;
     home-manager.useUserPackages = true;
-    home-manager.users.wiktor = self.homeModules.wiktor;
+    # home-manager.users.wiktor = self.homeModules.wiktor;
     # boot.loader.systemd-boot.enable = true;
     boot.loader.efi.canTouchEfiVariables = true;
     boot.loader.grub.enable = true;

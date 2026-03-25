@@ -1,19 +1,22 @@
 {
-  self,
-  inputs,
+  config,
   ...
-}: {
-  flake.nixosConfigurations.desktopNixos = inputs.nixpkgs.lib.nixosSystem {
-    modules = [
-      self.nixosModules.desktopNixosConfiguration
-    ];
-  };
+}:
+let
+  modules = [
+    "firefox"
+    "git"
+    "ssh"
 
-  flake.homeConfigurations.wiktor = inputs.home-manager.lib.homeManagerConfiguration {
-    pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-    modules = [
-      self.homeModules.wiktor
-    ];
+    "niri"
+    "wiktor"
+  ];
+in
+{
+  flake = {
+    nixosConfigurations.desktopNixos = config.flake.lib.mkSystems.linux "desktopNixos";
+    modules.nixos."hosts/desktopNixos" = {
+      imports = config.flake.lib.loadNixosAndHmModuleForUser config modules;
+    };
   };
-  
 }
