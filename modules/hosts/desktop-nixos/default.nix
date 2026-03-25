@@ -10,6 +10,7 @@ let
 
     "niri"
     "wiktor"
+    "vscode"
   ];
 in
 {
