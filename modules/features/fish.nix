@@ -13,6 +13,12 @@
 
   programs.fish = {
     enable = true;
+
+    #TODO: fix this, it breaks the shell
+    # interactiveShellInit = '';
+    #   fish_config prompt choose disco
+    # '';
+
     shellAliases = {
       npx = "pnpx";
       npm = "pnpm";
@@ -40,10 +46,10 @@
       }
     ];
       # set -x JAVA_HOME ${java.home.sessionVariables.JAVA_HOME}
-      # ssh-add ~/.ssh/id_ed25519 > /dev/null 2>&1
-    shellInit = ''
-      fish_config prompt choose disco
-    '';
+    # shellInit = ''
+    #   fish_config prompt choose disco
+    #   ssh-add ~/.ssh/id_ed25519 > /dev/null 2>&1
+    # '';
   };
   };
   };
