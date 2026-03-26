@@ -37,7 +37,7 @@
 
         window-rules = [
           {
-            matches = [{app-id = "Code";}];
+            matches = [{app-id = "code";}];
             default-column-width = {proportion = 1.0;};
           }
         ];

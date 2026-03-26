@@ -62,10 +62,6 @@
     # services.xserver.displayManager.gdm.wayland = true;
     # services.xserver.desktopManager.gnome.enable = true;
 
-    hardware.graphics.enable = true;
-    services.xserver.videoDrivers = ["nvidia"];
-    hardware.nvidia.open = true; # Use false for proprietary drivers
-
     # Configure keymap in X11
     services.xserver.xkb = {
       layout = "pl";

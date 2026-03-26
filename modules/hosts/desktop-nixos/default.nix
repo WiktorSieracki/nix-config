@@ -3,8 +3,10 @@
     "firefox"
     "git"
     "ssh"
+    "nvidia"
 
     "niri"
+    "nix"
     "wiktor"
     "vscode"
     "fish"

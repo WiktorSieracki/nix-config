@@ -1,5 +1,13 @@
 {
-  flake.modules.homeMnager.vscode = {pkgs, ...}: {
+  flake.modules = {
+
+  nixos.vscode = {pkgs, ...}: {
+    environment.systemPackages = with pkgs; [
+      alejandra
+    ];
+  };
+  
+  homeManager.vscode = {pkgs, ...}: {
     programs.vscode = {
       enable = true;
 
@@ -29,5 +37,6 @@
         };
       };
     };
+  };
   };
 }
