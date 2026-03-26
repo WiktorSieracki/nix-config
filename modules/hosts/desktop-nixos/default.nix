@@ -11,6 +11,7 @@ let
     "niri"
     "wiktor"
     "vscode"
+    "fish"
   ];
 in
 {
