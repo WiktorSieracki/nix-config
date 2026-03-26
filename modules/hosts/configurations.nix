@@ -3,10 +3,8 @@
   config,
   inputs,
   ...
-}:
-let
-  mkNixos =
-    system: cls: name:
+}: let
+  mkNixos = system: cls: name:
     lib.nixosSystem {
       inherit system;
       modules = [
@@ -15,7 +13,7 @@ let
         {
           home-manager.users.wiktor.imports = [
             # config.flake.modules.homeManager.homeManager
-            (config.flake.modules.homeManager."hosts/${name}" or { })
+            (config.flake.modules.homeManager."hosts/${name}" or {})
           ];
 
           networking.hostName = lib.mkDefault name;
@@ -35,32 +33,30 @@ let
   linux-arm = mkNixos "aarch64-linux" "nixos";
 
   wsl = mkNixos "x86_64-linux" "wsl";
-in
-{
+in {
   flake.lib = {
-
     mkSystems = {
       inherit
         linux
         linux-arm
-
         wsl
         ;
     };
 
-    loadNixosAndHmModuleForUser =
-      config: modules:
+    loadNixosAndHmModuleForUser = config: modules:
       assert builtins.isAttrs config;
       assert builtins.isList modules;
-      (builtins.map (module: config.flake.modules.nixos.${module} or { }) modules)
-      ++ [
-        {
-          imports = [ inputs.home-manager.nixosModules.home-manager ];
+        (builtins.map (module: config.flake.modules.nixos.${module} or {}) modules)
+        ++ [
+          {
+            imports = [inputs.home-manager.nixosModules.home-manager];
 
-          home-manager.users.wiktor.imports = builtins.map (
-            module: config.flake.modules.homeManager.${module} or { }
-          ) modules;
-        }
-      ];
+            home-manager.users.wiktor.imports =
+              builtins.map (
+                module: config.flake.modules.homeManager.${module} or {}
+              )
+              modules;
+          }
+        ];
   };
 }

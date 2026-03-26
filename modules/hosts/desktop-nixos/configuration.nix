@@ -10,9 +10,9 @@
   }: {
     # import any other modules from here
     # imports = [
-      # self.nixosModules.desktopNixosHardware
-      # self.nixosModules.niri
-      # inputs.home-manager.nixosModules.home-manager
+    # self.nixosModules.desktopNixosHardware
+    # self.nixosModules.niri
+    # inputs.home-manager.nixosModules.home-manager
     # ];
 
     # Home Manager configuration for user wiktor
