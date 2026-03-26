@@ -8,6 +8,7 @@
     "wiktor"
     "vscode"
     "fish"
+    "cpp"
   ];
 in {
   flake = {
