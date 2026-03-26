@@ -5,6 +5,7 @@
       clang
       clang-tools
       just
+      gnumake
     ];
   };
 }
