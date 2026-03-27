@@ -17,6 +17,7 @@
     "pre-commit"
     "cpp"
     "typst"
+    "custom-scripts"
 
     "eduroam"
   ];

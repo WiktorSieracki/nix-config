@@ -12,9 +12,10 @@
       programs.fish = {
         enable = true;
 
-        interactiveShellInit = ''
-          fish_config prompt choose disco
-        '';
+        # TODO: it breaks shell in vscode
+        # interactiveShellInit = ''
+        #   fish_config prompt choose disco
+        # '';
 
         shellAliases = {
           npx = "pnpx";

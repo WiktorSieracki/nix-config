@@ -18,6 +18,7 @@
     "pre-commit"
     "cpp"
     "typst"
+    "custom-scripts"
   ];
 in {
   flake = {
