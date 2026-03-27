@@ -41,10 +41,6 @@
             matches = [{app-id = "code";}];
             default-column-width = {proportion = 1.0;};
           }
-          # {
-          #   # disable spotify window's titlebar
-          #   matches = [{app-id = "spotify";}];
-          # }
         ];
 
         binds = {

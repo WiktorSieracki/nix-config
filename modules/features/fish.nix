@@ -22,7 +22,6 @@
           npm = "pnpm";
           nnpm = "npm";
           nnpx = "npx";
-          ns = "sudo nixos-rebuild switch --flake ~/.config/nix-config#desktopNixos";
         };
         functions = {
           nix-fish = ''

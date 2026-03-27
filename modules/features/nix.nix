@@ -8,6 +8,11 @@
       nixd
       nix-search-cli
       nixfmt
+      nh
     ];
+
+    environment.sessionVariables = {
+      FLAKE = "/home/wiktor/.config/nix-config";
+    };
   };
 }
