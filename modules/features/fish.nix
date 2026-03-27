@@ -12,10 +12,9 @@
       programs.fish = {
         enable = true;
 
-        #TODO: fix this, it breaks the shell
-        # interactiveShellInit = '';
-        #   fish_config prompt choose disco
-        # '';
+        interactiveShellInit = ''
+          fish_config prompt choose disco
+        '';
 
         shellAliases = {
           npx = "pnpx";
