@@ -46,13 +46,13 @@ in {
     loadNixosAndHmModuleForUser = config: modules:
       assert builtins.isAttrs config;
       assert builtins.isList modules;
-        (builtins.map (module: config.flake.modules.nixos.${module} or {}) modules)
+        (map (module: config.flake.modules.nixos.${module} or {}) modules)
         ++ [
           {
             imports = [inputs.home-manager.nixosModules.home-manager];
 
             home-manager.users.wiktor.imports =
-              builtins.map (
+              map (
                 module: config.flake.modules.homeManager.${module} or {}
               )
               modules;
