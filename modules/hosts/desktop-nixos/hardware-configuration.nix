@@ -1,8 +1,4 @@
 {
-  self,
-  inputs,
-  ...
-}: {
   flake.modules.nixos."hosts/desktopNixos" = {
     config,
     lib,

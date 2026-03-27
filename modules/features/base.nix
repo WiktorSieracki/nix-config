@@ -1,7 +1,9 @@
 {
   flake.modules.nixos.nixos = {pkgs, ...}: {
     networking.networkmanager.enable = true;
-    networking.hostName = "nixos"; # Define your hostname.
+    hardware.bluetooth.enable = true;
+    services.power-profiles-daemon.enable = true;
+    services.upower.enable = true;
 
     services.xserver.enable = true;
     services.xserver.displayManager.gdm.enable = true;
