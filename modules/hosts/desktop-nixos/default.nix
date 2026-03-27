@@ -6,6 +6,7 @@
     "nvidia"
     "spotify"
 
+    "sops"
     "niri"
     "java"
     "nix"

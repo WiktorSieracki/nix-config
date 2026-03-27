@@ -1,6 +1,4 @@
 {config, ...}: {
-  sops.defaultSopsFile = ../../secrets.yaml;
-  sops.age.sshKeyPaths = ["/home/wiktor/.ssh/id_ed25519"];
   sops.secrets.eduroamPassword = {};
 
   networking.networkmanager.ensureProfiles.environmentFiles = [
