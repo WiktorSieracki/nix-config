@@ -7,6 +7,7 @@
     "spotify"
 
     "niri"
+    "java"
     "nix"
     "wiktor"
     "vscode"

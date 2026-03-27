@@ -43,11 +43,6 @@
             };
           }
         ];
-        # set -x JAVA_HOME ${java.home.sessionVariables.JAVA_HOME}
-        # shellInit = ''
-        #   fish_config prompt choose disco
-        #   ssh-add ~/.ssh/id_ed25519 > /dev/null 2>&1
-        # '';
       };
     };
   };
