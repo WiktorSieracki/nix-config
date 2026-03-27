@@ -1,5 +1,5 @@
 {
-  flake.modules.nixos.nixos = {pkgs, ...}: {
+  flake.modules.nixos.nixos = {
     boot.loader = {
       efi.canTouchEfiVariables = true;
       grub = {

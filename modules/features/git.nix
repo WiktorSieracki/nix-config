@@ -1,5 +1,5 @@
 {
-  flake.modules.homeManager.git = {pkgs, ...}: {
+  flake.modules.homeManager.git = {
     programs.git = {
       enable = true;
 

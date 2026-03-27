@@ -1,5 +1,5 @@
 {config, ...}: {
-  flake.modules.nixos.eduroam = {pkgs, ...}: {
+  flake.modules.nixos.eduroam = {
     sops.secrets.eduroamPassword = {};
     sops.secrets.studentEmail = {};
 

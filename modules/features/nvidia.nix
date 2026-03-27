@@ -1,5 +1,5 @@
 {
-  flake.modules.nixos.nvidia = {pkgs, ...}: {
+  flake.modules.nixos.nvidia = {
     hardware.graphics.enable = true;
     services.xserver.videoDrivers = ["nvidia"];
     hardware.nvidia.open = true;

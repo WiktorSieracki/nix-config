@@ -1,6 +1,6 @@
 {self, ...}: {
   flake.modules = {
-    nixos.wiktor = {pkgs, ...}: {
+    nixos.wiktor = {
       home-manager = {
         backupFileExtension = ".bak";
         useGlobalPkgs = true;
@@ -14,7 +14,7 @@
       };
     };
 
-    homeManager.wiktor = {pkgs, ...}: {
+    homeManager.wiktor = {
       home.username = "wiktor";
       home.homeDirectory = "/home/wiktor";
       home.stateVersion = "24.11";
