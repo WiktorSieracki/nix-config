@@ -8,7 +8,7 @@
     lib.nixosSystem {
       inherit system;
       modules = [
-        # config.flake.modules.nixos.${cls}
+        config.flake.modules.nixos.${cls}
         config.flake.modules.nixos."hosts/${name}"
         {
           home-manager.users.wiktor.imports = [

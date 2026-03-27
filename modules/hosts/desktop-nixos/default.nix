@@ -1,19 +1,23 @@
 {config, ...}: let
   modules = [
-    "firefox"
+    "wiktor"
+    "niri"
+    "nvidia"
+    "fish"
     "git"
     "ssh"
-    "nvidia"
-    "spotify"
-
     "sops"
-    "niri"
-    "java"
     "nix"
-    "wiktor"
+    "firefox"
     "vscode"
-    "fish"
+
+    "spotify"
+    "java"
+    "python"
+    "node"
+    "pre-commit"
     "cpp"
+    "typst"
   ];
 in {
   flake = {

@@ -1,7 +1,17 @@
 {self, ...}: {
   flake.modules = {
     nixos.wiktor = {pkgs, ...}: {
-      home-manager.backupFileExtension = ".bak";
+      home-manager = {
+        backupFileExtension = ".bak";
+        useGlobalPkgs = true;
+        useUserPackages = true;
+      };
+
+      users.users.wiktor = {
+        isNormalUser = true;
+        description = "wiktor";
+        extraGroups = ["networkmanager" "wheel"];
+      };
     };
 
     homeManager.wiktor = {pkgs, ...}: {
