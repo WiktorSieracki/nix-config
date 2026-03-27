@@ -16,6 +16,7 @@
 
     home-manager.url = "github:nix-community/home-manager";
     firefox-addons.url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
+    spicetify-nix.url = "github:Gerg-L/spicetify-nix";
   };
 
   outputs = inputs:

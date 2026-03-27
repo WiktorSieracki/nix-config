@@ -22,6 +22,7 @@
         spawn-at-startup = [
           (lib.getExe self'.packages.myNoctalia)
         ];
+        prefer-no-csd = null;
         xwayland-satellite.path = lib.getExe pkgs.xwayland-satellite;
         input.keyboard.xkb.layout = "us,pl";
         layout.gaps = 5;
@@ -40,6 +41,10 @@
             matches = [{app-id = "code";}];
             default-column-width = {proportion = 1.0;};
           }
+          # {
+          #   # disable spotify window's titlebar
+          #   matches = [{app-id = "spotify";}];
+          # }
         ];
 
         binds = {

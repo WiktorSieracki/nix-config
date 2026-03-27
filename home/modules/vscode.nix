@@ -24,6 +24,7 @@
         "files.autoSave" = "onFocusChange";
         "git.autofetch" = true;
         "git.confirmSync" = false;
+        "workbench.colorTheme" = "NoctaliaTheme";
       };
     };
   };
