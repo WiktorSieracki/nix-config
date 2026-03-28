@@ -13,6 +13,7 @@
     "spotify"
     "java"
     "python"
+    "discord"
     "node"
     "pre-commit"
     "cpp"

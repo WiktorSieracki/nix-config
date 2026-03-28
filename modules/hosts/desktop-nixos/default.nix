@@ -12,6 +12,7 @@
     "vscode"
 
     "spotify"
+    "discord"
     "java"
     "python"
     "node"
