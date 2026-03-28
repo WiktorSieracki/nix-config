@@ -18,6 +18,7 @@
     "cpp"
     "typst"
     "custom-scripts"
+    "docker"
 
     "eduroam"
   ];

@@ -19,6 +19,7 @@
     "cpp"
     "typst"
     "custom-scripts"
+    "docker"
   ];
 in {
   flake = {
