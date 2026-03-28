@@ -15,7 +15,7 @@
     "discord"
     "java"
     "python"
-    "node"
+    "nodejs"
     "pre-commit"
     "cpp"
     "typst"
