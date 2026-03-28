@@ -23,14 +23,6 @@
             "ms-vscode-remote.remote-containers"
             "dsznajder.es7-react-js-snippets"
           ];
-          # extensions = with pkgs.vscode-extensions; [
-          #   bbenoist.nix
-          #   jnoortheen.nix-ide
-          #   dbaeumer.vscode-eslint
-          #   bradlc.vscode-tailwindcss
-          #   esbenp.prettier-vscode
-          #   # vscodevim.vim
-          # ];
           userSettings = {
             "nix.serverPath" = "nixd";
             "nix.enableLanguageServer" = true;
@@ -48,6 +40,9 @@
             "git.autofetch" = true;
             "git.confirmSync" = false;
             "explorer.confirmDragAndDrop" = false;
+            "[typescriptreact]" = {
+              "editor.defaultFormatter" = "esbenp.prettier-vscode";
+            };
           };
         };
       };

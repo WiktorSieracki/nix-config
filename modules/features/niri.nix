@@ -24,7 +24,7 @@
         ];
         prefer-no-csd = null;
         xwayland-satellite.path = lib.getExe pkgs.xwayland-satellite;
-        input.keyboard.xkb.layout = "us,pl";
+        input.keyboard.xkb.layout = "pl";
         layout.gaps = 5;
 
         outputs."HP Inc. HP E243 CNC0171FR8" = {
