@@ -22,6 +22,8 @@
             "esbenp.prettier-vscode"
             "ms-vscode-remote.remote-containers"
             "dsznajder.es7-react-js-snippets"
+            "formulahendry.auto-rename-tag"
+            "myriad-dreamin.tinymist"
           ];
           userSettings = {
             "nix.serverPath" = "nixd";

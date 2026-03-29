@@ -5,6 +5,7 @@
       typstyle
       typst-live
       font-awesome
+      tinymist
     ];
   };
 }
