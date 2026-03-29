@@ -103,6 +103,7 @@
 
           "Mod+Shift+E".quit = null;
           "Ctrl+Alt+Delete".quit = null;
+          "Print".screenshot = null;
         };
       };
     };

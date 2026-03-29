@@ -12,7 +12,7 @@
         config.flake.modules.nixos."hosts/${name}"
         {
           home-manager.users.wiktor.imports = [
-            # config.flake.modules.homeManager.homeManager
+            config.flake.modules.homeManager.homeManager
             (config.flake.modules.homeManager."hosts/${name}" or {})
           ];
 

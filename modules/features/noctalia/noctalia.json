@@ -161,6 +161,9 @@
             "textColor": "none"
           },
           {
+            "id": "plugin:timer"
+          },
+          {
             "colorizeDistroLogo": false,
             "colorizeSystemIcon": "none",
             "customIconPath": "",
@@ -168,6 +171,9 @@
             "icon": "noctalia",
             "id": "ControlCenter",
             "useDistroLogo": false
+          },
+          {
+            "id": "plugin:pomodoro"
           }
         ]
       },
@@ -362,6 +368,9 @@
             "id": "Network"
           },
           {
+            "id": "WiFi"
+          },
+          {
             "id": "Bluetooth"
           },
           {
@@ -432,8 +441,8 @@
       "batteryCriticalThreshold": 5,
       "enableDgpuMonitoring": false,
       "useCustomColors": false,
-      "warningColor": "",
-      "criticalColor": "",
+      "warningColor": "#83a598",
+      "criticalColor": "#fb4934",
       "externalMonitor": "resources || missioncenter || jdsystemmonitor || corestats || system-monitoring-center || gnome-system-monitor || plasma-systemmonitor || mate-system-monitor || ukui-system-monitor || deepin-system-monitor || pantheon-system-monitor"
     },
     "noctaliaPerformance": {
@@ -663,7 +672,7 @@
       "autoUpdate": false
     },
     "idle": {
-      "enabled": false,
+      "enabled": true,
       "screenOffTimeout": 600,
       "lockTimeout": 660,
       "suspendTimeout": 1800,
@@ -731,7 +740,7 @@
       }
     },
     "notificationsState": {
-      "lastSeenTs": 1774283502000
+      "lastSeenTs": 1774738239000
     },
     "changelogState": {
       "lastSeenVersion": "v4.6.7"
