@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PROJ_DIR="$HOME/Desktop/form-at"
+PROJ_DIR="$HOME/Projects/form-at"
 LEFT_MONITOR="HP Inc. HP E243 CNC0171FR8"
 RIGHT_MONITOR="Ancor Communications Inc ASUS VX239 G6LMTJ040329"
 
