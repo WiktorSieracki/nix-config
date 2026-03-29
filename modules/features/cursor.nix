@@ -4,6 +4,7 @@
 
     gtk = {
       enable = true;
+      gtk4.theme = null;
       cursorTheme = {
         package = pkgs.bibata-cursors;
         name = "Bibata-Modern-Ice";

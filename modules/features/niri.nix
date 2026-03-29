@@ -53,6 +53,7 @@
           "Mod+Space".spawn-sh = "${lib.getExe self'.packages.myNoctalia} ipc call launcher toggle";
           "Mod+F".maximize-column = null;
           "Mod+O repeat=false".toggle-overview = null;
+          "Mod+P".spawn-sh = "${lib.getExe self'.packages.myNoctalia} ipc call sessionMenu toggle";
 
           "Mod+Shift+Slash".show-hotkey-overlay = null;
 

@@ -161,7 +161,24 @@
             "textColor": "none"
           },
           {
+            "defaultSettings": {
+              "compactMode": false,
+              "defaultDuration": 0,
+              "iconColor": "none",
+              "textColor": "none"
+            },
             "id": "plugin:timer"
+          },
+          {
+            "defaultSettings": {
+              "autoStartBreaks": false,
+              "autoStartWork": false,
+              "longBreakDuration": 15,
+              "sessionsBeforeLongBreak": 4,
+              "shortBreakDuration": 5,
+              "workDuration": 25
+            },
+            "id": "plugin:pomodoro"
           },
           {
             "colorizeDistroLogo": false,
@@ -171,9 +188,6 @@
             "icon": "noctalia",
             "id": "ControlCenter",
             "useDistroLogo": false
-          },
-          {
-            "id": "plugin:pomodoro"
           }
         ]
       },
@@ -708,8 +722,8 @@
     },
     "desktopWidgetsEditMode": false,
     "display": {
-      "HDMI-A-2": {
-        "name": "HDMI-A-2",
+      "HDMI-A-1": {
+        "name": "HDMI-A-1",
         "connected": true,
         "scale": 1,
         "width": 1920,
@@ -723,8 +737,8 @@
         "vrr_enabled": false,
         "transform": "Normal"
       },
-      "DP-6": {
-        "name": "DP-6",
+      "DP-3": {
+        "name": "DP-3",
         "connected": true,
         "scale": 1,
         "width": 1920,

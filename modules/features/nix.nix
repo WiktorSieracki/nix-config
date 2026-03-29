@@ -12,6 +12,7 @@
     ];
 
     environment.sessionVariables = {
+      NH_FLAKE = "/home/wiktor/.config/nix-config";
       FLAKE = "/home/wiktor/.config/nix-config";
     };
   };
