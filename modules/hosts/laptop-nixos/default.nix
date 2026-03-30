@@ -20,6 +20,7 @@
     "typst"
     "custom-scripts"
     "docker"
+    "opencode"
 
     "eduroam"
   ];

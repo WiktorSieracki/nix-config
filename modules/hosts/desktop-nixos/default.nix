@@ -21,6 +21,7 @@
     "typst"
     "custom-scripts"
     "docker"
+    "opencode"
   ];
 in {
   flake = {
