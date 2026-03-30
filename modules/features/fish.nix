@@ -20,22 +20,13 @@
       programs.fish = {
         enable = true;
 
-        # TODO: it breaks shell in vscode
-        # interactiveShellInit = ''
-        #   fish_config prompt choose disco
-        # '';
-
         shellAliases = {
           npx = "pnpx";
           npm = "pnpm";
           nnpm = "npm";
           nnpx = "npx";
         };
-        functions = {
-          nix-fish = ''
-            nix shell $argv --command fish
-          '';
-        };
+
         plugins = [
           {
             name = "z";
