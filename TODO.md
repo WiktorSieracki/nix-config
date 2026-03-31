@@ -3,5 +3,3 @@
 - setup SSH
 - setup lockscreen
 - niri blurred background on overview [https://docs.noctalia.dev/getting-started/compositor-settings/niri/#option-1-blurred-overview-wallpaper]
-- niri programs shortcuts
-  - super + N - notion
