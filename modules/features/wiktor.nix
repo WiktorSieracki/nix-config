@@ -10,7 +10,10 @@
       users.users.wiktor = {
         isNormalUser = true;
         description = "wiktor";
-        extraGroups = ["networkmanager" "wheel"];
+        extraGroups = [
+          "networkmanager"
+          "wheel"
+        ];
       };
     };
 
@@ -20,6 +23,10 @@
       home.stateVersion = "24.11";
 
       programs.home-manager.enable = true;
+
+      home.file = {
+        "Pictures/Wallpapers/wallhaven_p92g1m.jpg".source = ./wallpapers/wallhaven_p92g1m.jpg;
+      };
     };
   };
 }
