@@ -73,7 +73,6 @@
           darkreader
           vimium-c
           pywalfox
-          simplify-jobs
           # tridactyl
           # youtube-shorts-block
         ];
