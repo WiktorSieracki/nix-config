@@ -22,7 +22,7 @@
     "docker"
     "opencode"
 
-    "eduroam"
+    #"eduroam"
   ];
 in {
   flake = {

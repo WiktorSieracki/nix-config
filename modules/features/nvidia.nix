@@ -4,5 +4,6 @@
     services.xserver.videoDrivers = ["nvidia"];
     hardware.nvidia.open = true;
     hardware.nvidia.powerManagement.enable = true;
+    virtualisation.docker.enableNvidia = true;
   };
 }

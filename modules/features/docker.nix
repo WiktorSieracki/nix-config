@@ -4,7 +4,8 @@
       enable = true;
       setSocketVariable = true;
     };
-    virtualisation.docker.enableNvidia = true;
+    # moved this setting to nvidia.nix
+    # virtualisation.docker.enableNvidia = true;
 
     hardware.graphics.enable32Bit = true;
   };
