@@ -16,6 +16,7 @@
 
         profiles.default = {
           extensions = pkgs.nix4vscode.forVscode [
+            "Noctalia.noctaliatheme"
             "bbenoist.nix"
             "jnoortheen.nix-ide"
             "bradlc.vscode-tailwindcss"
@@ -45,6 +46,7 @@
             "[typescriptreact]" = {
               "editor.defaultFormatter" = "esbenp.prettier-vscode";
             };
+            "workbench.colorTheme" = "NoctaliaTheme";
           };
         };
       };
