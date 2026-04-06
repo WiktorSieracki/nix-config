@@ -1,5 +1,4 @@
-{ config, ... }:
-let
+{config, ...}: let
   modules = [
     "wiktor"
     "niri"
@@ -26,8 +25,7 @@ let
     "docker"
     "opencode"
   ];
-in
-{
+in {
   flake = {
     nixosConfigurations.desktopNixos = config.flake.lib.mkSystems.linux "desktopNixos";
     modules.nixos."hosts/desktopNixos" = {
