@@ -1,15 +1,11 @@
 {
-  flake.modules.homeManager.brave =
-    { pkgs, ... }:
-    {
-      home.packages = [ pkgs.brave ];
-
-      programs.chromium = {
-        enable = true;
-        extensions = [
-          "mclhabbadhkandmgbifoejaadhmeonon"
-          "nngceckbapebfimnlniiiahkandclblb"
-        ];
-      };
+  flake.modules.homeManager.brave = {pkgs, ...}: {
+    programs.brave = {
+      enable = true;
+      package = pkgs.brave;
+      extensions = [
+        "pbanhockgagggenencehbnadejlgchfc" # simplify-jobs
+      ];
     };
+  };
 }
