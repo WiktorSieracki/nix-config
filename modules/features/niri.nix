@@ -26,6 +26,7 @@
         xwayland-satellite.path = lib.getExe pkgs.xwayland-satellite;
         input.keyboard.xkb.layout = "pl";
         layout.gaps = 5;
+        layout.background-color = "transparent";
 
         outputs."HP Inc. HP E243 CNC0171FR8" = {
           mode = "1920x1080@60.000";
@@ -39,16 +40,26 @@
         window-rules = [
           {
             matches = [{app-id = "code";}];
-            default-column-width = {proportion = 1.0;};
+            default-column-width = {
+              proportion = 1.0;
+            };
           }
         ];
 
         binds = {
           "Mod+C hotkey-overlay-title=\"Open nix-config in an editor\"".spawn-sh = "code ~/.config/nix-config";
-          "Mod+A hotkey-overlay-title=\"Open gemini in Firefox\"".spawn = ["${lib.getExe pkgs.firefox}" "--new-window" "https://gemini.google.com"];
-          "Mod+N hotkey-overlay-title=\"Open notion in Firefox\"".spawn = ["${lib.getExe pkgs.firefox}" "--new-window" "https://www.notion.so"];
-          "Mod+S hotkey-overlay-title=\"Open Spotify\"".spawn = "${lib.getExe pkgs.spotify};";
-          "Mod+D hotkey-overlay-title=\"Open Discord\"".spawn = "${lib.getExe pkgs.discord};";
+          "Mod+A hotkey-overlay-title=\"Open gemini in Firefox\"".spawn = [
+            "${lib.getExe pkgs.firefox}"
+            "--new-window"
+            "https://gemini.google.com"
+          ];
+          "Mod+N hotkey-overlay-title=\"Open notion in Firefox\"".spawn = [
+            "${lib.getExe pkgs.firefox}"
+            "--new-window"
+            "https://www.notion.so"
+          ];
+          "Mod+S hotkey-overlay-title=\"Open Spotify\"".spawn = ["${lib.getExe pkgs.spotify}"];
+          "Mod+D hotkey-overlay-title=\"Open Discord\"".spawn = ["${lib.getExe pkgs.discord}"];
           "Mod+B hotkey-overlay-title=\"Open a Browser: Firefox\"".spawn = "${lib.getExe pkgs.firefox}";
 
           "Mod+Return".spawn-sh = lib.getExe pkgs.alacritty;
