@@ -9,6 +9,7 @@
       nix-search-cli
       nixfmt
       nh
+      comma
     ];
 
     environment.sessionVariables = {

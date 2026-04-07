@@ -3,6 +3,12 @@
     nixos.fish = {pkgs, ...}: {
       programs.fish.enable = true;
 
+      programs.nix-index = {
+        enable = true;
+        package = pkgs.nix-index;
+        enableFishIntegration = true;
+      };
+
       users.users.wiktor = {
         shell = pkgs.fish;
       };
