@@ -1,5 +1,2 @@
-- firefox dark theme with noctalia (pywallfox)
 - named workspaces with multiple browser tabs and programs
-- setup SSH
 - setup lockscreen
-- niri blurred background on overview [https://docs.noctalia.dev/getting-started/compositor-settings/niri/#option-1-blurred-overview-wallpaper]
