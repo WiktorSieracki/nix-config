@@ -25,6 +25,7 @@
             "dsznajder.es7-react-js-snippets"
             "formulahendry.auto-rename-tag"
             "myriad-dreamin.tinymist"
+            "eamodio.gitlens"
           ];
           userSettings = {
             "nix.serverPath" = "nixd";
