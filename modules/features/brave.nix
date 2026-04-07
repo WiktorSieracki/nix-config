@@ -5,6 +5,9 @@
       package = pkgs.brave;
       extensions = [
         "pbanhockgagggenencehbnadejlgchfc" # simplify-jobs
+        "nngceckbapebfimnlniiiahkandclblb" # bitwarden
+        "hfjbmagddngcpeloejdejnfgbamkjaeg" # vimium c
+        "eimadpbcbfnmbkopoojfekhnkhdbieeh" # dark reader
       ];
     };
   };
