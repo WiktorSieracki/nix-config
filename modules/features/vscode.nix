@@ -17,15 +17,21 @@
         profiles.default = {
           extensions = pkgs.nix4vscode.forVscode [
             "Noctalia.noctaliatheme"
+            # nix
             "bbenoist.nix"
             "jnoortheen.nix-ide"
+            # frontend
             "bradlc.vscode-tailwindcss"
             "esbenp.prettier-vscode"
-            "ms-vscode-remote.remote-containers"
             "dsznajder.es7-react-js-snippets"
             "formulahendry.auto-rename-tag"
+            # typst
             "myriad-dreamin.tinymist"
+            # misc
+            "ms-vscode-remote.remote-containers"
             "eamodio.gitlens"
+            "GitHub.vscode-pull-request-github"
+            "usernamehw.errorlens"
           ];
           userSettings = {
             "nix.serverPath" = "nixd";
