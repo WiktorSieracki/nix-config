@@ -123,6 +123,9 @@
               "refreshInterval": 5000
             },
             "id": "plugin:mini-docker"
+          },
+          {
+            "id": "plugin:todo"
           }
         ],
         "right": [
