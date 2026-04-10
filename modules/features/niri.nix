@@ -166,7 +166,7 @@
 
           "Mod+F".maximize-column = _: {};
 
-          "Mod+Shift+V".spawn-sh = "handy --toggle-transcription";
+          "Mod+R".spawn-sh = "handy --toggle-transcription";
 
           "Mod+O" = _: {
             props = {
