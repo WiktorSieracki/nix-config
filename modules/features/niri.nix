@@ -25,7 +25,13 @@
         ];
         prefer-no-csd = _: {};
         xwayland-satellite.path = lib.getExe pkgs.xwayland-satellite;
-        input.keyboard.xkb.layout = "pl";
+        input = {
+          keyboard.xkb.layout = "pl";
+          touchpad = {
+            tap = _: {};
+            natural-scroll = _: {};
+          };
+        };
         layout.gaps = 5;
         layout.background-color = "transparent";
 
