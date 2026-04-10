@@ -54,6 +54,7 @@
               "editor.defaultFormatter" = "esbenp.prettier-vscode";
             };
             "workbench.colorTheme" = "NoctaliaTheme";
+            "workbench.editor.tabSizing" = "fixed";
           };
         };
       };
