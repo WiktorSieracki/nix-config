@@ -1,0 +1,54 @@
+{
+  flake.modules = {
+    nixos.fish = {pkgs, ...}: {
+      programs.fish.enable = true;
+
+      programs.nix-index = {
+        enable = true;
+        package = pkgs.nix-index;
+        enableFishIntegration = true;
+      };
+
+      users.users.wiktor = {
+        shell = pkgs.fish;
+      };
+    };
+
+    homeManager.fish = {pkgs, ...}: {
+      programs = {
+        direnv = {
+          enable = true;
+          enableFishIntegration = true;
+          nix-direnv.enable = true;
+        };
+      };
+
+      programs.fish = {
+        enable = true;
+
+        shellAliases = {
+          npx = "pnpx";
+          npm = "pnpm";
+          nnpm = "npm";
+          nnpx = "npx";
+        };
+
+        plugins = [
+          {
+            name = "z";
+            src = pkgs.fishPlugins.z.src;
+          }
+          {
+            name = "fish-ssh-agent";
+            src = pkgs.fetchFromGitHub {
+              owner = "danhper";
+              repo = "fish-ssh-agent";
+              rev = "f10d95775352931796fd17f54e6bf2f910163d1b";
+              sha256 = "cFroQ7PSBZ5BhXzZEKTKHnEAuEu8W9rFrGZAb8vTgIE=";
+            };
+          }
+        ];
+      };
+    };
+  };
+}
