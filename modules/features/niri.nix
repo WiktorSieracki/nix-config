@@ -172,7 +172,7 @@
 
           "Mod+F".maximize-column = _: {};
 
-          "Mod+R".spawn-sh = "handy --toggle-transcription";
+          "Mod+R".spawn-sh = "pgrep -x handy || handy --start-hidden --no-tray; pkill -USR2 -x handy";
 
           "Mod+O" = _: {
             props = {
