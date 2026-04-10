@@ -17,6 +17,9 @@ let
 in
 {
   flake.modules.homeManager.handy = {
-    home.packages = [ handy ];
+    home.packages = [
+      handy
+      pkgs.wtype
+    ];
   };
 }
