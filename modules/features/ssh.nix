@@ -5,6 +5,24 @@
       enableDefaultConfig = false;
 
       matchBlocks = {
+        "laptop" = {
+          host = "laptopnixos";
+          user = "wiktor";
+          identityFile = "~/.ssh/id_ed25519";
+        };
+        "laptopnixos" = {
+          user = "wiktor";
+          identityFile = "~/.ssh/id_ed25519";
+        };
+        "desktop" = {
+          host = "desktopnixos";
+          user = "wiktor";
+          identityFile = "~/.ssh/id_ed25519";
+        };
+        "desktopnixos" = {
+          user = "wiktor";
+          identityFile = "~/.ssh/id_ed25519";
+        };
         "github.com" = {
           user = "git";
           identityFile = "~/.ssh/id_ed25519";

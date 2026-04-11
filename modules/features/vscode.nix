@@ -29,6 +29,7 @@
             "myriad-dreamin.tinymist"
             # misc
             "ms-vscode-remote.remote-containers"
+            "ms-vscode-remote.remote-ssh"
             "eamodio.gitlens"
             "GitHub.vscode-pull-request-github"
             "usernamehw.errorlens"

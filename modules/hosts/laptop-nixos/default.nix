@@ -1,11 +1,14 @@
-{config, ...}: let
+{ config, ... }:
+let
   modules = [
     "wiktor"
     "niri"
     "fish"
     "git"
     "ssh"
+    "ssh-server"
     "sops"
+    "tailscale"
     "nix"
     "firefox"
     "brave"
@@ -25,7 +28,8 @@
 
     "eduroam"
   ];
-in {
+in
+{
   flake = {
     nixosConfigurations.laptopNixos = config.flake.lib.mkSystems.linux "laptopNixos";
     modules.nixos."hosts/laptopNixos" = {
