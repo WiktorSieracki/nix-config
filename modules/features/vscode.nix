@@ -60,6 +60,9 @@
             "remote.SSH.showLoginTerminal" = true;
             "remote.SSH.useExecServer" = false;
             "remote.SSH.useLocalServer" = false;
+            "remote.SSH.remotePlatform" = {
+              "laptopnixos" = "linux";
+            };
           };
         };
       };
