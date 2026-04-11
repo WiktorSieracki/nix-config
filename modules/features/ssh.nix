@@ -13,6 +13,11 @@
         "laptopnixos" = {
           user = "wiktor";
           identityFile = "~/.ssh/id_ed25519";
+          extraOptions = {
+            ServerAliveInterval = "60";
+            ServerAliveCountMax = "3";
+            ConnectTimeout = "30";
+          };
         };
         "desktop" = {
           host = "desktopnixos";
@@ -22,6 +27,11 @@
         "desktopnixos" = {
           user = "wiktor";
           identityFile = "~/.ssh/id_ed25519";
+          extraOptions = {
+            ServerAliveInterval = "60";
+            ServerAliveCountMax = "3";
+            ConnectTimeout = "30";
+          };
         };
         "github.com" = {
           user = "git";

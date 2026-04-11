@@ -56,6 +56,10 @@
             };
             "workbench.colorTheme" = "NoctaliaTheme";
             "workbench.editor.tabSizing" = "fixed";
+            "remote.SSH.connectTimeout" = 30;
+            "remote.SSH.showLoginTerminal" = true;
+            "remote.SSH.useExecServer" = false;
+            "remote.SSH.useLocalServer" = false;
           };
         };
       };
