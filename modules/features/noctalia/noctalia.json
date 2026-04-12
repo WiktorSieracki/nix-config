@@ -154,6 +154,21 @@
         ],
         "right": [
           {
+            "defaultSettings": {
+              "compactMode": false,
+              "defaultPeerAction": "copy-ip",
+              "hideDisconnected": false,
+              "hideMullvadExitNodes": true,
+              "pingCount": 5,
+              "refreshInterval": 5000,
+              "showIpAddress": true,
+              "showPeerCount": true,
+              "sshUsername": "",
+              "taildropDownloadDir": "~/Downloads",
+              "taildropEnabled": true,
+              "taildropReceiveMode": "operator",
+              "terminalCommand": ""
+            },
             "id": "plugin:tailscale"
           },
           {
@@ -757,40 +772,40 @@
     "openedPanel": "",
     "lockScreenActive": false,
     "wallpapers": {
-      "HDMI-A-2": "/home/wiktor/Pictures/Wallpapers/nature.jpg",
-      "DP-6": "/home/wiktor/Pictures/Wallpapers/nature.jpg"
+      "HDMI-A-1": "/home/wiktor/Pictures/Wallpapers/nature.jpg",
+      "DP-3": "/home/wiktor/Pictures/Wallpapers/nature.jpg"
     },
     "desktopWidgetsEditMode": false,
     "display": {
       "DP-6": {
-        "name": "DP-6",
         "connected": true,
-        "scale": 1,
-        "width": 1920,
         "height": 1080,
-        "x": 0,
-        "y": 0,
-        "physical_width": 530,
+        "name": "DP-6",
         "physical_height": 300,
+        "physical_width": 530,
         "refresh_rate": 60000,
-        "vrr_supported": false,
+        "scale": 1,
+        "transform": "Normal",
         "vrr_enabled": false,
-        "transform": "Normal"
+        "vrr_supported": false,
+        "width": 1920,
+        "x": 0,
+        "y": 0
       },
       "HDMI-A-2": {
-        "name": "HDMI-A-2",
         "connected": true,
-        "scale": 1,
-        "width": 1920,
         "height": 1080,
-        "x": 1920,
-        "y": 0,
-        "physical_width": 510,
+        "name": "HDMI-A-2",
         "physical_height": 290,
+        "physical_width": 510,
         "refresh_rate": 60000,
-        "vrr_supported": false,
+        "scale": 1,
+        "transform": "Normal",
         "vrr_enabled": false,
-        "transform": "Normal"
+        "vrr_supported": false,
+        "width": 1920,
+        "x": 1920,
+        "y": 0
       }
     },
     "notificationsState": {
