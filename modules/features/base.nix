@@ -15,6 +15,7 @@
       tealdeer
       bruno-cli
       neovim
+      nautilus
     ];
   };
 }

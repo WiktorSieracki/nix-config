@@ -157,6 +157,15 @@
             };
           };
 
+          "Mod+E" = _: {
+            props = {
+              "hotkey-overlay-title" = "Open file manager: Nautilus";
+            };
+            content = {
+              "spawn" = "${lib.getExe pkgs.nautilus}";
+            };
+          };
+
           "Mod+Return".spawn-sh = lib.getExe pkgs.alacritty;
 
           "Mod+W" = _: {
