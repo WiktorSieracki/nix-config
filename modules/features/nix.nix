@@ -21,6 +21,7 @@
       nixfmt
       nh
       comma
+      manix
     ];
 
     environment.sessionVariables = {
