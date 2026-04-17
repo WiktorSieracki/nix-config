@@ -13,7 +13,6 @@
       tree
       treecat
       tealdeer
-      bruno-cli
       neovim
       nautilus
       libreoffice-fresh

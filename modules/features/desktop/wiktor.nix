@@ -25,7 +25,7 @@
       programs.home-manager.enable = true;
 
       home.file = {
-        "Pictures/Wallpapers/wallhaven_p92g1m.jpg".source = ./wallpapers/wallhaven_p92g1m.jpg;
+        "Pictures/Wallpapers/wallhaven_p92g1m.jpg".source = ./../wallpapers/wallhaven_p92g1m.jpg;
       };
     };
   };

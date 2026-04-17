@@ -12,6 +12,7 @@
     "nix"
     "firefox"
     "brave"
+    "bruno"
     "chromium"
     "vscode"
 

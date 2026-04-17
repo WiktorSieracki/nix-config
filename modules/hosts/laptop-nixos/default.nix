@@ -11,6 +11,7 @@
     "nix"
     "firefox"
     "brave"
+    "bruno"
     "vscode"
 
     "spotify"
