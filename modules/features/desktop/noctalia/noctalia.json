@@ -772,8 +772,8 @@
     "openedPanel": "",
     "lockScreenActive": false,
     "wallpapers": {
-      "HDMI-A-1": "/home/wiktor/Pictures/Wallpapers/nature.jpg",
-      "DP-3": "/home/wiktor/Pictures/Wallpapers/nature.jpg"
+      "HDMI-A-1": "/home/wiktor/Pictures/Wallpapers/wallhaven_p92g1m.jpg",
+      "DP-3": "/home/wiktor/Pictures/Wallpapers/wallhaven_p92g1m.jpg"
     },
     "desktopWidgetsEditMode": false,
     "display": {
@@ -809,7 +809,7 @@
       }
     },
     "notificationsState": {
-      "lastSeenTs": 1776175440000
+      "lastSeenTs": 1776380099000
     },
     "changelogState": {
       "lastSeenVersion": "v4.7.5"
