@@ -28,6 +28,7 @@
     "docker"
     "opencode"
     "handy"
+    "affine"
   ];
 in {
   flake = {
