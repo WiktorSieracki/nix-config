@@ -29,6 +29,7 @@
     "opencode"
     "handy"
     "affine"
+    "wacom"
   ];
 in {
   flake = {
