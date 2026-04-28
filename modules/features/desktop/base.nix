@@ -23,6 +23,7 @@
       vlc
       gnome-disk-utility
       pinta
+      claude-code
     ];
   };
 }
