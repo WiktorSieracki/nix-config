@@ -20,11 +20,11 @@
     "discord"
     "nodejs"
     "pre-commit"
+    "llm-agents"
     "cpp"
     "typst"
     "custom-scripts"
     "docker"
-    "opencode"
 
     "eduroam"
   ];
