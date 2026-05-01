@@ -1,6 +1,7 @@
 {
   self,
   inputs,
+  config,
   ...
 }: {
   flake.modules.nixos.niri = {pkgs, ...}: {
@@ -166,7 +167,7 @@
             };
           };
 
-          "Mod+Return".spawn-sh = lib.getExe pkgs.alacritty;
+          "Mod+Return".spawn-sh = lib.getExe pkgs.${config.flake.meta.programs.terminal};
 
           "Mod+W" = _: {
             props = {

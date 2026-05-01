@@ -1,2 +1,0 @@
-- named workspaces with multiple browser tabs and programs
-- setup lockscreen
