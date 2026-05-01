@@ -5,7 +5,7 @@
     ];
 
     environment.variables = {
-      TERMINAL = "${config.flake.meta.programs.terminal}";
+      TERM = "${config.flake.meta.programs.terminal}";
     };
   };
 }

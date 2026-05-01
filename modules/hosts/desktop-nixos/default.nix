@@ -15,6 +15,7 @@
     "bruno"
     "chromium"
     "vscode"
+    "zeditor"
 
     "spotify"
     "discord"
