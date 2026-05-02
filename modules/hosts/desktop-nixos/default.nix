@@ -1,35 +1,43 @@
 {config, ...}: let
   modules = [
+    # system
     "wiktor"
     "niri"
     "nvidia"
+
+    # shell & environment
     "fish"
-    "git"
-    "ssh"
-    "ssh-server"
+    "nix"
     "sops"
     "tailscale"
-    "nix"
-    "firefox"
-    "brave"
-    "bruno"
-    "chromium"
+    "ssh"
+    "ssh-server"
+    "pre-commit"
+    "custom-scripts"
+
+    # development
+    "git"
     "vscode"
     "zeditor"
-
-    "spotify"
-    "discord"
     "java"
     "python"
     "nodejs"
-    "pre-commit"
     "cpp"
     "typst"
-    "custom-scripts"
-    "llm-agents"
     "docker"
+    "llm-agents"
+    "bruno"
+
+    # apps
+    "firefox"
+    "brave"
+    "chromium"
+    "spotify"
+    "discord"
     "handy"
     "affine"
+
+    # hardware
     "wacom"
   ];
 in {

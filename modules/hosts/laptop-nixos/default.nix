@@ -1,31 +1,38 @@
 {config, ...}: let
   modules = [
+    # system
     "wiktor"
     "niri"
+
+    # shell & environment
     "fish"
-    "git"
-    "ssh"
-    "ssh-server"
+    "nix"
     "sops"
     "tailscale"
-    "nix"
-    "firefox"
-    "brave"
-    "bruno"
-    "vscode"
+    "ssh"
+    "ssh-server"
+    "pre-commit"
+    "custom-scripts"
 
-    "spotify"
+    # development
+    "git"
+    "vscode"
     "java"
     "python"
-    "discord"
     "nodejs"
-    "pre-commit"
-    "llm-agents"
     "cpp"
     "typst"
-    "custom-scripts"
     "docker"
+    "llm-agents"
+    "bruno"
 
+    # apps
+    "firefox"
+    "brave"
+    "spotify"
+    "discord"
+
+    # network
     "eduroam"
   ];
 in {
