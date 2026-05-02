@@ -23,6 +23,7 @@
       settings = {
         spawn-at-startup = [
           (lib.getExe self'.packages.myNoctalia)
+          "${pkgs.writeShellScript "ghostty-server" "exec ${lib.getExe pkgs.${config.flake.meta.programs.terminal}} --gtk-single-instance=true --initial-window=false"}"
         ];
         prefer-no-csd = _: {};
         xwayland-satellite.path = lib.getExe pkgs.xwayland-satellite;
@@ -167,7 +168,7 @@
             };
           };
 
-          "Mod+Return".spawn-sh = lib.getExe pkgs.${config.flake.meta.programs.terminal};
+          "Mod+Return".spawn-sh = "${lib.getExe pkgs.${config.flake.meta.programs.terminal}} --gtk-single-instance=true";
 
           "Mod+W" = _: {
             props = {
