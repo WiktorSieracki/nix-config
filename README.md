@@ -1,200 +1,76 @@
-# Home Manager Configuration
+# nix-config
 
-This repository contains my personal [Home Manager](https://github.com/nix-community/home-manager) configuration using Nix flakes for declarative user environment management.
+Personal NixOS configuration using flakes, [flake-parts](https://github.com/hercules-ci/flake-parts), and [import-tree](https://github.com/vic/import-tree).
 
-## 🚀 Quick Start
+## Hosts
 
-### First Time Setup
+| Host | Description |
+|------|-------------|
+| `desktopNixos` | Primary desktop — NVIDIA GPU, Wacom tablet, full app set |
+| `laptopNixos` | Laptop — Eduroam WiFi, lighter app set |
 
-Run the provided setup script to install Nix and apply the Home Manager configuration:
-
-```bash
-./start.sh
-```
-
-This script will:
-
-1. Install Nix using the Determinate Systems installer
-2. Source the Nix environment
-3. Apply the Home Manager configuration with backup
-
-### Manual Setup
-
-If you prefer manual setup:
-
-1. **Install Nix** (if not already installed):
-
-   ```bash
-   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
-   ```
-
-2. **Source Nix environment**:
-
-   ```bash
-   . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-   ```
-
-3. **Apply configuration**:
-
-   ```bash
-   nix-shell -p home-manager --command "home-manager switch --flake .#wiktor@desktop-wsl"
-   ```
-
-## 🖥️ Host Configurations
-
-### Desktop WSL (`desktop-wsl/`)
-
-Configuration optimized for Windows Subsystem for Linux environment with development tools and productivity applications. This is currently the main configuration defined in the flake.
-
-## 📦 Included Applications & Tools
-
-The configuration includes a curated set of development tools and applications:
-
-### Development Tools
-- **Node.js & Package Managers**: Node.js 25, pnpm (with npm aliased to pnpm)
-- **Java**: Zulu JDK 25
-- **Python**: Python 3.12 with packages:
-  - numpy, pandas, matplotlib, scipy
-  - opencv4, scikit-image
-  - pygame, requests
-  - pyautogui
-- **Python Tools**: uv, ruff
-- **Scala**: Scala, SBT, Scalafmt
-
-### Editor & Shell
-- **Editor**: Neovim (via nixvim) with Gruvbox colorscheme and LSP support
-- **Shell**: Fish shell with custom prompts and plugins:
-  - z (directory jumping)
-  - fish-ssh-agent (automatic SSH key management)
-  - Vi mode enabled
-  - Custom `nix-fish` function for temporary nix shells
-
-### Version Control & SSH
-- **Git**: Configured with user details and SSH authentication
-- **SSH**: Automatic configuration for GitHub and GitLab
-
-### Utilities
-- **Nix Tools**: alejandra (formatter), nix-search-cli
-- **File Tools**: tree, treecat
-- **Documentation**: tealdeer (tldr pages)
-- **Development**: pre-commit hooks
-
-### Custom Scripts
-- **`gitHttpsToSsh`**: Convert Git remotes from HTTPS to SSH
-- **`pull`**: Recursively pull updates for all Git repositories in current directory
-
-### Shell Aliases
-- `npx` → `pnpx`
-- `npm` → `pnpm`
-- `nnpm` → `npm` (access to original npm)
-- `nnpx` → `npx` (access to original npx)
-- `winuv` → Windows UV executable (for Python on Windows from WSL)
-
-## 📖 Documentation
-
-For detailed Nix usage information, see [nix-guide.md](./nix-guide.md) which covers:
-
-- Garbage collection
-- Version control best practices
-- Flakes usage
-- Package management
-- Troubleshooting
-
-## 🔄 Updating Configuration
-
-1. **Make changes** to the appropriate `.nix` files in [modules/](modules/) or [home/](home/)
-
-2. **Test changes**:
-
-   ```bash
-   home-manager switch --flake .#wiktor@desktop-wsl --dry-run
-   ```
-
-3. **Apply changes**:
-
-   ```bash
-   home-manager switch --flake .#wiktor@desktop-wsl
-   ```
-
-4. **Commit changes**:
-
-   ```bash
-   git add .
-   git commit -m "Update configuration"
-   git push
-   ```
-
-## 🧹 Maintenance
-
-### Garbage Collection
-
-Clean up unused packages periodically:
+## Applying changes
 
 ```bash
-nix-collect-garbage -d
+# Dry-run (test without switching)
+nh os switch --dry
+
+# Apply
+nh os switch
 ```
 
-### Update Flake Inputs
+To build a specific host without switching:
 
-Update to latest package versions:
+```bash
+nix build .#nixosConfigurations.desktopNixos.config.system.build.toplevel
+nix build .#nixosConfigurations.laptopNixos.config.system.build.toplevel
+```
+
+Look up NixOS / home-manager options:
+
+```bash
+manix <option>
+```
+
+Update flake inputs:
 
 ```bash
 nix flake update
 ```
 
-Then apply the updated configuration:
+## Structure
 
-```bash
-home-manager switch --flake .#wiktor@desktop-wsl
-```
-
-## 📁 Configuration Structure
+`flake.nix` imports everything under `./modules` via `import-tree` — there is no central `configuration.nix`. Each `.nix` file contributes to the flake by defining `flake.modules.*` attrsets.
 
 ```
-├── flake.nix                 # Main flake configuration
-├── home/
-│   ├── shared.nix           # Shared configuration across all hosts
-│   └── desktop-wsl/
-│       └── home.nix         # WSL-specific configuration
-├── modules/
-│   ├── git.nix              # Git configuration
-│   ├── java.nix             # Java (Zulu JDK)
-│   ├── nixvim.nix           # Neovim configuration
-│   ├── python.nix           # Python environment
-│   ├── ssh.nix              # SSH configuration
-│   ├── fish/                # Fish shell configuration
-│   └── magisterka/
-│       └── scala.nix        # Scala toolchain
-└── customScripts/           # Custom utility scripts
+modules/
+├── hosts/
+│   ├── configurations.nix        # mkSystems helpers, host assembly logic
+│   ├── desktop-nixos/
+│   │   ├── default.nix           # Feature list + NixOS configuration entry
+│   │   └── hardware-configuration.nix
+│   └── laptop-nixos/
+│       ├── default.nix
+│       └── hardware-configuration.nix
+├── features/
+│   ├── programming/              # git, fish, python, nodejs, java, docker, …
+│   │   ├── editors/              # vscode, zeditor
+│   │   └── AI/                   # llm-agents
+│   ├── desktop/                  # niri, boot, sound, locale, terminal, …
+│   ├── apps/                     # spotify, discord, bruno, …
+│   ├── browsers/                 # firefox, brave
+│   └── custom-scripts/           # gitHttpsToSsh, pull
+├── meta.nix                      # Default terminal / browser / editor metadata
+├── parts.nix                     # flake-parts + per-system nixpkgs
+├── systems.nix                   # System list (x86_64-linux)
+├── sops.nix                      # Secrets management
+├── ssh.nix                       # SSH client (home-manager)
+├── ssh-server.nix                # SSH server (NixOS)
+└── tailscale.nix                 # VPN
 ```
 
-## 🔧 Development Tools Integration
+Each host's `default.nix` holds a `modules` string list. Adding a name there enables both its `flake.modules.nixos.<name>` (system) and `flake.modules.homeManager.<name>` (user `wiktor`) configs.
 
-### Fish Shell Features
-- Automatic SSH key loading (`~/.ssh/id_ed25519`)
-- Java environment automatically set
-- Disco theme prompt
-- Nix shell indicator in prompt
-- Smart directory navigation with z plugin
+## Secrets
 
-### Java Development
-The Java home is automatically set to the Zulu JDK. To find the exact path:
-
-```bash
-readlink -f $(which java)
-```
-
-### Python Development
-Python 3.12 is configured with common data science and automation packages. Use `uv` for additional package management.
-
-### WSL-Specific Features
-- X11 forwarding enabled (`DISPLAY=:0`)
-- Generic Linux target enabled for better WSL compatibility
-
-## 🤝 Contributing
-
-This is a personal configuration, but feel free to fork and adapt for your own use.
-
-## 📄 License
-
-This configuration is provided as-is for educational and personal use. Feel free to use and modify as needed.
+Secrets are stored encrypted in `secrets.yaml` via [sops-nix](https://github.com/Mic92/sops-nix). Decryption requires `/home/wiktor/.ssh/id_ed25519`. Modules reference secrets with `sops.secrets.<name>` and `sops.templates.*`. Activation failures around sops are usually key/setup issues rather than module syntax errors.
