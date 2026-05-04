@@ -4,6 +4,8 @@
     lib,
     ...
   }: {
+    xdg.configFile."zed/themes/noctalia.json".source = ./noctalia.json;
+
     programs.zed-editor = {
       enable = true;
 
@@ -109,8 +111,8 @@
 
         theme = {
           mode = "system";
-          light = "One Light";
-          dark = "One Dark";
+          light = "Noctalia Light";
+          dark = "Noctalia Dark";
         };
 
         show_whitespaces = "all";
