@@ -63,6 +63,12 @@
             "remote.SSH.remotePlatform" = {
               "laptopnixos" = "linux";
             };
+            "github.copilot.enable" = {
+              "*" = true;
+              "plaintext" = false;
+              "markdown" = true;
+              "scminput" = false;
+            };
           };
         };
       };

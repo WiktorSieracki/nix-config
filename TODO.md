@@ -1,0 +1,5 @@
+- [ ] setup vm machines
+- [ ] setup synchthing (with todos)
+- [ ] naprawić czcionkę (i)
+- [ ] nixos noise cancelling
+- [ ] localsend
