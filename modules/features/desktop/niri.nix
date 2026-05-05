@@ -84,13 +84,13 @@
 
           "Mod+A" = _: {
             props = {
-              "hotkey-overlay-title" = "Open gemini in Firefox";
+              "hotkey-overlay-title" = "Open claude in Firefox";
             };
             content = {
               "spawn" = [
                 "${lib.getExe pkgs.firefox}"
                 "--new-window"
-                "https://gemini.google.com"
+                "https://claude.ai/new?incognito"
               ];
             };
           };
