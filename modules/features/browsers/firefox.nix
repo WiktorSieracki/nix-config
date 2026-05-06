@@ -2,6 +2,7 @@
   flake.modules.homeManager.firefox = {pkgs, ...}: {
     programs.firefox = {
       enable = true;
+      configPath = ".mozilla/firefox";
 
       profiles.wiktor = {
         search.engines = {
