@@ -3,3 +3,4 @@
 - [ ] naprawić czcionkę (i)
 - [ ] nixos noise cancelling
 - [ ] localsend
+- [ ] setup stylix theming
