@@ -150,6 +150,15 @@
             };
           };
 
+          "Mod+T" = _: {
+            props = {
+              "hotkey-overlay-title" = "Open Teams";
+            };
+            content = {
+              "spawn" = ["${lib.getExe pkgs.teams-for-linux}"];
+            };
+          };
+
           "Mod+B" = _: {
             props = {
               "hotkey-overlay-title" = "Open a Browser: Firefox";
