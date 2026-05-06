@@ -1,4 +1,27 @@
 {inputs, ...}: {
+  flake.niriBinds.firefox = {pkgs, lib}: {
+    "Mod+B" = _: {
+      props."hotkey-overlay-title" = "Open a Browser: Firefox";
+      content."spawn" = "${lib.getExe pkgs.firefox}";
+    };
+    "Mod+A" = _: {
+      props."hotkey-overlay-title" = "Open claude in Firefox";
+      content."spawn" = ["${lib.getExe pkgs.firefox}" "--new-window" "https://claude.ai/new?incognito"];
+    };
+    "Mod+G" = _: {
+      props."hotkey-overlay-title" = "Open gmail in Firefox";
+      content."spawn" = ["${lib.getExe pkgs.firefox}" "--new-window" "https://mail.google.com/mail/u/1/#all"];
+    };
+    "Mod+Shift+C" = _: {
+      props."hotkey-overlay-title" = "Open calendar in Firefox";
+      content."spawn" = ["${lib.getExe pkgs.firefox}" "--new-window" "https://calendar.google.com/calendar/u/1/r?pli=1"];
+    };
+    "Mod+N" = _: {
+      props."hotkey-overlay-title" = "Open notion in Firefox";
+      content."spawn" = ["${lib.getExe pkgs.firefox}" "--new-window" "https://www.notion.so"];
+    };
+  };
+
   flake.modules.homeManager.firefox = {pkgs, ...}: {
     programs.firefox = {
       enable = true;
