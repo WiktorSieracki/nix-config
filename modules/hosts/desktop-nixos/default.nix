@@ -34,6 +34,7 @@
     "chromium"
     "spotify"
     "discord"
+    "teams-for-linux"
     "handy"
     "affine"
 

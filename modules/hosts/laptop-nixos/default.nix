@@ -31,6 +31,7 @@
     "brave"
     "spotify"
     "discord"
+    "teams-for-linux"
 
     # network
     "eduroam"
