@@ -1,4 +1,11 @@
 {
+  flake.niriBinds.nautilus = {pkgs, lib}: {
+    "Mod+E" = _: {
+      props."hotkey-overlay-title" = "Open file manager: Nautilus";
+      content."spawn" = "${lib.getExe pkgs.nautilus}";
+    };
+  };
+
   flake.modules.nixos.nixos = {pkgs, ...}: {
     networking.networkmanager.enable = true;
     hardware.bluetooth.enable = true;

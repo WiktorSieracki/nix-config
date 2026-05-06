@@ -1,4 +1,11 @@
 {inputs, ...}: {
+  flake.niriBinds.vscode = {...}: {
+    "Mod+C" = _: {
+      props."hotkey-overlay-title" = "Open nix-config in an editor";
+      content."spawn-sh" = "code ~/.config/nix-config";
+    };
+  };
+
   flake.modules = {
     nixos.vscode = {pkgs, ...}: {
       nixpkgs.overlays = [

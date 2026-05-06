@@ -13,6 +13,10 @@
     extraRuntimeDependencies = [];
   };
 in {
+  flake.niriBinds.handy = {...}: {
+    "Mod+V".spawn-sh = "pgrep -x handy || handy --start-hidden --no-tray; pkill -USR2 -x handy";
+  };
+
   flake.modules.homeManager.handy = {
     home.packages = [
       handy

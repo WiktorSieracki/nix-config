@@ -1,4 +1,11 @@
 {inputs, ...}: {
+  flake.niriBinds.spotify = {pkgs, lib}: {
+    "Mod+S" = _: {
+      props."hotkey-overlay-title" = "Open Spotify";
+      content."spawn" = ["${lib.getExe pkgs.spotify}"];
+    };
+  };
+
   flake.modules.homeManager.spotify = {pkgs, ...}: {
     imports = [inputs.spicetify-nix.homeManagerModules.default];
 
