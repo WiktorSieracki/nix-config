@@ -1,3 +1,4 @@
+- [ ] setup nixos iso image
 - [ ] setup vm machines
 - [ ] setup synchthing (with todos)
 - [ ] naprawić czcionkę (i)
