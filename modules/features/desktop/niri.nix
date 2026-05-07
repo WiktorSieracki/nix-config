@@ -68,6 +68,10 @@ in {
               proportion = 1.0;
             };
           }
+          {
+            matches = [{app-id = "qalculate-gtk";}];
+            open-floating = true;
+          }
         ];
 
         layer-rules = [
