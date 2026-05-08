@@ -48,9 +48,9 @@ When a host enables `"git"` in its modules list, `loadNixosAndHmModuleForUser` i
 
 ### Hosts
 
-| Host | Key extras |
-|------|-----------|
-| `desktopNixos` | NVIDIA GPU, Wacom tablet, Zed editor, Handy, Affine |
+| Host           | Key extras                                            |
+| -------------- | ----------------------------------------------------- |
+| `desktopNixos` | NVIDIA GPU, Wacom tablet, Zed editor, Handy, Affine   |
 | `laptopNixos`  | Eduroam WiFi; omits nvidia/wacom/zeditor/handy/affine |
 
 ## Secrets (SOPS)
