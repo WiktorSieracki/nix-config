@@ -26,6 +26,9 @@
     "llm-agents"
     "bruno"
 
+    # personal
+    "personal-snippets"
+
     # apps
     "firefox"
     "brave"

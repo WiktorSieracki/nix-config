@@ -20,6 +20,7 @@
         secrets = {
           eduroamPassword = {};
           studentEmail = {};
+          personalEmail = {owner = "wiktor";};
         };
 
         # someOption = config.sops.secrets.hello.path;
