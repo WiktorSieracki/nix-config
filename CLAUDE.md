@@ -17,6 +17,12 @@ nix build .#nixosConfigurations.laptopNixos.config.system.build.toplevel
 
 # Look up NixOS / home-manager module options
 manix <option>
+
+# Reload niri config without restarting (windows stay open)
+niri msg action load-config-file
+
+# Validate niri config without applying
+niri validate
 ```
 
 ## Architecture

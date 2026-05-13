@@ -19,6 +19,15 @@ nh os switch --dry
 nh os switch
 ```
 
+After applying, reload niri config without restarting (windows stay open):
+
+```bash
+niri msg action load-config-file
+
+# Validate config without applying
+niri validate
+```
+
 To build a specific host without switching:
 
 ```bash
