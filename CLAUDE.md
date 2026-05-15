@@ -67,3 +67,4 @@ Secrets live in `secrets.yaml` (SOPS-encrypted). Decryption key is `/home/wiktor
 
 - `README.md` documents a legacy Home Manager/WSL flow — ignore it for day-to-day work.
 - `AGENTS.md` is the canonical quick-reference for commands and repo shape.
+- New `.nix` files must be `git add`ed before building — Nix flakes only evaluate git-tracked files, so `nix build` will fail to see untracked files.
