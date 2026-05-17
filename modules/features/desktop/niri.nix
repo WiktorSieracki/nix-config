@@ -19,7 +19,8 @@ in {
     self',
     ...
   }: let
-    extraBinds = lib.foldl' (acc: fn: acc // fn {inherit pkgs lib;}) {}
+    extraBinds =
+      lib.foldl' (acc: fn: acc // fn {inherit pkgs lib;}) {}
       (builtins.attrValues config.flake.niriBinds);
   in {
     packages.myNiri = inputs.wrapper-modules.wrappers.niri.wrap {
@@ -41,6 +42,10 @@ in {
         };
         layout.gaps = 5;
         layout.background-color = "transparent";
+
+        layout = {
+          always-center-single-column = _: {};
+        };
 
         outputs."HP Inc. HP E243 CNC0171FR8" = {
           mode = "1920x1080@60.000";
