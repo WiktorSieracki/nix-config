@@ -69,6 +69,7 @@
             "remote.SSH.useLocalServer" = false;
             "remote.SSH.remotePlatform" = {
               "laptopnixos" = "linux";
+              "desktopnixos" = "linux";
             };
             "github.copilot.enable" = {
               "*" = true;
