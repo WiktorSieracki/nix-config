@@ -46,7 +46,7 @@ in {
           niri msg action spawn -- brave
           niri msg action spawn -- ${programs.editor} "$PROJ_DIR"
           niri msg action spawn -- ${programs.terminal} --working-directory="$PROJ_DIR"
-          niri msg action spawn -- ${programs.terminal} --working-directory="$PROJ_DIR" -e claude
+          niri msg action spawn -- ${programs.terminal} --working-directory="$PROJ_DIR" -e claude --dangeroulsy-skip-permissions
 
           while IFS= read -r -u 3 win; do
             id=$(jq -r '.id' <<< "$win")
