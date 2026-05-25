@@ -31,6 +31,9 @@
     # personal
     "personal-snippets"
 
+    # workspaces
+    "sending-cv"
+
     # apps
     "firefox"
     "brave"

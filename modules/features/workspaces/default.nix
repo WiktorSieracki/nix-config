@@ -4,9 +4,6 @@
       (writeShellScriptBin "form-at" (
         builtins.readFile ./form-at.sh
       ))
-      (writeShellScriptBin "sending-cv" (
-        builtins.readFile ./sending-cv.sh
-      ))
     ];
   };
 }

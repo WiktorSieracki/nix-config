@@ -63,6 +63,19 @@ When a host enables `"git"` in its modules list, `loadNixosAndHmModuleForUser` i
 
 Secrets live in `secrets.yaml` (SOPS-encrypted). Decryption key is `/home/wiktor/.ssh/id_ed25519` (configured in `.sops.yaml`). Modules access secrets via `sops.secrets.<name>` and `sops.templates.*`. Eval or activation failures related to sops are typically key/setup issues, not module syntax errors.
 
+## Default programs
+
+Canonical program choices live in `modules/meta.nix`:
+
+| Role         | Program    |
+| ------------ | ---------- |
+| editor       | `code`     |
+| terminal     | `ghostty`  |
+| browser      | `firefox`  |
+| fileManager  | `nautilus` |
+
+When writing scripts or modules that need a default editor, terminal, browser, or file manager, use these values. Only deviate when a specific feature explicitly requires a different program.
+
 ## Notes
 
 - `README.md` documents a legacy Home Manager/WSL flow — ignore it for day-to-day work.
