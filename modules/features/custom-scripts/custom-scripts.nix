@@ -5,6 +5,7 @@
         builtins.readFile ./gitHttpsToSsh.sh
       ))
       (writeShellScriptBin "pull" (builtins.readFile ./pull.sh))
+      (writeShellScriptBin "resetnet" (builtins.readFile ./resetnet.sh))
     ];
   };
 }
