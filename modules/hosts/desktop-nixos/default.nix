@@ -45,6 +45,9 @@
     "affine"
     "localsend"
 
+    # network
+    "home-wifi"
+
     # hardware
     "wacom"
   ];
