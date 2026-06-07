@@ -35,6 +35,7 @@
     "spotify"
     "discord"
     "teams-for-linux"
+    "localsend"
 
     # network
     "eduroam"

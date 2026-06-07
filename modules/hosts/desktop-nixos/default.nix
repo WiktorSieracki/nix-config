@@ -43,6 +43,7 @@
     "teams-for-linux"
     "handy"
     "affine"
+    "localsend"
 
     # hardware
     "wacom"
