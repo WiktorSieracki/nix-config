@@ -15,6 +15,7 @@
     };
 
     time.timeZone = "Europe/Warsaw";
+    time.hardwareClockInLocalTime = true; # dual-boot: Windows stores local time in RTC
 
     console.keyMap = "pl2";
 
