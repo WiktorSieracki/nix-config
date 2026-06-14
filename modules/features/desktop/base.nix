@@ -15,6 +15,7 @@
 
     services.xserver.enable = true;
     services.displayManager.gdm.enable = true;
+    services.displayManager.defaultSession = "niri";
 
     environment.systemPackages = with pkgs; [
       tree
