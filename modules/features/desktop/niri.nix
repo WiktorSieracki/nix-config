@@ -47,6 +47,13 @@ in {
         xwayland-satellite.path = lib.getExe pkgs.xwayland-satellite;
         input = {
           keyboard.xkb.layout = "pl";
+          mouse = {
+            # TUNABLE: pointer speed. Range -1.0 (slowest) .. 1.0 (fastest).
+            # 0.0 = niri's default feel; go negative to slow the cursor down.
+            # (For hardware sensitivity, lower the G502 DPI via piper/ratbagctl.)
+            # Reload live: niri msg action load-config-file
+            accel-speed = 0.0;
+          };
           touchpad = {
             tap = _: {};
             natural-scroll = _: {};

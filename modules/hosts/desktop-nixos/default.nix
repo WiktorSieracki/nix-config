@@ -52,6 +52,7 @@
 
     # hardware
     "wacom"
+    "mouse"
   ];
 in {
   flake = {
