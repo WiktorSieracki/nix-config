@@ -17,6 +17,7 @@
     # development
     "git"
     "vscode"
+    "vscode-insiders"
     "java"
     "python"
     "nodejs"

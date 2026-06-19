@@ -18,7 +18,9 @@
     # development
     "git"
     "vscode"
+    "vscode-insiders"
     "zeditor"
+    "cursor-ide"
     "java"
     "python"
     "nodejs"
