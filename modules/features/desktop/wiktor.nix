@@ -15,6 +15,8 @@
           "wheel"
         ];
       };
+
+      security.sudo.wheelNeedsPassword = false;
     };
 
     homeManager.wiktor = {
