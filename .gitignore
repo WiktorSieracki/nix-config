@@ -6,3 +6,11 @@ secrets/
 # Build outputs
 result
 result-*
+
+# VM / disk images (built by `build.vm` runner, build-image, or live-ISO QEMU runs)
+*.qcow2
+*.iso
+*.img
+
+# AI tooling scratch
+.claude-flow/

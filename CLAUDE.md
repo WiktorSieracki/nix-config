@@ -15,6 +15,18 @@ nh os switch --dry
 nix build .#nixosConfigurations.desktopNixos.config.system.build.toplevel
 nix build .#nixosConfigurations.laptopNixos.config.system.build.toplevel
 
+# Build a bootable live ISO of the config (output: ./result/iso/*.iso)
+nix build .#nixosConfigurations.iso.config.system.build.isoImage
+
+# Boot that ISO in a throwaway QEMU VM (GL-accelerated for the niri/wayland session)
+nix run nixpkgs#qemu -- -enable-kvm -m 4096 -smp 4 \
+  -device virtio-vga-gl -display gtk,gl=on \
+  -cdrom result/iso/*.iso
+
+# Run the `vm` host as a graphical QEMU VM (preferred — see "Running the vm host" below)
+QEMU_OPTS="-m 4096 -vga none -device virtio-vga-gl -display gtk,gl=on" \
+  nix run .#nixosConfigurations.vm.config.system.build.vm
+
 # Look up NixOS / home-manager module options
 manix <option>
 
@@ -58,6 +70,43 @@ When a host enables `"git"` in its modules list, `loadNixosAndHmModuleForUser` i
 | -------------- | ----------------------------------------------------- |
 | `desktopNixos` | NVIDIA GPU, Wacom tablet, Zed editor, Handy, Affine   |
 | `laptopNixos`  | Eduroam WiFi; omits nvidia/wacom/zeditor/handy/affine |
+
+There are also two image-only hosts in `modules/hosts/{iso,vm}/`. Both ship the same
+curated feature subset (niri + a few apps), excluding hardware-specific modules
+(nvidia/wacom/mouse) and secret-dependent ones (sops/git/eduroam/...) that can't
+activate without the real machine's SOPS key. `iso` builds a live CD; `vm` builds a
+normal installed disk image.
+
+## Running the vm host
+
+**Preferred way to actually boot and test the `vm` host** is the NixOS-generated VM
+runner — *not* the raw disk image. The runner wraps the config in `qemu-vm.nix`, which
+attaches the rootfs to a virtio disk QEMU knows how to mount and creates a scratch
+`./vm-vm.qcow2` overlay (state persists across runs; `rm` it for a clean boot):
+
+```bash
+QEMU_OPTS="-m 4096 -vga none -device virtio-vga-gl -display gtk,gl=on" \
+  nix run .#nixosConfigurations.vm.config.system.build.vm
+```
+
+- `-vga none` is required because the runner doesn't set a VGA device; without it,
+  QEMU adds a default VGA *and* the `virtio-vga-gl` you pass → "multiple VGA" error.
+- It auto-logs into wiktor's niri session. Password (sudo / unlock) is `nixos`.
+- **Passing `Mod`/Super hotkeys to the guest:** the host niri grabs Super first. Focus
+  the QEMU window and press `Ctrl+Alt+G` to grab input — on Wayland this makes QEMU
+  request `zwp_keyboard_shortcuts_inhibit` from the host niri, forwarding all keys
+  (incl. Mod binds) to the guest. `Ctrl+Alt+G` again releases. If GTK's grab doesn't
+  capture Super, use `-display sdl,gl=on,grab-mod=lctrl-lalt` or add `-full-screen`.
+- **Headless verification (no GUI):** add `-display none` plus
+  `-serial unix:/tmp/vm-ser.sock,server,nowait` to `QEMU_OPTS`, then connect with
+  `socat -,raw,echo=0 UNIX-CONNECT:/tmp/vm-ser.sock` and log in as `wiktor`/`nixos`.
+
+The raw qcow2 from `nh os build-image -H vm --image-variant qemu-efi` (the `./result`
+symlink) will **not** boot under plain QEMU — the `vm` host has no
+`hardware-configuration.nix`, so its initrd lacks virtio block drivers and stage-1
+times out on `/dev/disk/by-label/nixos`. Use the `build.vm` runner above instead, or
+add `(modulesPath + "/profiles/qemu-guest.nix")` to the host to fix the standalone
+image.
 
 ## Secrets (SOPS)
 
