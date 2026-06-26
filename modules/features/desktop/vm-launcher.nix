@@ -11,14 +11,19 @@
       name = "run-vm-windowed";
       text = ''
         flake=/home/wiktor/.config/nix-config
-        # Keep the scratch overlay (vm-vm.qcow2) out of the repo; state persists
-        # across runs — delete it for a clean boot.
-        statedir="''${XDG_STATE_HOME:-$HOME/.local/state}/nixos-vm"
-        mkdir -p "$statedir"
-        cd "$statedir"
+        # Ephemeral disk: a fresh throwaway overlay per launch, deleted on exit.
+        # The VM exists to test config reproducibility, so every boot must start
+        # clean — no persisted guest state across runs.
+        img="$(mktemp -u --tmpdir nixos-vm-test.XXXXXX.qcow2)"
+        trap 'rm -f "$img"' EXIT
+        export NIX_DISK_IMAGE="$img"
         export SDL_VIDEODRIVER=wayland
-        export QEMU_OPTS="-m 4096 -smp 4 -vga none -device virtio-vga-gl -display sdl,gl=on"
-        exec nix run "$flake#nixosConfigurations.vm.config.system.build.vm"
+        # virgl GL display + a pipewire-backed HD-Audio card so the guest has
+        # sound (host runs pipewire). hda-duplex = line-out + mic.
+        export QEMU_OPTS="-m 4096 -smp 4 -vga none -device virtio-vga-gl -display sdl,gl=on \
+          -audiodev pipewire,id=snd0 -device ich9-intel-hda -device hda-duplex,audiodev=snd0"
+        # No `exec` — keep the shell alive so the EXIT trap removes the overlay.
+        nix run "$flake#nixosConfigurations.vm.config.system.build.vm"
       '';
     };
   in {

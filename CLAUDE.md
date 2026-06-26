@@ -21,12 +21,15 @@ nix build .#nixosConfigurations.iso.config.system.build.isoImage
 # Boot that ISO in a throwaway QEMU VM (GL-accelerated for the niri/wayland session)
 nix run nixpkgs#qemu -- -enable-kvm -m 4096 -smp 4 \
   -device virtio-vga-gl -display gtk,gl=on \
+  -audiodev pipewire,id=snd0 -device ich9-intel-hda -device hda-duplex,audiodev=snd0 \
   -cdrom result/iso/*.iso
 
 # Run the `vm` host as a graphical QEMU VM (preferred — see "Running the vm host" below)
 # Use SDL on Wayland (not GTK) so Ctrl+Alt+G can grab Super/Mod into the guest on niri.
 SDL_VIDEODRIVER=wayland \
-  QEMU_OPTS="-m 4096 -smp 4 -vga none -device virtio-vga-gl -display sdl,gl=on -full-screen" \
+  NIX_DISK_IMAGE=$(mktemp -u --tmpdir nixos-vm.XXXXXX.qcow2) \
+  QEMU_OPTS="-m 4096 -smp 4 -vga none -device virtio-vga-gl -display sdl,gl=on -full-screen \
+    -audiodev pipewire,id=snd0 -device ich9-intel-hda -device hda-duplex,audiodev=snd0" \
   nix run .#nixosConfigurations.vm.config.system.build.vm
 
 # Look up NixOS / home-manager module options
@@ -84,16 +87,26 @@ normal installed disk image.
 **Preferred way to actually boot and test the `vm` host** is the NixOS-generated VM
 runner — *not* the raw disk image. The runner wraps the config in `qemu-vm.nix`, which
 attaches the rootfs to a virtio disk QEMU knows how to mount and creates a scratch
-`./vm-vm.qcow2` overlay (state persists across runs; `rm` it for a clean boot):
+`./nixos-vm.qcow2` overlay. **By default that overlay persists across runs**, but the
+VM exists to test config reproducibility, so prefer a clean boot every time: point
+`NIX_DISK_IMAGE` at a throwaway path (the `run-vm-windowed` launcher does exactly this
+and deletes it on exit). To persist instead, drop the `NIX_DISK_IMAGE` line.
 
 ```bash
 SDL_VIDEODRIVER=wayland \
-  QEMU_OPTS="-m 4096 -smp 4 -vga none -device virtio-vga-gl -display sdl,gl=on -full-screen" \
+  NIX_DISK_IMAGE=$(mktemp -u --tmpdir nixos-vm.XXXXXX.qcow2) \
+  QEMU_OPTS="-m 4096 -smp 4 -vga none -device virtio-vga-gl -display sdl,gl=on -full-screen \
+    -audiodev pipewire,id=snd0 -device ich9-intel-hda -device hda-duplex,audiodev=snd0" \
   nix run .#nixosConfigurations.vm.config.system.build.vm
 ```
 
 - `-vga none` is required because the runner doesn't set a VGA device; without it,
   QEMU adds a default VGA *and* the `virtio-vga-gl` you pass → "multiple VGA" error.
+- **Sound:** the runner adds no audio device, so the guest pipewire finds no card and
+  there's no sound. Pass `-audiodev pipewire,id=snd0 -device ich9-intel-hda -device
+  hda-duplex,audiodev=snd0` (host runs pipewire); the guest then exposes a
+  `Built-in Audio Analog Stereo` sink (verified: a guest tone shows up as a running
+  `qemu-system-x86_64` Stream/Output/Audio on the host). `hda-duplex` also wires a mic.
 - It auto-logs into wiktor's niri session. Password (sudo / unlock) is `nixos`.
 - **Passing `Mod`/Super hotkeys to the guest:** the host niri grabs Super first.
   Press `Ctrl+Alt+G` to grab — SDL2 then requests `zwp_keyboard_shortcuts_inhibit`,
