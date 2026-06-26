@@ -24,7 +24,9 @@ nix run nixpkgs#qemu -- -enable-kvm -m 4096 -smp 4 \
   -cdrom result/iso/*.iso
 
 # Run the `vm` host as a graphical QEMU VM (preferred — see "Running the vm host" below)
-QEMU_OPTS="-m 4096 -vga none -device virtio-vga-gl -display gtk,gl=on" \
+# Use SDL on Wayland (not GTK) so Ctrl+Alt+G can grab Super/Mod into the guest on niri.
+SDL_VIDEODRIVER=wayland \
+  QEMU_OPTS="-m 4096 -smp 4 -vga none -device virtio-vga-gl -display sdl,gl=on -full-screen" \
   nix run .#nixosConfigurations.vm.config.system.build.vm
 
 # Look up NixOS / home-manager module options
@@ -85,18 +87,26 @@ attaches the rootfs to a virtio disk QEMU knows how to mount and creates a scrat
 `./vm-vm.qcow2` overlay (state persists across runs; `rm` it for a clean boot):
 
 ```bash
-QEMU_OPTS="-m 4096 -vga none -device virtio-vga-gl -display gtk,gl=on" \
+SDL_VIDEODRIVER=wayland \
+  QEMU_OPTS="-m 4096 -smp 4 -vga none -device virtio-vga-gl -display sdl,gl=on -full-screen" \
   nix run .#nixosConfigurations.vm.config.system.build.vm
 ```
 
 - `-vga none` is required because the runner doesn't set a VGA device; without it,
   QEMU adds a default VGA *and* the `virtio-vga-gl` you pass → "multiple VGA" error.
 - It auto-logs into wiktor's niri session. Password (sudo / unlock) is `nixos`.
-- **Passing `Mod`/Super hotkeys to the guest:** the host niri grabs Super first. Focus
-  the QEMU window and press `Ctrl+Alt+G` to grab input — on Wayland this makes QEMU
-  request `zwp_keyboard_shortcuts_inhibit` from the host niri, forwarding all keys
-  (incl. Mod binds) to the guest. `Ctrl+Alt+G` again releases. If GTK's grab doesn't
-  capture Super, use `-display sdl,gl=on,grab-mod=lctrl-lalt` or add `-full-screen`.
+- **Passing `Mod`/Super hotkeys to the guest:** the host niri grabs Super first.
+  Press `Ctrl+Alt+G` to grab — SDL2 then requests `zwp_keyboard_shortcuts_inhibit`,
+  which niri grants, forwarding all keys (incl. Mod binds) *and the mouse* to the
+  guest; `Ctrl+Alt+G` again releases. **Use SDL on Wayland, not GTK** (both verified
+  by injecting keys with ydotool): QEMU's GTK backend does *not* request the
+  inhibitor on niri, so `gtk` leaves Super bound to the host and the grab appears to
+  do nothing (and the mouse dies). `SDL_VIDEODRIVER=wayland` is essential — bare SDL
+  falls back to Xwayland (no inhibit) and fails the same way.
+- **Terminal inside the VM:** `ghostty` (the default terminal) does *not* render
+  under the nested virgl GL, so `Mod+Return` opens nothing. Other GUI apps are fine
+  (`Mod+E` → nautilus, `Mod+B` → browser). Add a lighter terminal (e.g. `foot`) to
+  the `vm` host if you need a shell window in the guest.
 - **Headless verification (no GUI):** add `-display none` plus
   `-serial unix:/tmp/vm-ser.sock,server,nowait` to `QEMU_OPTS`, then connect with
   `socat -,raw,echo=0 UNIX-CONNECT:/tmp/vm-ser.sock` and log in as `wiktor`/`nixos`.

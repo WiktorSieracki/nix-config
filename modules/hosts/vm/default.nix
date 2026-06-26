@@ -53,6 +53,12 @@ in {
           boot.loader.efi.canTouchEfiVariables = lib.mkForce false;
           boot.loader.timeout = lib.mkForce 5;
 
+          # ghostty's OpenGL renderer can't get a working GL context under the
+          # nested virgl (virtio-vga-gl) path, so `Mod+Return` opens nothing in
+          # the VM. Forcing mesa's llvmpipe (software GL) makes it render. Scoped
+          # to this throwaway test host only — real hardware hosts keep native GL.
+          environment.sessionVariables.LIBGL_ALWAYS_SOFTWARE = "1";
+
           # Log straight into wiktor's niri session; password set for sudo.
           users.users.wiktor.initialPassword = "nixos";
           services.displayManager.autoLogin = {
