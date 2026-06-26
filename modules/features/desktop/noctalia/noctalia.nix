@@ -1,5 +1,12 @@
 {inputs, ...}: {
-  perSystem = {pkgs, ...}: {
+  perSystem = {
+    pkgs,
+    lib,
+    ...
+  }: let
+    # The wallpaper installed by wallpapers/wallpaper.nix into ~/Pictures/Wallpapers.
+    wallpaper = "/home/wiktor/Pictures/Wallpapers/wallhaven_p92g1m.jpg";
+  in {
     packages.myNoctalia = inputs.wrapper-modules.wrappers.noctalia-shell.wrap {
       inherit pkgs;
       settings = {
@@ -713,10 +720,15 @@
           screenUnlock = "";
           performanceModeEnabled = "";
           performanceModeDisabled = "";
-          startup = "";
+          # Pin our wallpaper on every startup. Noctalia stores the active
+          # wallpaper only in the writable cache (~/.cache/noctalia/wallpapers.json),
+          # not in the read-only store settings.json, so without this a fresh
+          # cache (new machine / VM / cleared cache) falls back to the bundled
+          # default instead of ours. The IPC client reaches the running instance.
+          startup = "${lib.getExe pkgs.noctalia-shell} ipc call wallpaper set ${wallpaper} all";
           session = "";
           colorGeneration = "";
-          enabled = false;
+          enabled = true;
         };
 
         plugins = {
