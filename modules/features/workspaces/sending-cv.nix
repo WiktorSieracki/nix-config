@@ -21,6 +21,23 @@ in {
     };
   };
 
+  # Workspace launcher: opens browser, editor, two terminals in the right
+  # niri workspaces for CV sending workflow. HM part adds a .desktop entry.
+  # Needs `wiktor` for the home-manager desktop entry.
+  flake.featureMeta."sending-cv" = {
+    requires = ["wiktor"];
+    kind = "cli";
+  };
+
+  # Próba: the sending-cv binary lands on PATH.
+  flake.probaTests."sending-cv" = {
+    testScript = ''
+      machine.wait_for_unit("multi-user.target")
+      machine.wait_for_unit("home-manager-wiktor.service")
+      machine.succeed("command -v sending-cv")
+    '';
+  };
+
   flake.modules.nixos."sending-cv" = {pkgs, ...}: {
     environment.systemPackages = [
       (pkgs.writeShellApplication {

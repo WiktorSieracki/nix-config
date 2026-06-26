@@ -1,4 +1,20 @@
 {config, ...}: {
+  # Zed editor configured for wiktor: custom noctalia theme, nix/toml/catppuccin
+  # extensions, copilot predictions, direnv integration. HM-only feature.
+  flake.featureMeta.zeditor = {
+    requires = ["wiktor"];
+    kind = "gui";
+  };
+
+  # Próba: zeditor binary is in wiktor's profile PATH.
+  flake.probaTests.zeditor = {
+    testScript = ''
+      machine.wait_for_unit("multi-user.target")
+      machine.wait_for_unit("home-manager-wiktor.service")
+      machine.succeed("su - wiktor -c 'command -v zeditor'")
+    '';
+  };
+
   flake.modules.homeManager.zeditor = {
     pkgs,
     lib,

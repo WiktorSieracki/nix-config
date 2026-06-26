@@ -10,6 +10,7 @@
     # system
     "wiktor"
     "niri"
+    "desktop"
 
     # shell & environment
     "fish"

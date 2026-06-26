@@ -51,6 +51,11 @@
       url = "github:zed-industries/zed";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    agent-of-empires = {
+      url = "github:agent-of-empires/agent-of-empires";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);

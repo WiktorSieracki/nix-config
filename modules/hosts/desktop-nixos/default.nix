@@ -3,6 +3,7 @@
     # system
     "wiktor"
     "niri"
+    "desktop"
     "nvidia"
 
     # shell & environment
@@ -28,6 +29,7 @@
     "typst"
     "docker"
     "llm-agents"
+    "agent-of-empires"
     "bruno"
 
     # personal

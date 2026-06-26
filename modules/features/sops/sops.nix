@@ -1,0 +1,76 @@
+{inputs, ...}: {
+  flake.modules = {
+    nixos.sops = {pkgs, ...}: {
+      imports = [
+        inputs.sops-nix.nixosModules.sops
+      ];
+
+      environment.systemPackages = with pkgs; [
+        sops
+      ];
+
+      sops = {
+        # The age key file used to decrypt secrets (your user key for SOPS CLI)
+        age.sshKeyPaths = ["/home/wiktor/.ssh/id_ed25519"];
+
+        # The default sops file to use for secrets
+        # NB: relative to this file. After folderizing into sops/, the repo-root
+        # secrets.yaml is three levels up (sops/ → features/ → modules/ → root).
+        defaultSopsFile = ../../../secrets.yaml;
+        validateSopsFiles = false;
+
+        secrets = {
+          eduroamPassword = {};
+          studentEmail = {};
+          personalEmail = {owner = "wiktor";};
+        };
+
+        # someOption = config.sops.secrets.hello.path;
+        # if home-manager switch fails because of sops try running:
+        # systemctl --user reset-failed
+      };
+    };
+    homeManager.sops = {
+      imports = [
+        inputs.sops-nix.homeManagerModules.sops
+      ];
+
+      sops.secrets = {
+        eduroamPassword = {};
+        studentEmail = {};
+      };
+
+      sops = {
+        age.sshKeyPaths = ["/home/wiktor/.ssh/id_ed25519"];
+        # NB: relative to this file. After folderizing into sops/, the repo-root
+        # secrets.yaml is three levels up (sops/ → features/ → modules/ → root).
+        defaultSopsFile = ../../../secrets.yaml;
+        validateSopsFiles = false;
+      };
+    };
+  };
+
+  # sops decrypts secrets with wiktor's real ssh key — absent in any VM. So the
+  # runtime (actual decryption) is untestable here; the Próba only proves the
+  # module integrates and boots with secrets stubbed, and the `sops` CLI is
+  # present. runtimeUntestable = honest (c)-escape-hatch flag (ADR 0002 Q8).
+  flake.featureMeta.sops = {
+    requires = [];
+    kind = "config";
+    runtimeUntestable = true;
+  };
+
+  flake.probaTests.sops = {
+    extraNixosModules = [
+      ({lib, ...}: {
+        sops.secrets = lib.mkForce {};
+        sops.templates = lib.mkForce {};
+        sops.age.sshKeyPaths = lib.mkForce [];
+      })
+    ];
+    testScript = ''
+      machine.wait_for_unit("multi-user.target")
+      machine.succeed("command -v sops")
+    '';
+  };
+}

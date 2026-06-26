@@ -14,7 +14,78 @@ _Avoid_: machine, target, profile.
 **Feature**:
 Wielokrotnego użytku moduł w `modules/features/*`, zwykle definiujący część
 NixOS i część home-manager pod tą samą nazwą. **Host** włącza **feature**'y po nazwie.
-_Avoid_: module (zbyt ogólne — `feature` to konkretnie ten wzorzec).
+Feature jest *samowystarczalny*: jawnie deklaruje swoje zależności i nie ma
+sprzężeń **funkcjonalnych** z sąsiednimi plikami (helpery .sh/.json są w jego
+store-path, nie importowane spoza modułu). Layout to **folder-per-feature**
+(`git/{git.nix, notes.md}`); dokumentacja obok (**Dziennik**) jest dozwolona —
+nie jest zależnością funkcjonalną, bo feature działa bez niej.
+_Avoid_: module (zbyt ogólne — `feature` to konkretnie ten wzorzec),
+package (mylące z pakietem nixpkgs — u nas jednostką jest `feature`).
+
+**Kind** (rodzaj feature'a):
+Maszynowo-czytelna kategoria w `featureMeta.<feature>.kind`, mówiąca *czym*
+feature jest i jak się sprawdza, że „działa": `config` (czysta konfiguracja —
+waliduje się eval + walidator np. `niri validate`), `cli` (binarka na PATH,
+`--version`/smoke → exit 0), `service` (unit systemd `active` + nasłuch portu),
+`gui` (proces startuje i utrzymuje okno w sesji). Steruje poziomem rygoru
+**Próby**.
+_Avoid_: type, category.
+
+**Requires**:
+Jawna lista zależności feature'a w `featureMeta.<feature>.requires`. Loader
+**twardo failuje**, gdy host włącza feature bez kompletu `requires` na liście —
+graf zależności jest zawsze pełną prawdą (dla człowieka i AI). **Próba** liczy
+z tego minimalne domknięcie VM-ki.
+_Avoid_: deps, imports (to ostatnie znaczy w Nix co innego).
+
+**Core** (floor):
+Nieredukowalne minimum systemu, obecne w *każdej* Próbie i każdym hoście
+„ambient" (boot, nix, sieć, locale, nix-ld) — to, co zostaje po wyjęciu z
+dzisiejszego worka `nixos` warstwy pulpitu. Feature **nie** wymienia `core` w
+**Requires** (jest zawsze pod spodem). Minimalna VM Próby = `core` + feature +
+domknięcie `requires`.
+_Avoid_: base (worek `nixos` był „bazą", ale gruby i zrośnięty z niri — `core`
+to świadomie odchudzona warstwa).
+
+**Desktop** (feature):
+Wydzielona z dawnej bazy warstwa sesji graficznej (`xserver`, `gdm`,
+`defaultSession=niri`, GUI-pakiety). Feature o **Kind** `gui` jawnie
+`requires = ["desktop" ...]`. Dzięki temu feature `cli` startuje na samym
+**Core** i Próba wykrywa ukrytą zależność od pulpitu.
+_Avoid_: gui-base, session.
+
+**Próba** (test feature'a, Tier 1):
+Headless `nixosTest`, który buduje **minimalną** VM = testowany feature +
+domknięcie jego **Requires**, i asercją sprawdza, że feature „działa" na
+poziomie rygoru z jego **Kind**. Obowiązkowa dla *każdego* feature'a (CI
+failuje bez niej) — nawet trywialny feature z jednym `systemPackage` musi
+udowodnić, że binarka się odpala. Pada, gdy feature ma niezadeklarowaną
+zależność → wymusza modularność konstrukcyjnie.
+_Avoid_: smoke-test, unit test, sprawdzenie.
+
+**Próba hosta** (e2e, Tier 2):
+Headless test bootujący cały **Host** (lub kuratorowaną grupę feature'ów) i
+sprawdzający asercje *między* feature'ami (np. „user w grupie docker I
+`docker run` przechodzi"). To jest „end-to-end" — integracja, nie izolacja.
+Rzadszy, cieńsza warstwa nad **Próbami** feature'ów.
+_Avoid_: integration test, test integracyjny.
+
+**Dziennik** (feature'a, `notes.md`):
+Datowany zapis **niewykonywalnej** wiedzy o feature'rze: dziwactwa upstreamu,
+„czemu ten workaround", pułapki środowiska. Czytany przez `/nix-loop` na starcie
+(by nie wyprowadzać znanych problemów od zera) i auto-dopisywany z datą, gdy
+pętla rozwiąże coś nowego. Granica względem **Próby**: błąd *odtwarzalny* idzie
+jako asercja w Próbie (nie zgnije), Dziennik trzyma tylko to, czego nie da się
+sensownie zakodować w teście. Struktura wpisu: `Objaw → Przyczyna → Fix`.
+_Avoid_: README, docs, notes.
+
+**runtimeUntestable** (flaga w `featureMeta`):
+Furtka (c) z ADR 0002: oznacza feature, którego *runtime* nie da się zweryfikować
+w VM (brak sprzętu — `nvidia`/`wacom`/`mouse`; brak realnej sieci/klucza SOPS —
+`eduroam`/`home-wifi`/`sops`). Taki feature **wciąż ma Próbę**, ale sprawdza ona
+tylko, że moduł integruje się i system bootuje (regresja eval/boot), nie samo
+działanie sprzętu/sekretu.
+_Avoid_: untestable, skip.
 
 **ISO** (obraz live):
 Jeden **generyczny** obraz live (host `iso`), bootowalny na dowolnej maszynie.
