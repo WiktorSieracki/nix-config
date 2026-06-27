@@ -34,6 +34,9 @@ in {
     extraBinds =
       lib.foldl' (acc: fn: acc // fn {inherit pkgs lib;}) {}
       (builtins.attrValues config.flake.niriBinds);
+    extraWindowRules =
+      map (fn: fn {inherit pkgs lib;})
+      (builtins.attrValues config.flake.niriWindowRules);
   in {
     packages.myNiri = inputs.wrapper-modules.wrappers.niri.wrap {
       inherit pkgs;
@@ -85,7 +88,11 @@ in {
           };
         };
 
-        window-rules = [
+        workspaces = config.flake.niriWorkspaces;
+
+        window-rules =
+          extraWindowRules
+          ++ [
           {
             matches = [{app-id = "code";}];
             default-column-width = {
