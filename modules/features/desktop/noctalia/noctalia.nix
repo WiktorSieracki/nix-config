@@ -684,7 +684,11 @@
               enabled = true;
             }
             {
-              id = "alacritty";
+              # Our actual terminal. Noctalia renders the active color scheme into
+              # ~/.config/ghostty/themes/noctalia and (via its post-hook) keeps the
+              # ghostty config's `theme = noctalia` line in sync. The config file
+              # that references this theme is shipped declaratively by ghostty.nix.
+              id = "ghostty";
               enabled = true;
             }
             {
