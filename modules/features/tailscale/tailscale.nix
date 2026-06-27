@@ -3,6 +3,9 @@
     services.tailscale = {
       enable = true;
       useRoutingFeatures = "client";
+      # Let the wiktor user run `tailscale funnel/serve` without sudo
+      # (required by agents-of-empire's Tailscale Funnel transport).
+      extraSetFlags = ["--operator=wiktor"];
     };
   };
 
