@@ -1,6 +1,6 @@
-- [ ] setup nixos iso image
-- [ ] setup vm machines
+- [x] setup nixos iso image
+- [x] setup vm machines
 - [ ] setup synchthing (with todos)
 - [ ] nixos noise cancelling
-- [ ] localsend
+- [x] localsend
 - [ ] setup stylix theming

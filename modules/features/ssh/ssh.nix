@@ -1,45 +1,37 @@
 {
   flake.modules.homeManager.ssh = {
+    # Migrated from the deprecated `programs.ssh.matchBlocks`/`extraOptions` to
+    # `programs.ssh.settings` (home-manager): the attribute name is the `Host`
+    # pattern and option keys are upstream OpenSSH directive names. Folding the
+    # short alias into the same pattern (`laptop laptopnixos`) so `ssh laptop`
+    # actually resolves — the old `host = "..."` override silently dropped the
+    # alias and emitted a duplicate `Host laptopnixos` block instead.
     programs.ssh = {
       enable = true;
       enableDefaultConfig = false;
 
-      matchBlocks = {
-        "laptop" = {
-          host = "laptopnixos";
-          user = "wiktor";
-          identityFile = "~/.ssh/id_ed25519";
+      settings = {
+        "laptop laptopnixos" = {
+          User = "wiktor";
+          IdentityFile = "~/.ssh/id_ed25519";
+          ServerAliveInterval = "60";
+          ServerAliveCountMax = "3";
+          ConnectTimeout = "30";
         };
-        "laptopnixos" = {
-          user = "wiktor";
-          identityFile = "~/.ssh/id_ed25519";
-          extraOptions = {
-            ServerAliveInterval = "60";
-            ServerAliveCountMax = "3";
-            ConnectTimeout = "30";
-          };
-        };
-        "desktop" = {
-          host = "desktopnixos";
-          user = "wiktor";
-          identityFile = "~/.ssh/id_ed25519";
-        };
-        "desktopnixos" = {
-          user = "wiktor";
-          identityFile = "~/.ssh/id_ed25519";
-          extraOptions = {
-            ServerAliveInterval = "60";
-            ServerAliveCountMax = "3";
-            ConnectTimeout = "30";
-          };
+        "desktop desktopnixos" = {
+          User = "wiktor";
+          IdentityFile = "~/.ssh/id_ed25519";
+          ServerAliveInterval = "60";
+          ServerAliveCountMax = "3";
+          ConnectTimeout = "30";
         };
         "github.com" = {
-          user = "git";
-          identityFile = "~/.ssh/id_ed25519";
+          User = "git";
+          IdentityFile = "~/.ssh/id_ed25519";
         };
         "gitlab.com" = {
-          user = "git";
-          identityFile = "~/.ssh/id_ed25519";
+          User = "git";
+          IdentityFile = "~/.ssh/id_ed25519";
         };
       };
     };
