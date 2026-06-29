@@ -29,6 +29,7 @@
     "typst"
     "docker"
     "llm-agents"
+    "ollama"
     "agent-of-empires"
     "bruno"
 
