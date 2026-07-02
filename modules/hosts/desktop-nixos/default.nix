@@ -25,6 +25,7 @@
     "java"
     "python"
     "nodejs"
+    "playwright"
     "cpp"
     "typst"
     "docker"
