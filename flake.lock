@@ -9,11 +9,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1782906366,
-        "narHash": "sha256-3563toOBrqXebzGeyp1h/OMaHU2WF08tydLc3oVNqPE=",
+        "lastModified": 1783092409,
+        "narHash": "sha256-WpeqWRdMtCE2Se2ROwCoudzKxy1zkeMLdlwFfQOAmK4=",
         "owner": "agent-of-empires",
         "repo": "agent-of-empires",
-        "rev": "c85f481d7e6be93cd4edf34306501a5b303115ca",
+        "rev": "af427278914a4e9e2ffd4bda8a8dd9548a105356",
         "type": "github"
       },
       "original": {
@@ -118,11 +118,11 @@
       },
       "locked": {
         "dir": "pkgs/firefox-addons",
-        "lastModified": 1782878575,
-        "narHash": "sha256-sw0B1D//VBGXLQZJXXFLjunnMfO7hCZ5S1kv06BBO5A=",
+        "lastModified": 1783051357,
+        "narHash": "sha256-/PPRXThQ9aoc/stohHMtfrRr0y5TmZSFvWPgC18HjUk=",
         "owner": "rycee",
         "repo": "nur-expressions",
-        "rev": "e5d8f0375b4613d200e8efd64df2183a75290c4e",
+        "rev": "b02e5efbe9b68e4de7322362ada265bffe43696a",
         "type": "gitlab"
       },
       "original": {
@@ -157,11 +157,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1778716662,
-        "narHash": "sha256-m1Yf0wZ8j1OHjTc2UwHwyQRSnNeSgLJOd7q5Y45hzi4=",
+        "lastModified": 1782949081,
+        "narHash": "sha256-vp6Y/Grm98ESt6ceOkWiHWyZRDV3J1RID4w+6NWK9yA=",
         "owner": "hercules-ci",
         "repo": "flake-parts",
-        "rev": "f7c1a2d347e4c52d5fb8d10cb4d94b5884e546fb",
+        "rev": "17c9d6cdfc60c64f4ee8d306f9bc0b4ccb51481e",
         "type": "github"
       },
       "original": {
@@ -178,11 +178,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1778716662,
-        "narHash": "sha256-m1Yf0wZ8j1OHjTc2UwHwyQRSnNeSgLJOd7q5Y45hzi4=",
+        "lastModified": 1782949081,
+        "narHash": "sha256-vp6Y/Grm98ESt6ceOkWiHWyZRDV3J1RID4w+6NWK9yA=",
         "owner": "hercules-ci",
         "repo": "flake-parts",
-        "rev": "f7c1a2d347e4c52d5fb8d10cb4d94b5884e546fb",
+        "rev": "17c9d6cdfc60c64f4ee8d306f9bc0b4ccb51481e",
         "type": "github"
       },
       "original": {
@@ -216,11 +216,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1782881387,
-        "narHash": "sha256-HvlS1KDGXDjd1bNzzPvH1mkDJATlDAfVYfTh//wJBEA=",
+        "lastModified": 1783024095,
+        "narHash": "sha256-oE+TNK98Pl7nHW4VU1oBvUKD5JR45U+py/NJmLoTNHI=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "d32537981c036473cf6990ae03176a5d84c43b29",
+        "rev": "a4d410db95a6416d1008049330bd86b85b5db45a",
         "type": "github"
       },
       "original": {
@@ -256,11 +256,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1782913490,
-        "narHash": "sha256-GGqfwevUQduaLpqfJqc2yAvs36BYy5R9rCpkqHn9ZVE=",
+        "lastModified": 1783088904,
+        "narHash": "sha256-8fzF4l1nxWOiTqkCQl/K/PpN4TSQG1N+fRpEZxzuNeY=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "54a6e303164407d73bef861367f4e653db3bef45",
+        "rev": "a02dbad78bd0d12ad152729c60874bdfc3122232",
         "type": "github"
       },
       "original": {
@@ -277,11 +277,11 @@
         "systems": "systems_2"
       },
       "locked": {
-        "lastModified": 1782880431,
-        "narHash": "sha256-62UWlqPjEafBwvv+FuCdDhovZ/pyayEQzKaXw/C7UcY=",
+        "lastModified": 1783051121,
+        "narHash": "sha256-2WzU2BsX6xccxQNu6HfQz7hQqxUPoeuZCnIPZrDofHc=",
         "owner": "nix-community",
         "repo": "nix4vscode",
-        "rev": "28a431fcd9c8055d9123cc59906f6743473f8a09",
+        "rev": "81cdd055d79959ff2a0fa39112c7bfdc79ec0286",
         "type": "github"
       },
       "original": {
@@ -527,11 +527,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1782919449,
-        "narHash": "sha256-0RtaMtQp24V9s2Hd82mK2S+Rd2VVXoBSGu4IvAiJs4E=",
+        "lastModified": 1783092375,
+        "narHash": "sha256-yJvxxyJViZ1npf1CH7RVUG7uEaeHxCxxn1mq1PL+zXc=",
         "owner": "zed-industries",
         "repo": "zed",
-        "rev": "35c3d272828328b7217efccc146dc5b7d53490ff",
+        "rev": "814b152a0f40b6bc64996e8f728c9c3de8e8104e",
         "type": "github"
       },
       "original": {
