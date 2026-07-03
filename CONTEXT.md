@@ -87,6 +87,14 @@ tylko, że moduł integruje się i system bootuje (regresja eval/boot), nie samo
 działanie sprzętu/sekretu.
 _Avoid_: untestable, skip.
 
+**Switchboard**:
+TUI (feature `switchboard`, binarka `switchboard`) do zarządzania listami
+**feature**'ów prawdziwych **host**'ów: checkboxy z wyszukiwarką, jawne
+domykanie **Requires** przy zaznaczaniu, feature-diff jako potwierdzenie,
+finał przez `nh os test`/`switch`; globalnie także bump `flake.lock`.
+Edytuje pliki danych hostów — nie dotyka `.nix`.
+_Avoid_: features-cli, manager, panel.
+
 **ISO** (obraz live):
 Jeden **generyczny** obraz live (host `iso`), bootowalny na dowolnej maszynie.
 Nie jest „obrazem laptopa" ani „obrazem desktopa" — to środowisko
