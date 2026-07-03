@@ -12,5 +12,8 @@ result-*
 *.iso
 *.img
 
+# Python bytecode (e.g. py_compile checks of feature scripts)
+__pycache__/
+
 # AI tooling scratch
 .claude-flow/
