@@ -6,6 +6,7 @@
   "fish",
   "nix",
   "sops",
+  "cachix",
   "tailscale",
   "ssh",
   "ssh-server",
