@@ -25,22 +25,22 @@ jobs:
         uses: actions/checkout@v4
 
       # ubuntu-latest ma ~14 GB wolnego; build ISO tego nie mieści.
-      # mnt-safe-haven: akcja przenosi TMPDIR na /mnt, a nix buduje w TMPDIR —
-      # mksquashfs + finalne ISO potrzebują tam kilkunastu GB (domyślny 1 GB
-      # kończył się ENOSPC "Probably out of space on output filesystem").
-      # rampage odzyskuje te ~15 GB z nawiązką po stronie wolumenu /nix.
       - name: Free disk space
         uses: wimpysworld/nothing-but-nix@main
         with:
           hatchet-protocol: rampage
-          mnt-safe-haven: '12288'
 
+      # build-dir MUSI wskazywać na wolumen /nix (nothing-but-nix tworzy
+      # /nix/build dokładnie po to): bez tego demon buduje w /tmp na /, gdzie
+      # po czystkach zostaje ~2 GB — mksquashfs ISO umierał tam z ENOSPC
+      # "Probably out of space on output filesystem".
       - name: Install Nix
         uses: cachix/install-nix-action@v30
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
             accept-flake-config = true
+            build-dir = /nix/build
 
       - name: Setup Cachix
         uses: cachix/cachix-action@v15
