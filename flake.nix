@@ -42,20 +42,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    llm-agents = {
-      url = "github:numtide/llm-agents.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # llm-agents and agent-of-empires deliberately do NOT follow our nixpkgs:
+    # both upstreams push CI builds to their binary caches (cache.numtide.com,
+    # agent-of-empires.cachix.org) built against THEIR locked nixpkgs. A
+    # `follows` would change every hash and force local Rust/Go compiles on
+    # each nixpkgs bump. Costs a second nixpkgs eval; buys binary downloads.
+    llm-agents.url = "github:numtide/llm-agents.nix";
 
-    zed-editor = {
-      url = "github:zed-industries/zed";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    agent-of-empires = {
-      url = "github:agent-of-empires/agent-of-empires";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    agent-of-empires.url = "github:agent-of-empires/agent-of-empires";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);
