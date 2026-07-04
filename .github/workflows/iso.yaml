@@ -61,9 +61,13 @@ jobs:
             --out-link result \
             --flake 'git+file:.#nixosConfigurations.iso.config.system.build.isoImage'
 
+      # nix-fast-build z --skip-cached NIE tworzy symlinka result, gdy gotowe
+      # ISO siedzi już w cachix — realizujemy więc out-link osobno: no-op po
+      # świeżym buildzie, substytucja z cache po skipie.
       - name: Stage artifacts
         run: |
-          cp result*/iso/*.iso nixos.iso
+          nix build 'git+file:.#nixosConfigurations.iso.config.system.build.isoImage' --out-link result
+          cp result/iso/*.iso nixos.iso
           sha256sum nixos.iso > checksums.txt
 
       - name: Publish rolling release
