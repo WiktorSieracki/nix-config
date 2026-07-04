@@ -64,11 +64,15 @@ jobs:
       # nix-fast-build z --skip-cached NIE tworzy symlinka result, gdy gotowe
       # ISO siedzi już w cachix — realizujemy więc out-link osobno: no-op po
       # świeżym buildzie, substytucja z cache po skipie.
+      # split: GitHub odrzuca pliki release'u >= 2 GiB ("size must be less
+      # than 2147483648"), a obraz ma ~4.2 GB — wydajemy części po 1990 MB
+      # składane z powrotem przez `cat` (patrz body release'u).
       - name: Stage artifacts
         run: |
           nix build 'git+file:.#nixosConfigurations.iso.config.system.build.isoImage' --out-link result
-          cp result/iso/*.iso nixos.iso
-          sha256sum nixos.iso > checksums.txt
+          split -b 1990M result/iso/*.iso nixos.iso.part-
+          sha256sum nixos.iso.part-* > checksums.txt
+          sha256sum result/iso/*.iso | awk '{print $1 "  nixos.iso"}' >> checksums.txt
 
       - name: Publish rolling release
         uses: softprops/action-gh-release@v2
@@ -77,6 +81,12 @@ jobs:
           name: Latest ISO
           body: |
             Najnowszy live ISO (host `iso`), zbudowany automatycznie z `main`.
+            GitHub ogranicza pliki release'u do 2 GiB, więc obraz jest pocięty —
+            po pobraniu wszystkich części złóż go i zweryfikuj:
+            ```
+            cat nixos.iso.part-* > nixos.iso
+            sha256sum -c checksums.txt
+            ```
 
             Zbootuj go i zainstaluj wybrany host:
             ```
@@ -84,5 +94,5 @@ jobs:
             sudo nixos-install --flake github:${{ github.repository }}#laptopNixos
             ```
           files: |
-            nixos.iso
+            nixos.iso.part-*
             checksums.txt

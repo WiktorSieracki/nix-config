@@ -28,3 +28,13 @@ własnego publicznego cache'a Cachix `wiktor-nixos`.
   `CACHIX_AUTH_TOKEN`; repo musi być publiczne dla pobierania release'u.
 - ISO świadomie nie zawiera sekretów ani sterowników sprzętowych — patrz
   [CONTEXT.md](../../CONTEXT.md) (pojęcie **ISO**).
+
+## Aktualizacja 2026-07-04: podział obrazu na części
+
+GitHub odrzuca pliki release'u ≥ 2 GiB, a obraz (pełny desktop live: niri,
+firefox, libreoffice, …) ma ~4.2 GB po kompresji squashfs. Odchudzenie pod
+limit wymagałoby wycięcia większości aplikacji (closure systemu ~12.8 GB),
+co przeczyłoby idei desktopowego live ISO — zamiast tego release zawiera
+obraz pocięty `split`-em na części po 1990 MB (`nixos.iso.part-*`), składane
+`cat`-em wg instrukcji w body release'u. `checksums.txt` weryfikuje i części,
+i złożony obraz.
