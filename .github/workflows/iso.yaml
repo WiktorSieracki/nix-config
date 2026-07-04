@@ -25,10 +25,13 @@ jobs:
         uses: actions/checkout@v4
 
       # ubuntu-latest ma ~14 GB wolnego; build ISO tego nie mieści.
+      # root-safe-haven: Stage artifacts kopiuje ~4.2 GB ISO do workspace na /,
+      # a domyślne 2 GB rezerwy zabijało ten krok (i samego workera) ENOSPC-em.
       - name: Free disk space
         uses: wimpysworld/nothing-but-nix@main
         with:
           hatchet-protocol: rampage
+          root-safe-haven: '12288'
 
       # build-dir MUSI wskazywać na wolumen /nix (nothing-but-nix tworzy
       # /nix/build dokładnie po to): bez tego demon buduje w /tmp na /, gdzie
