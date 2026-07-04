@@ -12,7 +12,7 @@
       src = pkgs.fetchurl {
         name = "VSCode-insiders-linux-x64.tar.gz";
         url = "https://update.code.visualstudio.com/latest/linux-x64/insider";
-        hash = "sha256-vo6EUyOW3yWx+rhkN55RhRtQb3iGYaIf+t+kbrX3A+g=";
+        hash = "sha256-9Np6cWmN70QFlX8gAcTyR1jlLVIsOWgaTgXQKaFbwTw=";
       };
       # The bundled Copilot extension ships a `computer.node` native module that
       # pulls in libraries the stable VS Code build doesn't need.
