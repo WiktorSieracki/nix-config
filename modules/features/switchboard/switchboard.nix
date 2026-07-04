@@ -1,11 +1,17 @@
 {
   flake.modules.nixos.switchboard = {pkgs, ...}: {
     environment.systemPackages = [
-      # Single-file Textual app kept in this feature's folder; the wrapper pins
-      # a python3 with textual so the tool is self-contained on PATH.
-      (pkgs.writeShellScriptBin "switchboard" ''
-        exec ${pkgs.python3.withPackages (ps: [ps.textual])}/bin/python3 ${./switchboard.py} "$@"
-      '')
+      # Go/bubbletea TUI whose sources live in this feature's folder
+      # (self-sufficiency): buildGoModule vendors the deps from go.sum and
+      # also runs `go test ./...` in its checkPhase, so the domain-logic unit
+      # tests gate every build.
+      (pkgs.buildGoModule {
+        pname = "switchboard";
+        version = "0.2.0";
+        src = ./.;
+        vendorHash = "sha256-4rK69s1uTFBV20endymLw6JEUfrh51bznZEgbujUQls=";
+        meta.mainProgram = "switchboard";
+      })
     ];
   };
 
