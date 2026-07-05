@@ -6,12 +6,34 @@
   #
   # Hosts that want a GUI enable "desktop"; it `requires` "niri" (the compositor
   # that `defaultSession` points at) — the loader hard-fails otherwise.
-  flake.modules.nixos.desktop = {pkgs, ...}: {
+  flake.modules.nixos.desktop = {pkgs, ...}: let
+    # qylock's "forest" SDDM theme — visually close to the noctalia lockscreen,
+    # so greeter and locker read as one screen. Only this theme is fetched
+    # (sparse checkout): the full repo carries 40+ themes with mp4 backgrounds.
+    qylock-forest = pkgs.stdenvNoCC.mkDerivation {
+      pname = "qylock-forest-sddm-theme";
+      version = "0-unstable-2026-06-05";
+      src = pkgs.fetchFromGitHub {
+        owner = "Darkkal44";
+        repo = "qylock";
+        rev = "db61a972b4b23728d9944a906e70029ca8a5899d";
+        sparseCheckout = ["themes/forest"];
+        hash = "sha256-Dj2a2uKsriYbh+ySG84VpVCTbarPTra9U+1ITE7sX6U=";
+      };
+      installPhase = ''
+        runHook preInstall
+        mkdir -p $out/share/sddm/themes
+        cp -r themes/forest $out/share/sddm/themes/forest
+        runHook postInstall
+      '';
+    };
+  in {
     services.xserver.enable = true;
-    # SDDM (Qt6, Wayland greeter) with the astronaut theme instead of stock GDM.
-    # The theme package must be in systemPackages so SDDM finds it under
+    # SDDM (Qt6, Wayland greeter) with the qylock forest theme instead of stock
+    # GDM. The theme package must be in systemPackages so SDDM finds it under
     # /run/current-system/sw/share/sddm/themes; extraPackages puts its Qt/QML
-    # deps (qtmultimedia for animated backgrounds) on the greeter's import path.
+    # deps on the greeter's import path (qtmultimedia for the video background,
+    # qt5compat for Qt5Compat.GraphicalEffects which Main.qml imports).
     services.displayManager.sddm = {
       enable = true;
       package = pkgs.kdePackages.sddm;
@@ -26,16 +48,16 @@
         CursorTheme = "Bibata-Modern-Ice";
         CursorSize = 24;
       };
-      theme = "sddm-astronaut-theme";
+      theme = "forest";
       extraPackages = with pkgs; [
-        sddm-astronaut
         kdePackages.qtmultimedia
+        kdePackages.qt5compat
       ];
     };
     services.displayManager.defaultSession = "niri";
 
     environment.systemPackages = with pkgs; [
-      sddm-astronaut
+      qylock-forest
       bibata-cursors # greeter cursor (settings.Theme.CursorTheme above)
       nautilus
       libreoffice-fresh
@@ -54,14 +76,23 @@
   };
 
   # Próba: the desktop layer is present (display-manager exists — the opposite of
-  # core-smoke), it's SDDM with the astronaut theme, and the niri session it
+  # core-smoke), it's SDDM with the qylock forest theme, and the niri session it
   # points at is installed.
   flake.probaTests.desktop = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("systemctl cat display-manager.service | grep -qi sddm")
-      machine.succeed("grep -q 'Current=sddm-astronaut-theme' /etc/sddm.conf.d/00-nixos.conf")
-      machine.succeed("test -e /run/current-system/sw/share/sddm/themes/sddm-astronaut-theme/Main.qml")
+      machine.succeed("grep -q 'Current=forest' /etc/sddm.conf.d/00-nixos.conf")
+      machine.succeed("test -e /run/current-system/sw/share/sddm/themes/forest/Main.qml")
+      # The theme is a video background (bg.mp4) plus QML that imports
+      # QtMultimedia and Qt5Compat.GraphicalEffects; a missing QML dep makes the
+      # greeter fall back to a bare screen with no eval error, so assert the
+      # greeter env (built from sddm + extraPackages) carries both modules.
+      machine.succeed("test -e /run/current-system/sw/share/sddm/themes/forest/bg.mp4")
+      # The wrapped greeter binary embeds its QML import paths, so a binary grep
+      # proves the modules are on the greeter's path.
+      machine.succeed("grep -aq qt5compat /run/current-system/sw/bin/sddm-greeter-qt6")
+      machine.succeed("grep -aq qtmultimedia /run/current-system/sw/bin/sddm-greeter-qt6")
       # Cursor theme must be configured AND resolvable, or the greeter pointer
       # is invisible (mouse input still works, so only this guards it).
       machine.succeed("grep -q 'CursorTheme=Bibata-Modern-Ice' /etc/sddm.conf.d/00-nixos.conf")
