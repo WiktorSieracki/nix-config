@@ -30,24 +30,11 @@
         # systemctl --user reset-failed
       };
     };
-    homeManager.sops = {
-      imports = [
-        inputs.sops-nix.homeManagerModules.sops
-      ];
-
-      sops.secrets = {
-        eduroamPassword = {};
-        studentEmail = {};
-      };
-
-      sops = {
-        age.sshKeyPaths = ["/home/wiktor/.ssh/id_ed25519"];
-        # NB: relative to this file. After folderizing into sops/, the repo-root
-        # secrets.yaml is three levels up (sops/ → features/ → modules/ → root).
-        defaultSopsFile = ../../../secrets.yaml;
-        validateSopsFiles = false;
-      };
-    };
+    # NOTE: no homeManager part on purpose (ADR 0004). HM-level sops-nix would
+    # decrypt with wiktor's ssh key — unreadable for any other account (home
+    # 700). Per-user secrets are delivered by *system* sops with `owner`
+    # instead (see git's email templates), so the HM half died with its last
+    # consumer.
   };
 
   # sops decrypts secrets with wiktor's real ssh key — absent in any VM. So the

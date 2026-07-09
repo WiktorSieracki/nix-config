@@ -107,6 +107,22 @@ domyślnie włączone.
 **Fix:** `CGO_ENABLED=0` — projekt jest pure-Go. W `buildGoModule` problem
 nie występuje (stdenv ma cc).
 
+## 2026-07-06 — migracja na `{system, users}` (ADR 0004)
+
+**Kontekst:** `features.json` przestał być płaską listą — teraz
+`{"system": [...], "users": {"<login>": [...]}}`. `HostSpec` (model.go)
+zastępuje gołe `[]string`; `Sections()`/`Get`/`Set`/`Clone`/`SpecEqual`
+operują na całym spec-u, a UI dostał zakładki sekcji (`tab`/`[`/`]`) — każda
+edytowana niezależnie, `enable()` liczy domknięcie `requires` względem
+`system ∪ bieżąca sekcja` (metoda `satisfiers()`), nie całego pliku.
+
+**Pułapka do zapamiętania:** `enable()` sprawdza już-obecne zależności przez
+`contains(m.enabled(), dep)` — bez tego auto-dociąganie potrafiłoby dodać
+duplikat feature'a, który jest spełniony przez `system`, ale nie przez samą
+sekcję usera. Test jednostkowy tego nie łapie (za mało scenariuszy w
+`model_test.go`) — jeśli coś tu się popsuje, objawi się jako duplikat w
+`features.json` po zapisaniu, nie jako crash.
+
 ## 2026-07-04 — `--help` z exit 0 bez TTY: `flag.ExitOnError`
 
 Próba wymaga `switchboard --help` z kodem 0 w headless VM. Pakiet `flag` z

@@ -11,7 +11,7 @@
 
   # HM-only feature: cmake, clang, clang-tools, just, and make installed for wiktor.
   flake.featureMeta.cpp = {
-    requires = ["wiktor"];
+    requires = [];
     kind = "cli";
   };
 
@@ -19,11 +19,11 @@
   flake.probaTests.cpp = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-wiktor.service")
-      machine.succeed("su - wiktor -c 'cmake --version'")
-      machine.succeed("su - wiktor -c 'clang --version'")
-      machine.succeed("su - wiktor -c 'just --version'")
-      machine.succeed("su - wiktor -c 'make --version'")
+      machine.wait_for_unit("home-manager-proba.service")
+      machine.succeed("su - proba -c 'cmake --version'")
+      machine.succeed("su - proba -c 'clang --version'")
+      machine.succeed("su - proba -c 'just --version'")
+      machine.succeed("su - proba -c 'make --version'")
     '';
   };
 }

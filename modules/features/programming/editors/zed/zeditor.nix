@@ -2,7 +2,7 @@
   # Zed editor configured for wiktor: custom noctalia theme, nix/toml/catppuccin
   # extensions, copilot predictions, direnv integration. HM-only feature.
   flake.featureMeta.zeditor = {
-    requires = ["wiktor"];
+    requires = [];
     kind = "gui";
   };
 
@@ -10,8 +10,8 @@
   flake.probaTests.zeditor = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-wiktor.service")
-      machine.succeed("su - wiktor -c 'command -v zeditor'")
+      machine.wait_for_unit("home-manager-proba.service")
+      machine.succeed("su - proba -c 'command -v zeditor'")
     '';
   };
 

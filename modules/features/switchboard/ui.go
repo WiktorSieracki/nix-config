@@ -41,6 +41,7 @@ var (
 	styleGreen  = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	styleRed    = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 	styleYellow = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
+	styleBlue   = lipgloss.NewStyle().Foreground(lipgloss.Color("4"))
 )
 
 // finale is the post-save / post-update state: apply locally with
@@ -74,9 +75,12 @@ type model struct {
 
 	// host (feature grid)
 	host       string
-	original   []string
-	enabled    []string // order preserved for the file
+	origSpec   HostSpec
+	spec       HostSpec // per-section order preserved for the file
+	sections   []string // "system" + logins; the grid edits sections[section]
+	section    int
 	meta       map[string]FeatureMeta
+	hmNames    map[string]bool // features with a home-manager part (ADR 0004)
 	metaLoaded bool
 	metaErr    string
 	search     textinput.Model
@@ -86,7 +90,7 @@ type model struct {
 	cellWidth  int
 
 	// confirm
-	newList []string
+	newSpec HostSpec
 
 	fin finale
 }
@@ -103,8 +107,9 @@ func (m model) Init() tea.Cmd { return nil }
 // ── messages ────────────────────────────────────────────────────────────────
 
 type metaLoadedMsg struct {
-	meta map[string]FeatureMeta
-	err  error
+	meta    map[string]FeatureMeta
+	hmNames map[string]bool
+	err     error
 }
 
 type execDoneMsg struct {
@@ -119,17 +124,39 @@ type gitDoneMsg struct {
 
 func loadMeta(repo string) tea.Cmd {
 	return func() tea.Msg {
-		out, err := exec.Command("nix", "eval", repo+"#featureMeta", "--json").Output()
-		if err != nil {
-			msg := err.Error()
-			var ee *exec.ExitError
-			if errors.As(err, &ee) && len(ee.Stderr) > 0 {
-				msg = tail(string(ee.Stderr), 300)
+		evalJSON := func(attr, apply string) ([]byte, error) {
+			args := []string{"eval", repo + "#" + attr, "--json"}
+			if apply != "" {
+				args = append(args, "--apply", apply)
 			}
-			return metaLoadedMsg{err: fmt.Errorf("nix eval featureMeta failed: %s", msg)}
+			out, err := exec.Command("nix", args...).Output()
+			if err != nil {
+				msg := err.Error()
+				var ee *exec.ExitError
+				if errors.As(err, &ee) && len(ee.Stderr) > 0 {
+					msg = tail(string(ee.Stderr), 300)
+				}
+				return nil, fmt.Errorf("nix eval %s failed: %s", attr, msg)
+			}
+			return out, nil
+		}
+		out, err := evalJSON("featureMeta", "")
+		if err != nil {
+			return metaLoadedMsg{err: err}
 		}
 		meta, err := parseMeta(out)
-		return metaLoadedMsg{meta: meta, err: err}
+		if err != nil {
+			return metaLoadedMsg{err: err}
+		}
+		// Which features have a home-manager part: those may not sit in
+		// `system` (their HM half would attach to nobody — the loader
+		// hard-fails on it, so refuse it in the UI already).
+		out, err = evalJSON("modules.homeManager", "builtins.attrNames")
+		if err != nil {
+			return metaLoadedMsg{err: err}
+		}
+		hmNames, err := parseNames(out)
+		return metaLoadedMsg{meta: meta, hmNames: hmNames, err: err}
 	}
 }
 
@@ -184,6 +211,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.meta = msg.meta
+		m.hmNames = msg.hmNames
 		m.metaLoaded = true
 		m.metaErr = ""
 		m.rebuildGrid()
@@ -406,14 +434,16 @@ func (m model) handleHomeKey(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m model) enterHost(host string) (tea.Model, tea.Cmd) {
-	features, err := readFeatures(m.repo, host)
+	spec, err := readSpec(m.repo, host)
 	if err != nil {
 		m.setStatus(err.Error(), statusError)
 		return m, nil
 	}
 	m.host = host
-	m.original = features
-	m.enabled = append([]string(nil), features...)
+	m.origSpec = spec
+	m.spec = spec.Clone()
+	m.sections = spec.Sections()
+	m.section = 0
 	m.metaLoaded = false
 	m.metaErr = ""
 	m.meta = nil
@@ -424,6 +454,23 @@ func (m model) enterHost(host string) (tea.Model, tea.Cmd) {
 	m.scr = scrHost
 	m.grid = Grid{}
 	return m, loadMeta(m.repo)
+}
+
+// sectionName is the current section key ("system" or a login).
+func (m model) sectionName() string { return m.sections[m.section] }
+
+// enabled is the working feature list of the current section.
+func (m model) enabled() []string { return m.spec.Get(m.sectionName()) }
+
+func (m *model) setEnabled(list []string) { m.spec.Set(m.sectionName(), list) }
+
+// satisfiers is the set a feature's requires may be met from: the system
+// list plus the current section (system for system, system+user for a user).
+func (m model) satisfiers() []string {
+	if m.sectionName() == sectionSystem {
+		return m.spec.System
+	}
+	return append(append([]string(nil), m.spec.System...), m.enabled()...)
 }
 
 func (m model) handleHostKey(key string) (tea.Model, tea.Cmd) {
@@ -453,6 +500,20 @@ func (m model) handleHostKey(key string) (tea.Model, tea.Cmd) {
 		if m.grid.Total > 0 {
 			m.cursor = m.grid.Total - 1
 		}
+	case "tab", "]":
+		if len(m.sections) > 1 {
+			m.section = (m.section + 1) % len(m.sections)
+			m.cursor = 0
+			m.status = ""
+			m.rebuildGrid()
+		}
+	case "shift+tab", "[":
+		if len(m.sections) > 1 {
+			m.section = (m.section - 1 + len(m.sections)) % len(m.sections)
+			m.cursor = 0
+			m.status = ""
+			m.rebuildGrid()
+		}
 	case " ":
 		m.toggle(m.grid.NameAt(m.cursor))
 	case "enter":
@@ -474,14 +535,18 @@ func (m *model) toggle(name string) {
 
 func (m *model) enable(name string) {
 	var pulled []string
+	// A user section's requires may be satisfied by `system` too, so only
+	// pull deps that aren't already covered by system + this section.
+	satisfied := m.satisfiers()
 	for dep := range RequiresClosure(m.meta, []string{name}) {
-		if dep != name && !m.isEnabled(dep) {
+		if dep != name && !contains(satisfied, dep) && !contains(m.enabled(), dep) {
 			pulled = append(pulled, dep)
 		}
 	}
 	sort.Strings(pulled)
-	m.enabled = append(m.enabled, name)
-	m.enabled = append(m.enabled, pulled...) // the file gets the full closure
+	list := append(append([]string(nil), m.enabled()...), name)
+	list = append(list, pulled...) // the file gets the full closure
+	m.setEnabled(list)
 	if len(pulled) > 0 {
 		m.setStatus(fmt.Sprintf("Also enabled (required by %s): %s",
 			name, strings.Join(pulled, ", ")), statusInfo)
@@ -491,18 +556,20 @@ func (m *model) enable(name string) {
 }
 
 func (m *model) disable(name string) {
-	dependents := Dependents(m.meta, m.enabled, name)
+	dependents := Dependents(m.meta, m.enabled(), name)
 	if len(dependents) > 0 {
 		m.setStatus(fmt.Sprintf("Cannot disable %s — required by: %s",
 			name, strings.Join(dependents, ", ")), statusWarn)
 		return
 	}
-	for i, f := range m.enabled {
+	list := append([]string(nil), m.enabled()...)
+	for i, f := range list {
 		if f == name {
-			m.enabled = append(m.enabled[:i], m.enabled[i+1:]...)
+			list = append(list[:i], list[i+1:]...)
 			break
 		}
 	}
+	m.setEnabled(list)
 	// Deps that were auto-pulled for `name` stay enabled on purpose.
 	m.status = ""
 }
@@ -511,12 +578,14 @@ func (m model) review() (tea.Model, tea.Cmd) {
 	if !m.metaLoaded {
 		return m, nil
 	}
-	newList := ReconcileOrder(m.original, m.enabled)
-	if equal(newList, m.original) {
+	m.newSpec = m.spec.Clone()
+	for _, s := range m.sections {
+		m.newSpec.Set(s, ReconcileOrder(m.origSpec.Get(s), m.spec.Get(s)))
+	}
+	if SpecEqual(m.newSpec, m.origSpec) {
 		m.setStatus("No changes.", statusInfo)
 		return m, nil
 	}
-	m.newList = newList
 	m.status = ""
 	m.scr = scrConfirm
 	return m, nil
@@ -534,12 +603,11 @@ func (m model) handleConfirmKey(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m model) save() (tea.Model, tea.Cmd) {
-	if err := writeFeatures(m.repo, m.host, m.newList); err != nil {
+	if err := writeSpec(m.repo, m.host, m.newSpec); err != nil {
 		m.setStatus("saving: "+err.Error(), statusError)
 		return m, nil
 	}
-	added, removed := FeatureDiff(m.original, m.newList)
-	diff := DiffString(added, removed)
+	diff := m.specDiffString()
 	local := m.host == m.hostname
 	m.fin = finale{
 		commitPaths: []string{hostFiles[m.host]},
@@ -590,7 +658,7 @@ func (m *model) rebuildGrid() {
 		m.grid = Grid{}
 		return
 	}
-	groups := BuildGroups(m.meta, m.enabled, m.search.Value())
+	groups := BuildGroups(m.meta, m.enabled(), m.search.Value())
 	maxLen := 0
 	for _, g := range groups {
 		for _, item := range g.Items {
@@ -616,12 +684,32 @@ func (m *model) rebuildGrid() {
 }
 
 func (m model) isEnabled(name string) bool {
-	for _, f := range m.enabled {
-		if f == name {
-			return true
+	return contains(m.enabled(), name)
+}
+
+// isSystemProvided reports whether name is reachable in a user section only
+// because `system` already enables it — not because this user's own list
+// does. Lets the grid show "you already have this, via system" without
+// implying the user owns it (toggling it still adds it explicitly to the
+// user's own list, same as any other feature).
+func (m model) isSystemProvided(name string) bool {
+	return m.sectionName() != sectionSystem &&
+		contains(m.spec.System, name) &&
+		!m.isEnabled(name)
+}
+
+// specDiffString renders the diff across every section as
+// "system: +a -b · wiktor: +c" (sections with no change are omitted).
+func (m model) specDiffString() string {
+	var parts []string
+	for _, s := range m.sections {
+		added, removed := FeatureDiff(m.origSpec.Get(s), m.newSpec.Get(s))
+		if len(added) == 0 && len(removed) == 0 {
+			continue
 		}
+		parts = append(parts, s+": "+DiffString(added, removed))
 	}
-	return false
+	return strings.Join(parts, " · ")
 }
 
 func (m *model) setStatus(s string, level int) {
@@ -696,8 +784,14 @@ func (m model) viewHome() string {
 
 func (m model) viewHost() string {
 	title := styleTitle.Render(m.host) +
-		styleDim.Render(fmt.Sprintf("  %d enabled", len(m.enabled)))
+		styleDim.Render(fmt.Sprintf("  %d enabled", len(m.enabled())))
 	lines := []string{title}
+	if len(m.sections) > 1 {
+		lines = append(lines, m.viewSectionTabs())
+	}
+	if m.sectionName() != sectionSystem {
+		lines = append(lines, styleBlue.Render("[s]")+styleDim.Render(" = enabled via system, not on this user's own list"))
+	}
 	if m.searching {
 		lines = append(lines, m.search.View())
 	} else if q := m.search.Value(); q != "" {
@@ -727,16 +821,23 @@ func (m model) viewHost() string {
 					}
 					name := grp.Items[li]
 					box := "[ ]"
-					if m.isEnabled(name) {
+					systemProvided := m.isSystemProvided(name)
+					switch {
+					case m.isEnabled(name):
 						box = "[x]"
+					case systemProvided:
+						box = "[s]"
 					}
 					cell := box + " " + name
 					if pad := m.cellWidth - len(cell); pad > 0 {
 						cell += strings.Repeat(" ", pad)
 					}
-					if m.grid.Start(gi)+li == m.cursor {
+					switch {
+					case m.grid.Start(gi)+li == m.cursor:
 						cursorLine = len(lines)
 						cell = styleCursor.Render(cell)
+					case systemProvided:
+						cell = styleBlue.Render(cell)
 					}
 					b.WriteString(cell)
 				}
@@ -746,17 +847,42 @@ func (m model) viewHost() string {
 		}
 	}
 	return m.frame(lines, cursorLine,
-		"space toggle · enter review · / search · h/j/k/l move · gg/G · esc back")
+		"space toggle · tab/[/] section · enter review · / search · h/j/k/l move · gg/G · esc back")
+}
+
+// viewSectionTabs renders the editable sections ("system" + each user login)
+// as a tab bar, e.g. "[ system ]  wiktor   work", with the active one boxed
+// so tab/[/] switching between accounts is visible, not just documented in
+// the help line.
+func (m model) viewSectionTabs() string {
+	parts := make([]string, len(m.sections))
+	for i, s := range m.sections {
+		label := s
+		if i == m.section {
+			label = styleCursor.Render("[ " + label + " ]")
+		} else {
+			label = styleDim.Render("  " + label + "  ")
+		}
+		parts[i] = label
+	}
+	return strings.Join(parts, " ")
 }
 
 func (m model) viewConfirm() string {
-	added, removed := FeatureDiff(m.original, m.newList)
 	lines := []string{styleTitle.Render("Changes for " + m.host), ""}
-	for _, f := range added {
-		lines = append(lines, styleGreen.Render("+"+f))
-	}
-	for _, f := range removed {
-		lines = append(lines, styleRed.Render("−"+f))
+	for _, s := range m.sections {
+		added, removed := FeatureDiff(m.origSpec.Get(s), m.newSpec.Get(s))
+		if len(added) == 0 && len(removed) == 0 {
+			continue
+		}
+		lines = append(lines, styleHeader.Render(s))
+		for _, f := range added {
+			lines = append(lines, styleGreen.Render("+"+f))
+		}
+		for _, f := range removed {
+			lines = append(lines, styleRed.Render("−"+f))
+		}
+		lines = append(lines, "")
 	}
 	return m.frame(lines, 0, "enter save · esc back")
 }

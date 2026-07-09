@@ -6,25 +6,21 @@
   # Same curated subset as the ISO host: niri desktop + a handful of apps,
   # minus hardware-specific (nvidia/wacom/mouse) and secret-dependent
   # (sops/git/personal-snippets/eduroam/home-wifi) modules.
-  vmModules = [
-    # system
-    "wiktor"
-    "niri"
-    "desktop"
-
-    # shell & environment
-    "fish"
-    "nix"
-
-    # development
-    "vscode"
-    "python"
-    "nodejs"
-
-    # apps
-    "firefox"
-    "localsend"
-  ];
+  vmSpec = {
+    system = [
+      "niri"
+      "desktop"
+      "nix"
+      "python"
+      "nodejs"
+    ];
+    users.wiktor = [
+      "fish"
+      "vscode"
+      "firefox"
+      "localsend"
+    ];
+  };
 in {
   # A normal, bootable host used purely to produce disk images
   # (`nh os build-image -H vm --image-variant qemu-efi`). Unlike the `iso`
@@ -36,10 +32,6 @@ in {
         config.flake.modules.nixos.nixos
 
         {
-          home-manager.users.wiktor.imports = [
-            config.flake.modules.homeManager.homeManager
-          ];
-
           networking.hostName = "nixos-vm";
           nixpkgs.hostPlatform = "x86_64-linux";
           system.stateVersion = "24.11";
@@ -67,6 +59,6 @@ in {
           };
         }
       ]
-      ++ config.flake.lib.loadNixosAndHmModuleForUser config vmModules;
+      ++ config.flake.lib.loadHost config vmSpec;
   };
 }

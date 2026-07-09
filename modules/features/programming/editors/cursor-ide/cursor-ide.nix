@@ -4,15 +4,15 @@
   };
 
   flake.featureMeta.cursor-ide = {
-    requires = ["wiktor"];
+    requires = [];
     kind = "gui";
   };
 
   flake.probaTests.cursor-ide = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-wiktor.service")
-      machine.succeed("su - wiktor -c 'command -v cursor'")
+      machine.wait_for_unit("home-manager-proba.service")
+      machine.succeed("su - proba -c 'command -v cursor'")
     '';
   };
 }

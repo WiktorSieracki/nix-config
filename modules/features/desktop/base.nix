@@ -12,6 +12,11 @@
   # ("does this feature work without niri?") is actually meaningful.
   flake.modules.nixos.nixos = {pkgs, ...}: {
     networking.networkmanager.enable = true;
+
+    # Admin policy for `wheel` accounts (who is in wheel lives per account in
+    # flake.meta.users.<login>.groups). Was part of the dissolved `wiktor`
+    # foundation feature (ADR 0004).
+    security.sudo.wheelNeedsPassword = false;
     hardware.bluetooth.enable = true;
     services.power-profiles-daemon.enable = true;
     services.upower.enable = true;

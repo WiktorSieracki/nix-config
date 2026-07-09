@@ -13,15 +13,15 @@
   };
 
   flake.featureMeta.brave = {
-    requires = ["wiktor"];
+    requires = [];
     kind = "gui";
   };
 
   flake.probaTests.brave = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-wiktor.service")
-      machine.succeed("su - wiktor -c 'command -v brave'")
+      machine.wait_for_unit("home-manager-proba.service")
+      machine.succeed("su - proba -c 'command -v brave'")
     '';
   };
 }

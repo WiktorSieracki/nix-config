@@ -48,8 +48,8 @@
     # `kind` is accepted for symmetry / future rigor defaults; unused for now.
     kind ? (config.flake.featureMeta.${feature}.kind or "config"),
     extraNixosModules ? [],
-    # Extra home-manager modules merged into wiktor's HM — used by Próby to stub
-    # secret-backed config (e.g. point SOPS at a fixture, see docs/adr/0002 (b)).
+    # Extra home-manager modules merged into the test user's HM — used by Próby
+    # to stub secret-backed config (e.g. point SOPS at a fixture, ADR 0002 (b)).
     extraHmModules ? [],
   }: let
     meta = config.flake.featureMeta or {};
@@ -65,18 +65,44 @@
     nixosModules = map (m: config.flake.modules.nixos.${m} or {}) enabled;
     hmModules = map (m: config.flake.modules.homeManager.${m} or {}) enabled;
 
-    # Only wire home-manager when the user feature is in the closure — HM needs
-    # the `wiktor` user to exist. Pure-system Próby skip it for a leaner VM.
-    hmWiring = lib.optionals (builtins.elem "wiktor" enabled) [
+    # A feature with a home-manager part needs an account to attach to. The
+    # Próba uses the neutral `proba` test identity, created by the SAME
+    # mkHostUser factory the hosts use (ADR 0004) — so a hardcoded real login
+    # inside a feature fails its Próba, and the wiring itself gets exercised.
+    # Pure-system Próby (no HM part in the closure) skip it for a leaner VM.
+    hasHm = lib.any (m: (config.flake.modules.homeManager or {}) ? ${m}) enabled;
+    hmWiring = lib.optionals hasHm [
       inputs.home-manager.nixosModules.home-manager
-      {home-manager.users.wiktor.imports = hmModules ++ extraHmModules;}
+      {
+        home-manager = {
+          backupFileExtension = ".bak";
+          useGlobalPkgs = true;
+          useUserPackages = true;
+        };
+      }
+      (config.flake.lib.mkHostUser {
+        login = "proba";
+        userMeta = {
+          fullName = "Proba Testowa";
+          groups = [];
+        };
+        hmModules = hmModules ++ extraHmModules;
+      })
     ];
   in
     pkgs.testers.runNixOSTest {
       name = "feature-${feature}";
       nodes.machine = {...}: {
         imports =
-          [config.flake.modules.nixos.nixos] # Core floor
+          [
+            config.flake.modules.nixos.nixos # Core floor
+            # Mirror the loader's injection: features' NixOS parts may ask
+            # which accounts enable them (e.g. git). In the Próba that's the
+            # test account with the whole closure. (A module-fn default like
+            # `hostUsers ? {}` does NOT kick in — the module system always
+            # queries _module.args for non-standard args.)
+            {_module.args.hostUsers = lib.optionalAttrs hasHm {proba = enabled;};}
+          ]
           ++ nixosModules
           ++ extraNixosModules
           ++ hmWiring;
@@ -145,6 +171,78 @@
             machine.wait_for_unit("multi-user.target")
             machine.succeed("command -v tree")
             machine.fail("systemctl cat display-manager.service")
+          '';
+        };
+
+        # Mechanism Próba (ADR 0004): the per-user wiring itself. Two test
+        # accounts built by the same mkHostUser factory the hosts use; asserts
+        # what used to live in the dissolved `work-user` feature — isolation is
+        # a property of the loader, not of any feature: HM parts attach only to
+        # the listing account, shell/privileges come only from the identity
+        # (meta.users), homes are mutually unreadable (default homeMode 700).
+        host-users = pkgs.testers.runNixOSTest {
+          name = "host-users-mechanism";
+          nodes.machine = {...}: {
+            imports = [
+              config.flake.modules.nixos.nixos # Core floor
+              config.flake.modules.nixos.fish
+              inputs.home-manager.nixosModules.home-manager
+              {
+                home-manager = {
+                  backupFileExtension = ".bak";
+                  useGlobalPkgs = true;
+                  useUserPackages = true;
+                };
+              }
+              (config.flake.lib.mkHostUser {
+                login = "proba";
+                userMeta = {
+                  fullName = "Proba Testowa";
+                  groups = ["wheel"];
+                  shell = "fish";
+                };
+                hmModules = [
+                  config.flake.modules.homeManager.fish
+                  config.flake.modules.homeManager.wallpapers
+                ];
+              })
+              (config.flake.lib.mkHostUser {
+                login = "proba2";
+                userMeta = {
+                  fullName = "Proba Druga";
+                  groups = [];
+                };
+                hmModules = [];
+              })
+            ];
+          };
+          testScript = ''
+            machine.wait_for_unit("multi-user.target")
+            machine.wait_for_unit("home-manager-proba.service")
+            machine.wait_for_unit("home-manager-proba2.service")
+
+            # Accounts exist, identity (GECOS) comes from userMeta.
+            machine.succeed("getent passwd proba | grep -q 'Proba Testowa'")
+            machine.succeed("getent passwd proba2 | grep -q 'Proba Druga'")
+
+            # Login shell comes from userMeta.shell, not from the fish feature.
+            machine.succeed("getent passwd proba | cut -d: -f7 | grep -q fish")
+            machine.fail("getent passwd proba2 | cut -d: -f7 | grep -q fish")
+
+            # HM parts attach ONLY to the account that lists the feature.
+            machine.succeed("test -f /home/proba/Pictures/Wallpapers/wallhaven_p92g1m.jpg")
+            machine.fail("test -e /home/proba2/Pictures")
+            machine.succeed("su - proba -c 'command -v direnv'")
+            machine.fail("su - proba2 -c 'command -v direnv'")
+
+            # Privilege comes only from the identity's groups.
+            machine.succeed("id -nG proba | grep -qw wheel")
+            machine.fail("id -nG proba2 | grep -qw wheel")
+            machine.fail("su - proba2 -c 'sudo -n true'")
+
+            # Homes mutually unreadable (NixOS default homeMode 700).
+            machine.fail("su - proba2 -c 'ls /home/proba'")
+            machine.fail("su - proba -c 'ls /home/proba2'")
           '';
         };
       };

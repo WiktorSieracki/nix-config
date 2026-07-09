@@ -26,3 +26,21 @@ klucza ssh wiktora (recipient z `.sops.yaml`).
 `sops.secrets`/`templates` (system + HM) i podmienia include maila na plaintext
 przez `pkgs.writeText`. Nie testujemy deszyfracji SOPS-a (to domena sops-nix),
 tylko że git/gh działają i config ląduje.
+
+## 2026-07-06 — email przeniesiony na system-level sops per user (ADR 0004)
+
+**Objaw (przed zmianą):** HM-owy sops odszyfrowuje kluczem z home
+użytkownika głównego (`age.sshKeyPaths` w `sops.nix` HM wskazywał na
+`/home/wiktor/.ssh/id_ed25519`) — dla każdego innego konta (np. `work`) to
+po prostu nieczytelny plik.
+
+**Przyczyna:** HM ewaluuje się per user, ale sops-nix zawsze bierze klucz
+z filesystemu tego konkretnego home, więc HM-owy sops nie skaluje się na
+wiele kont bez własnego klucza age per user (odrzucone — p. ADR 0004).
+
+**Fix:** `homeManager.sops` (część HM) usunięty całkowicie. `git.nix`
+renderuje teraz jeden systemowy sops template `git-email-<login>` na konto,
+które ma `git` na liście i wpis `emailSecret` w `flake.meta.users` — feature
+sam wylicza to z `hostUsers` (wstrzykniętego przez loader) i
+`config.flake.meta.users`, `owner` szablonu to ten login. HM-owa część git
+tylko odczytuje ścieżkę już wyrenderowanego pliku przez `osConfig`.

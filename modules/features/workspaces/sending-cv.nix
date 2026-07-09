@@ -25,7 +25,7 @@ in {
   # niri workspaces for CV sending workflow. HM part adds a .desktop entry.
   # Needs `wiktor` for the home-manager desktop entry.
   flake.featureMeta."sending-cv" = {
-    requires = ["wiktor"];
+    requires = [];
     kind = "cli";
   };
 
@@ -33,7 +33,7 @@ in {
   flake.probaTests."sending-cv" = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-wiktor.service")
+      machine.wait_for_unit("home-manager-proba.service")
       machine.succeed("command -v sending-cv")
     '';
   };

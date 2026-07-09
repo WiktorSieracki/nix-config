@@ -1,8 +1,11 @@
 # Launcher entry to boot the `vm` host in a *windowed* QEMU (not full-screen),
 # so it shows up in the app launcher (Mod+Space) instead of needing a keybind.
 # Same SDL/virgl invocation as the CLAUDE.md command, minus `-full-screen`.
+#
+# A proper user feature (not part of the always-on HM floor): it references
+# wiktor's flake checkout, so only accounts that can read it should list it.
 {
-  flake.modules.homeManager.homeManager = {
+  flake.modules.homeManager.vm-launcher = {
     pkgs,
     lib,
     ...
@@ -40,5 +43,19 @@
       categories = ["Development" "System"];
       settings.Keywords = "qemu;vm;nixos;test;virtual;";
     };
+  };
+
+  flake.featureMeta.vm-launcher = {
+    requires = [];
+    kind = "cli";
+  };
+
+  flake.probaTests.vm-launcher = {
+    testScript = ''
+      machine.wait_for_unit("multi-user.target")
+      machine.wait_for_unit("home-manager-proba.service")
+      machine.succeed("su - proba -c 'command -v run-vm-windowed'")
+      machine.succeed("su - proba -c 'test -f ~/.nix-profile/share/applications/run-vm-windowed.desktop || test -f /etc/profiles/per-user/proba/share/applications/run-vm-windowed.desktop'")
+    '';
   };
 }

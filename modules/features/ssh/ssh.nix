@@ -1,30 +1,14 @@
 {
+  # Generic, user-agnostic ssh client config (ADR 0004). Personal host
+  # aliases that log in as a concrete account live in `ssh-personal-hosts`.
+  # `~/.ssh/id_ed25519` is a per-account path — each user brings their own
+  # key (e.g. `work` has a separate key for its own GitHub account).
   flake.modules.homeManager.ssh = {
-    # Migrated from the deprecated `programs.ssh.matchBlocks`/`extraOptions` to
-    # `programs.ssh.settings` (home-manager): the attribute name is the `Host`
-    # pattern and option keys are upstream OpenSSH directive names. Folding the
-    # short alias into the same pattern (`laptop laptopnixos`) so `ssh laptop`
-    # actually resolves — the old `host = "..."` override silently dropped the
-    # alias and emitted a duplicate `Host laptopnixos` block instead.
     programs.ssh = {
       enable = true;
       enableDefaultConfig = false;
 
       settings = {
-        "laptop laptopnixos" = {
-          User = "wiktor";
-          IdentityFile = "~/.ssh/id_ed25519";
-          ServerAliveInterval = "60";
-          ServerAliveCountMax = "3";
-          ConnectTimeout = "30";
-        };
-        "desktop desktopnixos" = {
-          User = "wiktor";
-          IdentityFile = "~/.ssh/id_ed25519";
-          ServerAliveInterval = "60";
-          ServerAliveCountMax = "3";
-          ConnectTimeout = "30";
-        };
         "github.com" = {
           User = "git";
           IdentityFile = "~/.ssh/id_ed25519";
@@ -40,16 +24,16 @@
   };
 
   flake.featureMeta.ssh = {
-    requires = ["wiktor"];
+    requires = [];
     kind = "config";
   };
 
   flake.probaTests.ssh = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-wiktor.service")
-      machine.succeed("su - wiktor -c 'test -f ~/.ssh/config'")
-      machine.succeed("su - wiktor -c 'ssh -V'")
+      machine.wait_for_unit("home-manager-proba.service")
+      machine.succeed("su - proba -c 'test -f ~/.ssh/config'")
+      machine.succeed("su - proba -c 'ssh -V'")
     '';
   };
 }

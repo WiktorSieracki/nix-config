@@ -9,9 +9,9 @@
         enableFishIntegration = true;
       };
 
-      users.users.wiktor = {
-        shell = pkgs.fish;
-      };
+      # NOTE: the login shell is NOT set here. Which account uses fish as its
+      # shell is identity data — it lives in flake.meta.users.<login>.shell and
+      # the host loader (mkHostUser) applies it. This module only provides fish.
     };
 
     homeManager.fish = {pkgs, ...}: {
@@ -53,19 +53,21 @@
   };
 
   # Fish shell: system-level programs.fish.enable + nix-index integration,
-  # HM direnv + plugins. Sets wiktor's login shell to fish, so requires `wiktor`.
+  # HM direnv + plugins. Login-shell assignment lives in flake.meta.users.
   flake.featureMeta.fish = {
-    requires = ["wiktor"];
+    requires = [];
     kind = "config";
   };
 
-  # Próba: fish binary on PATH and wiktor's shell is fish.
+  # Próba: fish binary on PATH and the HM part (direnv) lands in the test
+  # user's profile. Shell *assignment* is the loader's job — asserted by the
+  # host-users mechanism check, not here.
   flake.probaTests.fish = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-wiktor.service")
+      machine.wait_for_unit("home-manager-proba.service")
       machine.succeed("command -v fish")
-      machine.succeed("getent passwd wiktor | cut -d: -f7 | grep -q fish")
+      machine.succeed("su - proba -c 'command -v direnv'")
     '';
   };
 }

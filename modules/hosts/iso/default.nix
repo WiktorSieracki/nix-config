@@ -13,25 +13,21 @@
   #   - login-walled / heavy apps: discord, spotify, teams, handy, affine, ...
   #
   # Add or remove names here to change what ships on the ISO.
-  isoModules = [
-    # system
-    "wiktor"
-    "niri"
-    "desktop"
-
-    # shell & environment
-    "fish"
-    "nix"
-
-    # development
-    "vscode"
-    "python"
-    "nodejs"
-
-    # apps
-    "firefox"
-    "localsend"
-  ];
+  isoSpec = {
+    system = [
+      "niri"
+      "desktop"
+      "nix"
+      "python"
+      "nodejs"
+    ];
+    users.wiktor = [
+      "fish"
+      "vscode"
+      "firefox"
+      "localsend"
+    ];
+  };
 in {
   flake.nixosConfigurations.iso = lib.nixosSystem {
     system = "x86_64-linux";
@@ -51,12 +47,6 @@ in {
         config.flake.modules.nixos.nixos
 
         {
-          # Bring the base home-manager profile into wiktor's HM, mirroring how
-          # the real hosts are assembled in hosts/configurations.nix.
-          home-manager.users.wiktor.imports = [
-            config.flake.modules.homeManager.homeManager
-          ];
-
           networking.hostName = "nixos-iso";
           nixpkgs.hostPlatform = "x86_64-linux";
           system.stateVersion = "24.11";
@@ -74,6 +64,6 @@ in {
           };
         }
       ]
-      ++ config.flake.lib.loadNixosAndHmModuleForUser config isoModules;
+      ++ config.flake.lib.loadHost config isoSpec;
   };
 }

@@ -6,10 +6,25 @@ decyzji implementacyjnych — tylko ujednolicenie języka.
 ## Language
 
 **Host**:
-Nazwana konfiguracja maszyny w `flake.nixosConfigurations.*`, złożona z listy
-**feature**'ów. Prawdziwe maszyny (`desktopNixos`, `laptopNixos`) zależą od
-swojego `hardware-configuration.nix` i sekretów SOPS.
+Nazwana konfiguracja maszyny w `flake.nixosConfigurations.*`, złożona z
+**feature'ów systemowych** (sekcja `system`) i **feature'ów użytkownika**
+włączanych per konto (sekcja `users.<login>`). Prawdziwe maszyny
+(`desktopNixos`, `laptopNixos`) zależą od swojego `hardware-configuration.nix`
+i sekretów SOPS.
 _Avoid_: machine, target, profile.
+
+**Feature systemowy**:
+**Feature** będący cechą maszyny (sprzęt, sieć, usługi — `nvidia`,
+`ssh-server`, `tailscale`). **Host** włącza go raz, w sekcji `system`; nie
+należy do żadnego konta.
+_Avoid_: global feature.
+
+**Feature użytkownika**:
+**Feature** będący częścią środowiska konkretnego konta (`git`, `fish`,
+`vscode`, aplikacje). **Host** włącza go per user w `users.<login>`; ten sam
+feature może mieć wielu userów, ale jego treść zna tylko *jednego,
+abstrakcyjnego* użytkownika — tożsamość dostaje z zewnątrz.
+_Avoid_: user module, profile feature.
 
 **Feature**:
 Wielokrotnego użytku moduł w `modules/features/*`, zwykle definiujący część
@@ -21,6 +36,13 @@ store-path, nie importowane spoza modułu). Layout to **folder-per-feature**
 nie jest zależnością funkcjonalną, bo feature działa bez niej.
 _Avoid_: module (zbyt ogólne — `feature` to konkretnie ten wzorzec),
 package (mylące z pakietem nixpkgs — u nas jednostką jest `feature`).
+
+**Tożsamość** (`meta.users`):
+Kanoniczny rejestr kont w `flake.meta.users.<login>`: pełne imię, grupy,
+shell, adresy. Konto istnieje na **Hoście** ⇔ jego login jest kluczem sekcji
+`users` tego hosta — tworzy je loader, nie feature. **Feature użytkownika**
+dostaje tożsamość wstrzykniętą i nigdy nie hardkoduje loginu.
+_Avoid_: user feature (dawny feature `wiktor`), account config.
 
 **Kind** (rodzaj feature'a):
 Maszynowo-czytelna kategoria w `featureMeta.<feature>.kind`, mówiąca *czym*
@@ -60,7 +82,9 @@ domknięcie jego **Requires**, i asercją sprawdza, że feature „działa" na
 poziomie rygoru z jego **Kind**. Obowiązkowa dla *każdego* feature'a (CI
 failuje bez niej) — nawet trywialny feature z jednym `systemPackage` musi
 udowodnić, że binarka się odpala. Pada, gdy feature ma niezadeklarowaną
-zależność → wymusza modularność konstrukcyjnie.
+zależność → wymusza modularność konstrukcyjnie. **Feature'y użytkownika**
+testuje na neutralnym koncie testowym (`proba`), nie na realnym loginie —
+hardkod czyjegoś loginu w feature'rze wywala jego Próbę.
 _Avoid_: smoke-test, unit test, sprawdzenie.
 
 **Próba hosta** (e2e, Tier 2):
@@ -87,12 +111,21 @@ tylko, że moduł integruje się i system bootuje (regresja eval/boot), nie samo
 działanie sprzętu/sekretu.
 _Avoid_: untestable, skip.
 
+**Work user**:
+Drugie zwykłe konto uniksowe (`work`) na tym samym **Hoście** co użytkownik
+główny — separacja *danych i tożsamości* (profile, konta, sekrety, historia),
+nie separacja wykonywalności (bez MAC). Bez sudo, homeMode 700. Konto
+**zarządzane**: jego **feature'y użytkownika** przełącza i aktywuje użytkownik
+główny — prawo przebudowy systemu równałoby się rootowi i unieważniło izolację.
+_Avoid_: osobny host, work-VM, konto służbowe jako maszyna.
+
 **Switchboard**:
 TUI (feature `switchboard`, binarka `switchboard`) do zarządzania listami
-**feature**'ów prawdziwych **host**'ów: checkboxy z wyszukiwarką, jawne
-domykanie **Requires** przy zaznaczaniu, feature-diff jako potwierdzenie,
-finał przez `nh os test`/`switch`; globalnie także bump `flake.lock`.
-Edytuje pliki danych hostów — nie dotyka `.nix`.
+**feature**'ów prawdziwych **host**'ów — osobno sekcją `system` i każdą
+`users.<login>` (w tym **work userem**, w rękach użytkownika głównego):
+checkboxy z wyszukiwarką, jawne domykanie **Requires** przy zaznaczaniu,
+feature-diff jako potwierdzenie, finał przez `nh os test`/`switch`; globalnie
+także bump `flake.lock`. Edytuje pliki danych hostów — nie dotyka `.nix`.
 _Avoid_: features-cli, manager, panel.
 
 **ISO** (obraz live):
@@ -122,3 +155,12 @@ _Avoid_: snapshot, versioned release.
 > — A jak z tego zainstaluję laptopa?
 > — Bootujesz to samo **ISO** i robisz `nixos-install --flake .#laptopNixos` —
 >   wybór **host**'a jest na etapie instalacji, nie pobierania.
+>
+> — Chcę slacka na koncie work.
+> — `slack` to **feature użytkownika** — Switchboardem dopisujesz go do
+>   `users.work` desktopa i aktywujesz jako wiktor; **work user** jest kontem
+>   zarządzanym.
+> — A skąd git worka wie, jakim mailem commitować?
+> — Z **Tożsamości**: `meta.users.work` wskazuje sekret z pracowym mailem, a
+>   feature `git` dostaje ją wstrzykniętą — sam nie zna żadnego loginu, co
+>   pilnuje jego **Próba** na koncie `proba`.

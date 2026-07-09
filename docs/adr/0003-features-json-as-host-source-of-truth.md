@@ -11,3 +11,8 @@ komentarze-kategorie w listach (świadomie zaakceptowany). Hosty obrazowe
 (`iso`, `vm`) zostają przy listach inline — nie są celem Switchboarda.
 Walidacja `requires` pozostaje w loaderze (ADR 0002) — plik danych niczego
 nie auto-dociąga; Switchboard zapisuje domknięcie jawnie.
+
+**Aktualizacja (ADR 0004):** format przestaje być płaską listą — `features.json`
+to `{ "system": [...], "users": { "<login>": [...] } }`, rozdzielając feature'y
+maszyny od feature'ów per konto. Reszta decyzji (plik danych, zapisywalność
+przez Switchboard, brak auto-dociągania) obowiązuje bez zmian.

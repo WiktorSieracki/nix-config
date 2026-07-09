@@ -96,14 +96,41 @@ func TestReconcileOrderRemoval(t *testing.T) {
 	}
 }
 
-func TestMarshalFeatures(t *testing.T) {
-	got := string(MarshalFeatures([]string{"a", "b"}))
-	want := "[\n  \"a\",\n  \"b\"\n]\n"
+func TestMarshalSpec(t *testing.T) {
+	got := string(MarshalSpec(HostSpec{
+		System: []string{"a", "b"},
+		Users:  map[string][]string{"wiktor": {"fish"}},
+	}))
+	want := "{\n  \"system\": [\n    \"a\",\n    \"b\"\n  ],\n  \"users\": {\n    \"wiktor\": [\n      \"fish\"\n    ]\n  }\n}\n"
 	if got != want {
-		t.Errorf("MarshalFeatures = %q, want %q", got, want)
+		t.Errorf("MarshalSpec = %q, want %q", got, want)
 	}
-	if string(MarshalFeatures(nil)) != "[]\n" {
-		t.Errorf("MarshalFeatures(nil) = %q, want %q", MarshalFeatures(nil), "[]\n")
+	if got := string(MarshalSpec(HostSpec{})); got != "{\n  \"system\": [],\n  \"users\": {}\n}\n" {
+		t.Errorf("MarshalSpec(zero) = %q", got)
+	}
+}
+
+func TestHostSpecSectionsAndAccessors(t *testing.T) {
+	spec := HostSpec{
+		System: []string{"niri"},
+		Users:  map[string][]string{"work": {"slack"}, "wiktor": {"fish", "git"}},
+	}
+	if got := spec.Sections(); !reflect.DeepEqual(got, []string{"system", "wiktor", "work"}) {
+		t.Errorf("Sections = %v, want [system wiktor work] (system first, then sorted logins)", got)
+	}
+	if got := spec.Get("wiktor"); !reflect.DeepEqual(got, []string{"fish", "git"}) {
+		t.Errorf("Get(wiktor) = %v", got)
+	}
+	clone := spec.Clone()
+	clone.Set("wiktor", []string{"fish"})
+	if !reflect.DeepEqual(spec.Get("wiktor"), []string{"fish", "git"}) {
+		t.Error("Clone must not alias the original — mutating the clone changed the original")
+	}
+	if !SpecEqual(spec, spec.Clone()) {
+		t.Error("a spec must equal its own clone")
+	}
+	if SpecEqual(spec, clone) {
+		t.Error("specs with different user lists must not be equal")
 	}
 }
 
