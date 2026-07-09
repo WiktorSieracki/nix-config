@@ -33,6 +33,11 @@
     environment.sessionVariables = {
       NH_FLAKE = "/home/wiktor/.config/nix-config";
       FLAKE = "/home/wiktor/.config/nix-config";
+      # Lets ad-hoc `nix shell/run nixpkgs#pkg --impure` and legacy
+      # nix-shell/nix-env (impure by default already) pick up unfree
+      # packages too; system builds already get allowUnfree via the
+      # config above.
+      NIXPKGS_ALLOW_UNFREE = "1";
     };
   };
 
