@@ -5,6 +5,10 @@
       "nix-command"
       "flakes"
     ];
+    # Periodic store deduplication (hardlinks identical files; default 03:45
+    # daily). Deliberately a timer, not auto-optimise-store = true — the
+    # per-build variant slows builds and has a history of hardlink races.
+    nix.optimise.automatic = true;
     nix.settings.substituters = [
       "https://cache.nixos.org"
       "https://nix-community.cachix.org"
@@ -61,6 +65,7 @@
       machine.wait_for_unit("multi-user.target")
       machine.succeed("alejandra --version")
       machine.succeed("nh --version")
+      machine.wait_for_unit("nix-optimise.timer")
     '';
   };
 }
