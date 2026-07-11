@@ -1,11 +1,8 @@
-# llm-agents — Dziennik
+# claude-code — Dziennik
 
-2026-06-26: Dodano featureMeta + Próbę.
+2026-07-11: Wydzielono z dawnego feature `llm-agents` (podzielonego na `claude-code`, `opencode`, `pi`).
 
-Feature pobiera pakiety z zewnętrznego flake `github:numtide/llm-agents.nix`. Binarne nazwy:
-- `claude-code` → binarka `claude` (meta.mainProgram = "claude")
-- `opencode` → binarka `opencode`
-- `omp` → binarka `omp`
+Feature pobiera pakiet z zewnętrznego flake `github:numtide/llm-agents.nix`. Binarka: `claude-code` → `claude` (meta.mainProgram = "claude").
 
 Objaw: Ewal może być wolny przy pierwszym budowaniu z powodu braku cache numtide.
 Przyczyna: Flake numtide/llm-agents.nix reklamuje własne substitutory (`cache.numtide.com`), ale nie są one domyślnie zaufane.

@@ -14,9 +14,9 @@
     "nodejs",
     "typst",
     "docker",
-    "llm-agents",
     "eduroam",
-    "switchboard"
+    "switchboard",
+    "agent-of-empires"
   ],
   "users": {
     "wiktor": [
@@ -25,7 +25,6 @@
       "ssh",
       "ssh-personal-hosts",
       "vscode",
-      "vscode-insiders",
       "cpp",
       "bruno",
       "personal-snippets",
@@ -33,7 +32,6 @@
       "brave",
       "spotify",
       "discord",
-      "teams-for-linux",
       "localsend",
       "wallpapers"
     ]
