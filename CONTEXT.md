@@ -1,166 +1,169 @@
 # nix-config
 
-Słownik pojęć tej konfiguracji NixOS. Nie jest to specyfikacja ani notatnik
-decyzji implementacyjnych — tylko ujednolicenie języka.
+Glossary of this NixOS configuration's terms. Not a spec or a log of
+implementation decisions — just a way to keep the language consistent.
 
 ## Language
 
 **Host**:
-Nazwana konfiguracja maszyny w `flake.nixosConfigurations.*`, złożona z
-**feature'ów systemowych** (sekcja `system`) i **feature'ów użytkownika**
-włączanych per konto (sekcja `users.<login>`). Prawdziwe maszyny
-(`desktopNixos`, `laptopNixos`) zależą od swojego `hardware-configuration.nix`
-i sekretów SOPS.
+A named machine configuration in `flake.nixosConfigurations.*`, assembled from
+**system features** (the `system` section) and **user features** enabled per
+account (the `users.<login>` section). Real machines (`desktopNixos`,
+`laptopNixos`) depend on their `hardware-configuration.nix` and SOPS secrets.
 _Avoid_: machine, target, profile.
 
-**Feature systemowy**:
-**Feature** będący cechą maszyny (sprzęt, sieć, usługi — `nvidia`,
-`ssh-server`, `tailscale`). **Host** włącza go raz, w sekcji `system`; nie
-należy do żadnego konta.
+**System feature**:
+A **feature** that is a property of the machine (hardware, network, services —
+`nvidia`, `ssh-server`, `tailscale`). A **Host** enables it once, in the
+`system` section; it belongs to no account.
 _Avoid_: global feature.
 
-**Feature użytkownika**:
-**Feature** będący częścią środowiska konkretnego konta (`git`, `fish`,
-`vscode`, aplikacje). **Host** włącza go per user w `users.<login>`; ten sam
-feature może mieć wielu userów, ale jego treść zna tylko *jednego,
-abstrakcyjnego* użytkownika — tożsamość dostaje z zewnątrz.
+**User feature**:
+A **feature** that is part of a specific account's environment (`git`, `fish`,
+`vscode`, apps). A **Host** enables it per user in `users.<login>`; the same
+feature may have several users, but its content knows only one *abstract* user —
+identity is injected from the outside.
 _Avoid_: user module, profile feature.
 
 **Feature**:
-Wielokrotnego użytku moduł w `modules/features/*`, zwykle definiujący część
-NixOS i część home-manager pod tą samą nazwą. **Host** włącza **feature**'y po nazwie.
-Feature jest *samowystarczalny*: jawnie deklaruje swoje zależności i nie ma
-sprzężeń **funkcjonalnych** z sąsiednimi plikami (helpery .sh/.json są w jego
-store-path, nie importowane spoza modułu). Layout to **folder-per-feature**
-(`git/{git.nix, notes.md}`); dokumentacja obok (**Dziennik**) jest dozwolona —
-nie jest zależnością funkcjonalną, bo feature działa bez niej.
-_Avoid_: module (zbyt ogólne — `feature` to konkretnie ten wzorzec),
-package (mylące z pakietem nixpkgs — u nas jednostką jest `feature`).
+A reusable module in `modules/features/*`, usually defining a NixOS part and a
+home-manager part under the same name. A **Host** enables **features** by name.
+A feature is *self-sufficient*: it declares its dependencies explicitly and has
+no **functional** coupling to neighbouring files (helper .sh/.json live in its
+store path, not imported from outside the module). The layout is
+**folder-per-feature** (`git/{git.nix, notes.md}`); documentation alongside it
+(**feature notes**) is allowed — it is not a functional dependency, since the
+feature works without it.
+_Avoid_: module (too general — a `feature` is specifically this pattern),
+package (confusing with an nixpkgs package — here the unit is a `feature`).
 
-**Tożsamość** (`meta.users`):
-Kanoniczny rejestr kont w `flake.meta.users.<login>`: pełne imię, grupy,
-shell, adresy. Konto istnieje na **Hoście** ⇔ jego login jest kluczem sekcji
-`users` tego hosta — tworzy je loader, nie feature. **Feature użytkownika**
-dostaje tożsamość wstrzykniętą i nigdy nie hardkoduje loginu.
-_Avoid_: user feature (dawny feature `wiktor`), account config.
+**Identity** (`meta.users`):
+The canonical registry of accounts in `flake.meta.users.<login>`: full name,
+groups, shell, addresses. An account exists on a **Host** ⇔ its login is a key
+of that host's `users` section — the loader creates it, not a feature. A **user
+feature** receives its identity injected and never hardcodes a login.
+_Avoid_: user feature (the old `wiktor` feature), account config.
 
-**Kind** (rodzaj feature'a):
-Maszynowo-czytelna kategoria w `featureMeta.<feature>.kind`, mówiąca *czym*
-feature jest i jak się sprawdza, że „działa": `config` (czysta konfiguracja —
-waliduje się eval + walidator np. `niri validate`), `cli` (binarka na PATH,
-`--version`/smoke → exit 0), `service` (unit systemd `active` + nasłuch portu),
-`gui` (proces startuje i utrzymuje okno w sesji). Steruje poziomem rygoru
-**Próby**.
+**Kind** (of a feature):
+A machine-readable category in `featureMeta.<feature>.kind` that says *what* a
+feature is and how "it works" is checked: `config` (pure configuration —
+validated by eval + a validator such as `niri validate`), `cli` (a binary on
+PATH, `--version`/smoke → exit 0), `service` (a systemd unit `active` + port
+listen), `gui` (the process starts and holds a window in the session). It sets
+the rigor level of the **feature test**.
 _Avoid_: type, category.
 
 **Requires**:
-Jawna lista zależności feature'a w `featureMeta.<feature>.requires`. Loader
-**twardo failuje**, gdy host włącza feature bez kompletu `requires` na liście —
-graf zależności jest zawsze pełną prawdą (dla człowieka i AI). **Próba** liczy
-z tego minimalne domknięcie VM-ki.
-_Avoid_: deps, imports (to ostatnie znaczy w Nix co innego).
+A feature's explicit dependency list in `featureMeta.<feature>.requires`. The
+loader **hard-fails** when a host enables a feature without the full set of its
+`requires` also listed — the dependency graph is always the whole truth (for
+human and AI). The **feature test** computes the minimal VM closure from it.
+_Avoid_: deps, imports (the latter means something else in Nix).
 
 **Core** (floor):
-Nieredukowalne minimum systemu, obecne w *każdej* Próbie i każdym hoście
-„ambient" (boot, nix, sieć, locale, nix-ld) — to, co zostaje po wyjęciu z
-dzisiejszego worka `nixos` warstwy pulpitu. Feature **nie** wymienia `core` w
-**Requires** (jest zawsze pod spodem). Minimalna VM Próby = `core` + feature +
-domknięcie `requires`.
-_Avoid_: base (worek `nixos` był „bazą", ale gruby i zrośnięty z niri — `core`
-to świadomie odchudzona warstwa).
+The irreducible minimum of the system, present in *every* feature test and every
+"ambient" host (boot, nix, network, locale, nix-ld) — what remains after the
+desktop layer is lifted out of today's `nixos` bag. A feature does **not** list
+`core` in **Requires** (it is always underneath). The minimal feature-test VM =
+`core` + feature + the `requires` closure.
+_Avoid_: base (the `nixos` bag was the "base", but a fat one fused with niri —
+`core` is the deliberately slimmed layer).
 
 **Desktop** (feature):
-Wydzielona z dawnej bazy warstwa sesji graficznej (`xserver`, `gdm`,
-`defaultSession=niri`, GUI-pakiety). Feature o **Kind** `gui` jawnie
-`requires = ["desktop" ...]`. Dzięki temu feature `cli` startuje na samym
-**Core** i Próba wykrywa ukrytą zależność od pulpitu.
+The graphical-session layer split out of the old base (`xserver`, `gdm`,
+`defaultSession=niri`, GUI packages). A feature of **Kind** `gui` explicitly
+`requires = ["desktop" ...]`. This way a `cli` feature starts on `core` alone and
+its feature test detects a hidden dependency on the desktop.
 _Avoid_: gui-base, session.
 
-**Próba** (test feature'a, Tier 1):
-Headless `nixosTest`, który buduje **minimalną** VM = testowany feature +
-domknięcie jego **Requires**, i asercją sprawdza, że feature „działa" na
-poziomie rygoru z jego **Kind**. Obowiązkowa dla *każdego* feature'a (CI
-failuje bez niej) — nawet trywialny feature z jednym `systemPackage` musi
-udowodnić, że binarka się odpala. Pada, gdy feature ma niezadeklarowaną
-zależność → wymusza modularność konstrukcyjnie. **Feature'y użytkownika**
-testuje na neutralnym koncie testowym (`proba`), nie na realnym loginie —
-hardkod czyjegoś loginu w feature'rze wywala jego Próbę.
-_Avoid_: smoke-test, unit test, sprawdzenie.
+**Feature test** (Tier 1):
+A headless `nixosTest` that builds the **minimal** VM = the feature under test +
+the closure of its **Requires**, and asserts the feature "works" at the rigor
+level of its **Kind**. Mandatory for *every* feature (CI fails without it) — even
+a trivial feature with a single `systemPackage` must prove its binary runs. It
+fails when a feature has an undeclared dependency → it forces modularity
+structurally. **User features** are tested on a neutral test account (`tester`),
+not on a real login — hardcoding someone's login in a feature breaks its feature
+test.
+_Avoid_: smoke test, unit test.
 
-**Próba hosta** (e2e, Tier 2):
-Headless test bootujący cały **Host** (lub kuratorowaną grupę feature'ów) i
-sprawdzający asercje *między* feature'ami (np. „user w grupie docker I
-`docker run` przechodzi"). To jest „end-to-end" — integracja, nie izolacja.
-Rzadszy, cieńsza warstwa nad **Próbami** feature'ów.
-_Avoid_: integration test, test integracyjny.
+**Host test** (Tier 2, e2e):
+A headless test that boots a whole **Host** (or a curated group of features) and
+checks assertions *between* features (e.g. "the user is in the docker group AND
+`docker run` passes"). This is the "end-to-end" — integration, not isolation.
+Rarer, a thinner layer over the feature tests.
+_Avoid_: integration test.
 
-**Dziennik** (feature'a, `notes.md`):
-Datowany zapis **niewykonywalnej** wiedzy o feature'rze: dziwactwa upstreamu,
-„czemu ten workaround", pułapki środowiska. Czytany przez `/nix-loop` na starcie
-(by nie wyprowadzać znanych problemów od zera) i auto-dopisywany z datą, gdy
-pętla rozwiąże coś nowego. Granica względem **Próby**: błąd *odtwarzalny* idzie
-jako asercja w Próbie (nie zgnije), Dziennik trzyma tylko to, czego nie da się
-sensownie zakodować w teście. Struktura wpisu: `Objaw → Przyczyna → Fix`.
-_Avoid_: README, docs, notes.
+**Feature notes** (`notes.md`):
+A dated record of a feature's **non-executable** knowledge: upstream quirks, "why
+this workaround", environment gotchas. Read by `/nix-loop` at start (so known
+problems aren't re-derived from scratch) and auto-appended with a date when the
+loop resolves something new. The boundary with the **feature test**: a
+*reproducible* bug goes into the feature test as an assertion (it won't rot);
+feature notes hold only what can't sensibly be encoded in a test. Entry
+structure: `Symptom → Cause → Fix`.
+_Avoid_: README, docs.
 
-**runtimeUntestable** (flaga w `featureMeta`):
-Furtka (c) z ADR 0002: oznacza feature, którego *runtime* nie da się zweryfikować
-w VM (brak sprzętu — `nvidia`/`wacom`/`mouse`; brak realnej sieci/klucza SOPS —
-`eduroam`/`home-wifi`/`sops`). Taki feature **wciąż ma Próbę**, ale sprawdza ona
-tylko, że moduł integruje się i system bootuje (regresja eval/boot), nie samo
-działanie sprzętu/sekretu.
+**runtimeUntestable** (flag in `featureMeta`):
+Escape hatch (c) from ADR 0002: marks a feature whose *runtime* can't be verified
+in a VM (no hardware — `nvidia`/`wacom`/`mouse`; no real network/SOPS key —
+`eduroam`/`home-wifi`/`sops`). Such a feature **still has a feature test**, but it
+only checks that the module integrates and the system boots (eval/boot
+regression), not the hardware/secret itself.
 _Avoid_: untestable, skip.
 
 **Work user**:
-Drugie zwykłe konto uniksowe (`work`) na tym samym **Hoście** co użytkownik
-główny — separacja *danych i tożsamości* (profile, konta, sekrety, historia),
-nie separacja wykonywalności (bez MAC). Bez sudo, homeMode 700. Konto
-**zarządzane**: jego **feature'y użytkownika** przełącza i aktywuje użytkownik
-główny — prawo przebudowy systemu równałoby się rootowi i unieważniło izolację.
-_Avoid_: osobny host, work-VM, konto służbowe jako maszyna.
+A second ordinary Unix account (`work`) on the same **Host** as the main user —
+separation of *data and identity* (profiles, accounts, secrets, history), not of
+executability (no MAC). No sudo, homeMode 700. A **managed** account: its **user
+features** are switched and activated by the main user — the right to rebuild the
+system would equal root and void the isolation.
+_Avoid_: separate host, work VM, work account as a machine.
 
 **Switchboard**:
-TUI (feature `switchboard`, binarka `switchboard`) do zarządzania listami
-**feature**'ów prawdziwych **host**'ów — osobno sekcją `system` i każdą
-`users.<login>` (w tym **work userem**, w rękach użytkownika głównego):
-checkboxy z wyszukiwarką, jawne domykanie **Requires** przy zaznaczaniu,
-feature-diff jako potwierdzenie, finał przez `nh os test`/`switch`; globalnie
-także bump `flake.lock`. Edytuje pliki danych hostów — nie dotyka `.nix`.
+A TUI (feature `switchboard`, binary `switchboard`) for managing the feature
+lists of real **hosts** — separately for the `system` section and each
+`users.<login>` (including the **work user**, in the main user's hands):
+checkboxes with search, explicit **Requires** closure on selection, a feature
+diff as confirmation, finishing through `nh os test`/`switch`; globally it also
+bumps `flake.lock`. It edits host data files — it never touches `.nix`.
 _Avoid_: features-cli, manager, panel.
 
-**ISO** (obraz live):
-Jeden **generyczny** obraz live (host `iso`), bootowalny na dowolnej maszynie.
-Nie jest „obrazem laptopa" ani „obrazem desktopa" — to środowisko
-live/instalacyjne. Wyboru docelowego **host**'a dokonuje się dopiero przy
-instalacji z ISO (`nixos-install --flake .#desktopNixos | .#laptopNixos`).
-Świadomie pomija **feature**'y sprzętowe (`nvidia/wacom/mouse`) i zależne od
-sekretów (`sops/git/eduroam/...`), bo nie aktywują się bez klucza maszyny.
-_Avoid_: image obrazu maszyny, installer per-host.
+**ISO** (live image):
+A single **generic** live image (host `iso`), bootable on any machine. It is not
+a "laptop image" or a "desktop image" — it is a live/install environment. The
+target **host** is chosen only at install time from the ISO
+(`nixos-install --flake .#desktopNixos | .#laptopNixos`). It deliberately omits
+hardware features (`nvidia/wacom/mouse`) and secret-dependent ones
+(`sops/git/eduroam/...`), since they can't activate without the machine's key.
+_Avoid_: per-machine image, per-host installer.
 
 **Release** (rolling `latest`):
-Pojedynczy, nadpisywany wydanie GitHub pod tagiem `latest`, niosące najnowsze
-**ISO** + `checksums.txt`. Stabilny URL pobierania zamiast historii datowanej.
+A single, overwritten GitHub release under the tag `latest`, carrying the latest
+**ISO** + `checksums.txt`. A stable download URL instead of dated history.
 _Avoid_: snapshot, versioned release.
 
 ### Flagged ambiguities
 
-- **„image"** bywa mylone z „obrazem konkretnej maszyny". W tym repo wydajemy
-  **jeden generyczny ISO**; per-maszynowe obrazy odrzucono, bo po odfiltrowaniu
-  sprzętu i sekretów `iso-desktop` i `iso-laptop` byłyby niemal identyczne.
+- **"image"** is sometimes confused with "an image of a specific machine". In
+  this repo we ship **one generic ISO**; per-machine images were rejected because
+  after filtering out hardware and secrets, `iso-desktop` and `iso-laptop` would
+  be nearly identical.
 
-### Przykładowy dialog
+### Example dialogue
 
-> — Wypuśćmy nowy **release**.
-> — OK, push do `main` zbuduje **ISO** z hosta `iso` i nadpisze tag `latest`.
-> — A jak z tego zainstaluję laptopa?
-> — Bootujesz to samo **ISO** i robisz `nixos-install --flake .#laptopNixos` —
->   wybór **host**'a jest na etapie instalacji, nie pobierania.
+> — Let's cut a new **release**.
+> — OK, a push to `main` builds the **ISO** from the `iso` host and overwrites
+>   the `latest` tag.
+> — And how do I install a laptop from it?
+> — You boot the same **ISO** and run `nixos-install --flake .#laptopNixos` — the
+>   **host** choice happens at install time, not at download time.
 >
-> — Chcę slacka na koncie work.
-> — `slack` to **feature użytkownika** — Switchboardem dopisujesz go do
->   `users.work` desktopa i aktywujesz jako wiktor; **work user** jest kontem
->   zarządzanym.
-> — A skąd git worka wie, jakim mailem commitować?
-> — Z **Tożsamości**: `meta.users.work` wskazuje sekret z pracowym mailem, a
->   feature `git` dostaje ją wstrzykniętą — sam nie zna żadnego loginu, co
->   pilnuje jego **Próba** na koncie `proba`.
+> — I want slack on the work account.
+> — `slack` is a **user feature** — with Switchboard you add it to `users.work`
+>   on the desktop and activate it as wiktor; the **work user** is a managed
+>   account.
+> — And how does the work git know which email to commit with?
+> — From the **Identity**: `meta.users.work` points at the secret with the work
+>   email, and the `git` feature receives it injected — it knows no login itself,
+>   which its **feature test** on the `tester` account enforces.

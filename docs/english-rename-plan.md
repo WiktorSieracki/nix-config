@@ -25,21 +25,21 @@ The flake attrs are cross-referenced (harness defines `mkProba`, 51 feature file
 register `probaTests.<name>`, the harness turns them into `checks.feature-<name>`),
 so this is a single unit — half-renamed does not evaluate.
 
-- [ ] `git mv modules/proba.nix modules/feature-tests.nix`
-- [ ] In it: `probaTests`→`featureTests`, `proba`→`featureTestLib`, `mkProba`→`mkFeatureTest`; translate the Polish comments.
-- [ ] Rename `flake.probaTests.<name>`→`flake.featureTests.<name>` across all 51 feature `.nix` files.
-- [ ] `git mv .github/workflows/proba.yaml .github/workflows/feature-tests.yaml`; `name: Próba`→`Feature tests`, job id `proba`→`feature-tests`, concurrency group, translate comments.
-- [ ] `nix flake check` (or at least eval + `feature-coverage`) green.
+- [x] `git mv modules/proba.nix modules/feature-tests.nix`
+- [x] In it: `probaTests`→`featureTests`, `proba`→`featureTestLib`, `mkProba`→`mkFeatureTest`; translated the Polish comments.
+- [x] Renamed `flake.probaTests.<name>`→`flake.featureTests.<name>` across all feature `.nix` files.
+- [x] Renamed the neutral test account `proba`→`tester` / `proba2`→`tester2`, `Proba Testowa`→`Test User`, `Proba Druga`→`Second Test User` (harness + ~18 feature testScripts).
+- [x] `git mv .github/workflows/proba.yaml .github/workflows/feature-tests.yaml`; `name: Próba`→`Feature tests`, job id `proba`→`feature-tests`, concurrency group, translated comments.
+- [x] Verified: full flake eval green, `feature-coverage` green, `feature-git` + `host-users` VM tests green.
 
 ### Phase 2 — CONTEXT.md
 
-- [ ] Rewrite the glossary in English using the descriptive terms. Keep the same
-      concepts and structure; drop the `_Avoid_` entries that only existed to steer
-      away from Polish synonyms, keep those that still carry meaning.
+- [x] Rewrote the glossary in English using the descriptive terms; concepts and
+      structure preserved, test account referred to as `tester`.
 
 ### Phase 3 — ADRs (`docs/adr/0001..0004`)
 
-- [ ] Translate all four to English. Keep decisions/rationale intact; swap terms per the map.
+- [x] Translated all four to English. Decisions/rationale intact; terms swapped per the map.
 
 ### Phase 4 — feature prose
 
