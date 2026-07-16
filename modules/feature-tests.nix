@@ -115,15 +115,30 @@
     meta = config.flake.featureMeta or {};
     tests = config.flake.featureTests or {};
 
-    # The feature universe: every nixos OR home-manager module name, minus the
-    # always-on bases (`nixos` = Core, `homeManager`) and host pseudo-modules.
+    # The feature universe: every nixos OR home-manager module name, PLUS any
+    # name with an explicit `featureMeta` (so a module-less feature that only
+    # contributes global niriBinds — e.g. `personal-snippets` — still counts and
+    # gets coverage-gated), minus the always-on bases (`nixos` = Core,
+    # `homeManager`) and host pseudo-modules.
     isPseudo = n: n == "nixos" || n == "homeManager" || lib.hasPrefix "hosts/" n;
     featureNames =
       lib.filter (n: !(isPseudo n))
       (lib.unique (
         lib.attrNames (config.flake.modules.nixos or {})
         ++ lib.attrNames (config.flake.modules.homeManager or {})
+        ++ lib.attrNames meta
       ));
+
+    # Transitive `requires` closure of a feature over featureMeta (feature
+    # excluded), mirroring mkFeatureTest's closure.
+    reqClosure = f:
+      map (i: i.key) (builtins.genericClosure {
+        startSet = map (m: {key = m;}) ((meta.${f} or {}).requires or []);
+        operator = item: map (d: {key = d;}) ((meta.${item.key} or {}).requires or []);
+      });
+    # The desktop stack itself (`desktop` + everything it requires, i.e. niri) is
+    # exempt from the gui⇒desktop rule below — those features ARE the session.
+    desktopStack = ["desktop"] ++ reqClosure "desktop";
 
     # ── feature-coverage (D) ─────────────────────────────────────────────────
     # Consistency (always on): a feature with `featureMeta` must have a feature
@@ -142,7 +157,15 @@
       ++ map (f: "  feature '${f}' has a feature test but no featureMeta") (lib.subtractLists metaNames testNames)
       ++ map (n: "  featureMeta.'${n}' does not name a real feature") (lib.filter (n: !(builtins.elem n featureNames)) metaNames)
       ++ map (n: "  featureTests.'${n}' does not name a real feature") (lib.filter (n: !(builtins.elem n featureNames)) testNames)
-      ++ lib.optionals enforceAll (map (f: "  feature '${f}' has no featureMeta/feature test — every feature must have one") (lib.subtractLists metaNames featureNames));
+      ++ lib.optionals enforceAll (map (f: "  feature '${f}' has no featureMeta/feature test — every feature must have one") (lib.subtractLists metaNames featureNames))
+      # gui⇒desktop (CONTEXT.md, ADR 0002): a `kind = "gui"` feature must reach
+      # `desktop` through its `requires`, so its feature test boots the real
+      # graphical session instead of silently passing on `core` alone. The
+      # desktop stack itself (niri) is exempt.
+      ++ map (f: "  gui feature '${f}' must `requires` \"desktop\" (directly or transitively) — see CONTEXT.md / ADR 0002")
+      (lib.filter
+        (f: !(builtins.elem f desktopStack) && !(builtins.elem "desktop" (reqClosure f)))
+        (lib.filter (f: (meta.${f}.kind or null) == "gui") metaNames));
 
     # Generate one check per registered feature test: checks.feature-<name>.
     featureChecks =

@@ -7,7 +7,7 @@
   };
 
   flake.featureMeta.slack = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

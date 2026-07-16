@@ -2,7 +2,7 @@
   # Zed editor configured for wiktor: custom noctalia theme, nix/toml/catppuccin
   # extensions, copilot predictions, direnv integration. HM-only feature.
   flake.featureMeta.zeditor = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

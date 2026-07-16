@@ -4,7 +4,7 @@
   };
 
   flake.featureMeta.cursor-ide = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

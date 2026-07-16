@@ -13,7 +13,7 @@
   };
 
   flake.featureMeta.brave = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

@@ -6,7 +6,7 @@
   };
 
   flake.featureMeta.affine = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

@@ -30,7 +30,7 @@
   };
 
   flake.featureMeta.vscode-insiders = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

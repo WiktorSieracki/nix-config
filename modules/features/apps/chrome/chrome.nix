@@ -7,7 +7,7 @@
   };
 
   flake.featureMeta.chrome = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

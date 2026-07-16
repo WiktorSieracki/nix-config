@@ -113,8 +113,26 @@ in {
       reqs = m: (meta.${m} or {}).requires or [];
       missing = enabled: m: lib.filter (d: !(builtins.elem d (system ++ enabled))) (reqs m);
 
+      # A features.json name is real iff it has a NixOS part, a home-manager
+      # part, or an explicit featureMeta (the last covers module-less features
+      # like `personal-snippets` that only add global niriBinds). Without this,
+      # `... or {}` below silently turns a typo or stale name into a no-op,
+      # undermining ADR 0003's "features.json is the source of truth".
+      isFeature = m:
+        (config.flake.modules.nixos ? ${m})
+        || (config.flake.modules.homeManager ? ${m})
+        || (meta ? ${m});
+
       errs =
-        lib.concatMap (
+        map (m: "  system feature '${m}' is not a known feature (no NixOS/home-manager module and no featureMeta)")
+        (lib.filter (m: !(isFeature m)) system)
+        ++ lib.concatMap (
+          u:
+            map (m: "  feature '${m}' (user '${u}') is not a known feature (no NixOS/home-manager module and no featureMeta)")
+            (lib.filter (m: !(isFeature m)) users.${u})
+        )
+        logins
+        ++ lib.concatMap (
           m:
             map (d: "  system feature '${m}' requires '${d}' but `system` does not enable it")
             (missing [] m)

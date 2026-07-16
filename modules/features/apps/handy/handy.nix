@@ -25,7 +25,7 @@ in {
   };
 
   flake.featureMeta.handy = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

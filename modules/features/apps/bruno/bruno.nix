@@ -7,7 +7,7 @@
   };
 
   flake.featureMeta.bruno = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

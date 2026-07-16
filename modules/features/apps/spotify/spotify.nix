@@ -28,7 +28,7 @@
   };
 
   flake.featureMeta.spotify = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

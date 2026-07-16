@@ -91,7 +91,7 @@
   };
 
   flake.featureMeta.vscode = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

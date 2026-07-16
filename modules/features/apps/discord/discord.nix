@@ -13,7 +13,7 @@
   };
 
   flake.featureMeta.discord = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

@@ -6,7 +6,7 @@
   };
 
   flake.featureMeta.obsidian = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

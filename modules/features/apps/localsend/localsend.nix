@@ -10,7 +10,7 @@
   };
 
   flake.featureMeta.localsend = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

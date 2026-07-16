@@ -13,7 +13,7 @@
   };
 
   flake.featureMeta.teams-for-linux = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 

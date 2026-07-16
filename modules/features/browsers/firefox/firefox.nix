@@ -105,7 +105,7 @@
   };
 
   flake.featureMeta.firefox = {
-    requires = [];
+    requires = ["desktop"];
     kind = "gui";
   };
 
