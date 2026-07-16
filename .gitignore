@@ -6,6 +6,8 @@ secrets/
 # Build outputs
 result
 result-*
+# Compiled Go binary of the switchboard feature (built by buildGoModule from src)
+/modules/features/switchboard/switchboard
 
 # VM / disk images (built by `build.vm` runner, build-image, or live-ISO QEMU runs)
 *.qcow2

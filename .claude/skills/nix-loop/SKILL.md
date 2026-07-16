@@ -11,7 +11,7 @@ Headless feedback loop for a single feature `<f>`. Runs **only in VMs** — neve
 ## Procedure
 
 1. **Read the feature notes first.** Open `modules/.../<f>/notes.md` (if it exists) so
-   you don't re-derive problems already solved. See [[project_proba_harness]].
+   you don't re-derive problems already solved. See [[project_feature_test_harness]].
 2. **Build the feature test:** `nix build .#checks.x86_64-linux.feature-<f> -L`
 3. **Green (exit 0)?** Done — report the passing assertions.
 4. **Red?** Diagnose, then fix and rebuild:
