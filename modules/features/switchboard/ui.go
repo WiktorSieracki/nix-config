@@ -717,18 +717,6 @@ func (m *model) setStatus(s string, level int) {
 	m.statusLevel = level
 }
 
-func equal(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 // ── view ────────────────────────────────────────────────────────────────────
 
 func (m model) View() string {
