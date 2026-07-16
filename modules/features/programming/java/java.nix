@@ -21,7 +21,7 @@
   };
 
   # Próba: java and gradle are on PATH and respond to version flags.
-  flake.probaTests.java = {
+  flake.featureTests.java = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("java -version")

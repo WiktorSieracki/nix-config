@@ -27,7 +27,7 @@
   # The `requires` closure pulls in `nix`, whose nixpkgs.config.allowUnfree
   # collides with nixosTest's read-only nixpkgs — force-override it, same
   # stub as the nix feature's own Próba.
-  flake.probaTests.switchboard = {
+  flake.featureTests.switchboard = {
     extraNixosModules = [
       ({lib, ...}: {nixpkgs.config = lib.mkForce {allowUnfree = true;};})
     ];

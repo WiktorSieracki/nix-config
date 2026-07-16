@@ -12,7 +12,7 @@
 
   # Próba: nixpkgs.config.allowUnfree is already true in the outer perSystem
   # pkgs (parts.nix), so no extra module is needed.
-  flake.probaTests.obsidian = {
+  flake.featureTests.obsidian = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("command -v obsidian")

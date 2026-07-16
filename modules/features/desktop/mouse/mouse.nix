@@ -125,7 +125,7 @@
     runtimeUntestable = true;
   };
 
-  flake.probaTests.mouse = {
+  flake.featureTests.mouse = {
     extraNixosModules = [
       ({lib, ...}: {
         # This oneshot polls 30×2s for the physical mouse before giving up; skip

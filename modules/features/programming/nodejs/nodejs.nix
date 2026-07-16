@@ -13,7 +13,7 @@
   };
 
   # Próba: node and pnpm are on PATH.
-  flake.probaTests.nodejs = {
+  flake.featureTests.nodejs = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("node --version")

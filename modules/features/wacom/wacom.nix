@@ -12,7 +12,7 @@
     runtimeUntestable = true;
   };
 
-  flake.probaTests.wacom = {
+  flake.featureTests.wacom = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("command -v otd")

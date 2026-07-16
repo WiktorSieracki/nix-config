@@ -57,7 +57,7 @@
   # nixpkgs.config in nixosTest is read-only (pkgs are pre-evaluated and
   # passed in), so we force-override it in extraNixosModules to avoid the
   # "defined multiple times" error from the allowUnfree setting in the module.
-  flake.probaTests.nix = {
+  flake.featureTests.nix = {
     extraNixosModules = [
       ({lib, ...}: {nixpkgs.config = lib.mkForce {allowUnfree = true;};})
     ];

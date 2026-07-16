@@ -11,7 +11,7 @@
     kind = "gui";
   };
 
-  flake.probaTests.bruno = {
+  flake.featureTests.bruno = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("command -v bruno")

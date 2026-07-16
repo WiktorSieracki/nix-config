@@ -11,7 +11,7 @@
   };
 
   # Próba: binary name from meta.mainProgram: opencode → "opencode".
-  flake.probaTests.opencode = {
+  flake.featureTests.opencode = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("command -v opencode")

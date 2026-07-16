@@ -11,7 +11,7 @@
   };
 
   # Próba: binary name from meta.mainProgram: claude-code → "claude".
-  flake.probaTests.claude-code = {
+  flake.featureTests.claude-code = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("command -v claude")

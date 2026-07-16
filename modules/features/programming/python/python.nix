@@ -14,7 +14,7 @@
   };
 
   # Próba: the three CLIs are on PATH and respond to version flags.
-  flake.probaTests.python = {
+  flake.featureTests.python = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("python3 --version")

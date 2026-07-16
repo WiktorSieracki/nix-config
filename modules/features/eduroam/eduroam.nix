@@ -52,7 +52,7 @@
     runtimeUntestable = true;
   };
 
-  flake.probaTests.eduroam = {
+  flake.featureTests.eduroam = {
     extraNixosModules = [
       ({lib, ...}: {
         # sops-nix can't render the profile's env without the real key, so the

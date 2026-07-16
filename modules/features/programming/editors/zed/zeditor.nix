@@ -7,11 +7,11 @@
   };
 
   # Próba: zeditor binary is in wiktor's profile PATH.
-  flake.probaTests.zeditor = {
+  flake.featureTests.zeditor = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("su - proba -c 'command -v zeditor'")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("su - tester -c 'command -v zeditor'")
     '';
   };
 

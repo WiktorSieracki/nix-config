@@ -16,7 +16,7 @@
     runtimeUntestable = true;
   };
 
-  flake.probaTests.nvidia = {
+  flake.featureTests.nvidia = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
     '';

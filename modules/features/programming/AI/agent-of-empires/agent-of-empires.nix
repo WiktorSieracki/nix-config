@@ -16,7 +16,7 @@
 
   # Próba: aoe-with-web exposes mainProgram = "aoe".
   # tmux is a standard binary; assert both are on PATH.
-  flake.probaTests.agent-of-empires = {
+  flake.featureTests.agent-of-empires = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("command -v aoe")

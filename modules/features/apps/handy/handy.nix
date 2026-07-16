@@ -31,11 +31,11 @@ in {
 
   # Próba: handy is an AppImage wrapped via appimageTools; binary is `handy`.
   # Asserted as wiktor since it lives in the HM profile.
-  flake.probaTests.handy = {
+  flake.featureTests.handy = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("su - proba -c 'command -v handy'")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("su - tester -c 'command -v handy'")
     '';
   };
 }

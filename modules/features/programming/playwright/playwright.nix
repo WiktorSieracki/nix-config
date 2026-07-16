@@ -36,21 +36,21 @@
     kind = "cli";
   };
 
-  flake.probaTests.playwright = {
+  flake.featureTests.playwright = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("su - proba -c 'command -v playwright'")
-      machine.succeed("su - proba -c 'playwright --version'")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("su - tester -c 'command -v playwright'")
+      machine.succeed("su - tester -c 'playwright --version'")
       # session vars (for npm playwright) must point at the nix-built browsers;
       # the minimal VM has no HM-managed shell, so source hm-session-vars directly
       machine.succeed(
-          "su - proba -c '. /etc/profiles/per-user/proba/etc/profile.d/hm-session-vars.sh; echo $PLAYWRIGHT_BROWSERS_PATH' | grep -q /nix/store"
+          "su - tester -c '. /etc/profiles/per-user/tester/etc/profile.d/hm-session-vars.sh; echo $PLAYWRIGHT_BROWSERS_PATH' | grep -q /nix/store"
       )
       # real smoke: drive headless chromium against a local page
-      machine.succeed("echo '<html><body><h1>proba</h1></body></html>' > /tmp/proba.html")
-      machine.succeed("su - proba -c 'playwright screenshot --browser chromium file:///tmp/proba.html /tmp/proba.png'")
-      machine.succeed("test -s /tmp/proba.png")
+      machine.succeed("echo '<html><body><h1>tester</h1></body></html>' > /tmp/tester.html")
+      machine.succeed("su - tester -c 'playwright screenshot --browser chromium file:///tmp/tester.html /tmp/tester.png'")
+      machine.succeed("test -s /tmp/tester.png")
     '';
   };
 }

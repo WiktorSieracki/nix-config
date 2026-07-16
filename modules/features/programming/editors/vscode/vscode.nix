@@ -103,7 +103,7 @@
   # times" conflict. We cancel it with lib.mkForce []. The homeManager.vscode
   # module now guards `pkgs.nix4vscode.forVscode` with `pkgs ? nix4vscode`, so
   # when the overlay is absent extensions gracefully fall back to [].
-  flake.probaTests.vscode = {
+  flake.featureTests.vscode = {
     extraNixosModules = [
       ({lib, ...}: {
         nixpkgs.overlays = lib.mkForce [];
@@ -111,8 +111,8 @@
     ];
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("su - proba -c 'command -v code'")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("su - tester -c 'command -v code'")
     '';
   };
 }

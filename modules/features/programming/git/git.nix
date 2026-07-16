@@ -76,7 +76,7 @@ in {
   # matters: git & gh run, user.name comes from the injected userMeta (the
   # neutral test identity — a hardcoded real name would fail here), and the
   # include lands. (Real SOPS decryption is sops-nix's job, not git's.)
-  flake.probaTests.git = {
+  flake.featureTests.git = {
     extraNixosModules = [
       ({lib, ...}: {
         sops.secrets = lib.mkForce {};
@@ -97,11 +97,11 @@ in {
     ];
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("su - proba -c 'gh --version'")
-      machine.succeed("su - proba -c 'git --version'")
-      machine.succeed("su - proba -c 'git config --get user.name' | grep -q 'Proba Testowa'")
-      machine.succeed("su - proba -c 'git config --get user.email' | grep -q 'test@example.test'")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("su - tester -c 'gh --version'")
+      machine.succeed("su - tester -c 'git --version'")
+      machine.succeed("su - tester -c 'git config --get user.name' | grep -q 'Test User'")
+      machine.succeed("su - tester -c 'git config --get user.email' | grep -q 'test@example.test'")
     '';
   };
 }

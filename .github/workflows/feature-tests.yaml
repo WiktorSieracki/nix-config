@@ -1,8 +1,8 @@
-name: Próba
+name: Feature tests
 
-# Testy feature'ów (patrz docs/adr/0002-ai-first-testable-features.md).
-#  - coverage: tani gate eval-time (każdy feature ma meta+Próbę) — bez KVM, na PR.
-#  - proba:    pełne Próby VM (nixosTest) — wymaga KVM, na main / ręcznie, z Cachix.
+# Feature tests (see docs/adr/0002-ai-first-testable-features.md).
+#  - coverage:      cheap eval-time gate (every feature has meta+test) — no KVM, on PRs.
+#  - feature-tests: full VM feature tests (nixosTest) — needs KVM, on main / manual, via Cachix.
 
 on:
   pull_request:
@@ -15,11 +15,11 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: proba-${{ github.ref }}
+  group: feature-tests-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # Twardy gate: spójność meta ⇔ Próba. Tani, niezależny od KVM — blokuje PR-y.
+  # Hard gate: meta ⇔ feature-test consistency. Cheap, KVM-independent — blocks PRs.
   coverage:
     runs-on: ubuntu-latest
     steps:
@@ -32,9 +32,9 @@ jobs:
       - name: feature-coverage
         run: nix build -L '.#checks.x86_64-linux.feature-coverage'
 
-  # Pełne Próby VM. KVM bywa kapryśny na runnerach — dlatego nie na każdym PR,
-  # tylko na main i ręcznie; green-buildy lądują w Cachix, więc kolejne są szybkie.
-  proba:
+  # Full VM feature tests. KVM can be flaky on runners — so not on every PR,
+  # only on main and manually; green builds land in Cachix, so later ones are fast.
+  feature-tests:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -56,7 +56,7 @@ jobs:
         with:
           name: wiktor-nixos
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Build all Próby
+      - name: Build all feature tests
         run: |
           nix run nixpkgs#nix-fast-build -- \
             --no-nom \

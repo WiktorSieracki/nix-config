@@ -19,7 +19,7 @@
     kind = "service";
   };
 
-  flake.probaTests.ssh-server = {
+  flake.featureTests.ssh-server = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.wait_for_unit("sshd.service")

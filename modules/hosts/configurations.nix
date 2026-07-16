@@ -32,7 +32,7 @@ in {
   # `flake.lib` is an undeclared freeform flake output, so flake-parts can't
   # merge contributions from more than one module. Keep ALL of `flake.lib` here
   # (sole writer); other harness helpers live under their own attr (e.g.
-  # proba.nix → `flake.proba.mkProba`) and are only *read* elsewhere.
+  # feature-tests.nix → `flake.featureTestLib.mkFeatureTest`) and are only *read* elsewhere.
   flake.lib.mkSystems = {
     inherit
       linux
@@ -45,8 +45,8 @@ in {
   # from its `flake.meta.users` entry and wires its home-manager evaluation:
   # the per-user HM modules plus a foundation that injects `userMeta`
   # (identity + `login`) via `_module.args`, so user features never hardcode a
-  # login. Shared by loadHost (real hosts) and mkProba (the neutral `proba`
-  # test account), so the Próby exercise the same wiring the hosts use.
+  # login. Shared by loadHost (real hosts) and mkFeatureTest (the neutral `tester`
+  # test account), so the feature tests exercise the same wiring the hosts use.
   flake.lib.mkHostUser = {
     login,
     userMeta,

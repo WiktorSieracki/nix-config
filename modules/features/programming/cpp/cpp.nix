@@ -16,14 +16,14 @@
   };
 
   # Próba: home-manager activates and the C++ toolchain CLIs are on wiktor's PATH.
-  flake.probaTests.cpp = {
+  flake.featureTests.cpp = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("su - proba -c 'cmake --version'")
-      machine.succeed("su - proba -c 'clang --version'")
-      machine.succeed("su - proba -c 'just --version'")
-      machine.succeed("su - proba -c 'make --version'")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("su - tester -c 'cmake --version'")
+      machine.succeed("su - tester -c 'clang --version'")
+      machine.succeed("su - tester -c 'just --version'")
+      machine.succeed("su - tester -c 'make --version'")
     '';
   };
 }

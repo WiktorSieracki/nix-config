@@ -12,7 +12,7 @@
   };
 
   # Próba: pre-commit is on PATH.
-  flake.probaTests.pre-commit = {
+  flake.featureTests.pre-commit = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("pre-commit --version")

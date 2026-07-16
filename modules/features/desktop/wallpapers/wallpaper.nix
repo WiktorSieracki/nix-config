@@ -13,11 +13,11 @@
     kind = "config";
   };
 
-  flake.probaTests.wallpapers = {
+  flake.featureTests.wallpapers = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("test -f /home/proba/Pictures/Wallpapers/wallhaven_p92g1m.jpg")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("test -f /home/tester/Pictures/Wallpapers/wallhaven_p92g1m.jpg")
     '';
   };
 }

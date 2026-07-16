@@ -30,10 +30,10 @@ in {
   };
 
   # Próba: the sending-cv binary lands on PATH.
-  flake.probaTests."sending-cv" = {
+  flake.featureTests."sending-cv" = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
+      machine.wait_for_unit("home-manager-tester.service")
       machine.succeed("command -v sending-cv")
     '';
   };

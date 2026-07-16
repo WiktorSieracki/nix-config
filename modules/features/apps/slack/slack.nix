@@ -11,11 +11,11 @@
     kind = "gui";
   };
 
-  flake.probaTests.slack = {
+  flake.featureTests.slack = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("su - proba -c 'command -v slack'")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("su - tester -c 'command -v slack'")
     '';
   };
 }

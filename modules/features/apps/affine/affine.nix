@@ -10,7 +10,7 @@
     kind = "gui";
   };
 
-  flake.probaTests.affine = {
+  flake.featureTests.affine = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("command -v affine")

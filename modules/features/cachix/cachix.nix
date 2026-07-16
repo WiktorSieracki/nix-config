@@ -36,7 +36,7 @@
   # actual upload needs network + a real token, so runtime push is out of
   # scope; we do assert cache-push fails *gracefully* when the token file
   # is absent (its first guard) instead of crashing later mid-push.
-  flake.probaTests.cachix = {
+  flake.featureTests.cachix = {
     extraNixosModules = [
       ({lib, ...}: {
         sops.secrets = lib.mkForce {};

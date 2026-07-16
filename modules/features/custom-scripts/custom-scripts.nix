@@ -17,7 +17,7 @@
   };
 
   # Próba: at least one script is on PATH and executable.
-  flake.probaTests."custom-scripts" = {
+  flake.featureTests."custom-scripts" = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("command -v gitHttpsToSsh")

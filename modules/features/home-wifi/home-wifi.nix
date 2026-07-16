@@ -44,7 +44,7 @@
     runtimeUntestable = true;
   };
 
-  flake.probaTests.home-wifi = {
+  flake.featureTests.home-wifi = {
     extraNixosModules = [
       ({lib, ...}: {
         # Same as eduroam: no SOPS key → no rendered env → no NM profile, and the

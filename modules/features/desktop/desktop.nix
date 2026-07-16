@@ -78,7 +78,7 @@
   # Próba: the desktop layer is present (display-manager exists — the opposite of
   # core-smoke), it's SDDM with the qylock forest theme, and the niri session it
   # points at is installed.
-  flake.probaTests.desktop = {
+  flake.featureTests.desktop = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("systemctl cat display-manager.service | grep -qi sddm")

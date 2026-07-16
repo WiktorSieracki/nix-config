@@ -47,7 +47,7 @@
     runtimeUntestable = true;
   };
 
-  flake.probaTests.sops = {
+  flake.featureTests.sops = {
     extraNixosModules = [
       ({lib, ...}: {
         sops.secrets = lib.mkForce {};

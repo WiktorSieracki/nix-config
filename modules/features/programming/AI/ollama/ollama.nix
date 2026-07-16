@@ -65,7 +65,7 @@ in {
   # Próba: prove the daemon comes up, the HTTP API listens, the CLI reaches it,
   # and the server reports the bumped version (guards the prebuilt override). No
   # GPU in the VM — the bundled CPU ggml backends carry it.
-  flake.probaTests.ollama = {
+  flake.featureTests.ollama = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.wait_for_unit("ollama.service")

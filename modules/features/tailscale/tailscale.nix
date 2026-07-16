@@ -14,7 +14,7 @@
     kind = "service";
   };
 
-  flake.probaTests.tailscale = {
+  flake.featureTests.tailscale = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.wait_for_unit("tailscaled.service")

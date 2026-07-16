@@ -34,7 +34,7 @@
     kind = "gui";
   };
 
-  flake.probaTests.vscode-insiders = {
+  flake.featureTests.vscode-insiders = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("command -v code-insiders")

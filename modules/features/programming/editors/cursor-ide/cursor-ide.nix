@@ -8,11 +8,11 @@
     kind = "gui";
   };
 
-  flake.probaTests.cursor-ide = {
+  flake.featureTests.cursor-ide = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("su - proba -c 'command -v cursor'")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("su - tester -c 'command -v cursor'")
     '';
   };
 }

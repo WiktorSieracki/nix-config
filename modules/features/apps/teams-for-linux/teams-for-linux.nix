@@ -17,7 +17,7 @@
     kind = "gui";
   };
 
-  flake.probaTests.teams-for-linux = {
+  flake.featureTests.teams-for-linux = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("command -v teams-for-linux")

@@ -28,12 +28,12 @@
     kind = "config";
   };
 
-  flake.probaTests.ssh = {
+  flake.featureTests.ssh = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("su - proba -c 'test -f ~/.ssh/config'")
-      machine.succeed("su - proba -c 'ssh -V'")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("su - tester -c 'test -f ~/.ssh/config'")
+      machine.succeed("su - tester -c 'ssh -V'")
     '';
   };
 }

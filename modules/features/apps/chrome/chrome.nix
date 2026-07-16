@@ -11,11 +11,11 @@
     kind = "gui";
   };
 
-  flake.probaTests.chrome = {
+  flake.featureTests.chrome = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("su - proba -c 'command -v google-chrome-stable'")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("su - tester -c 'command -v google-chrome-stable'")
     '';
   };
 }

@@ -34,11 +34,11 @@
     kind = "config";
   };
 
-  flake.probaTests.ssh-personal-hosts = {
+  flake.featureTests.ssh-personal-hosts = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("su - proba -c 'grep -q laptopnixos ~/.ssh/config'")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("su - tester -c 'grep -q laptopnixos ~/.ssh/config'")
     '';
   };
 }

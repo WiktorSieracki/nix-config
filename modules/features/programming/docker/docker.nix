@@ -23,7 +23,7 @@
   # machine.wait_for_unit() in nixosTest (no user session started). We stub out
   # hardware.graphics.enable32Bit to avoid pulling in 32-bit Mesa — it has no
   # effect on CLI or daemon reachability in headless CI.
-  flake.probaTests.docker = {
+  flake.featureTests.docker = {
     extraNixosModules = [
       ({lib, ...}: {
         hardware.graphics.enable32Bit = lib.mkForce false;

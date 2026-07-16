@@ -62,12 +62,12 @@
   # Próba: fish binary on PATH and the HM part (direnv) lands in the test
   # user's profile. Shell *assignment* is the loader's job — asserted by the
   # host-users mechanism check, not here.
-  flake.probaTests.fish = {
+  flake.featureTests.fish = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
+      machine.wait_for_unit("home-manager-tester.service")
       machine.succeed("command -v fish")
-      machine.succeed("su - proba -c 'command -v direnv'")
+      machine.succeed("su - tester -c 'command -v direnv'")
     '';
   };
 }

@@ -112,7 +112,7 @@
   # firefox-addons extensions are fetched from addons.mozilla.org as
   # fixed-output derivations — stub them out in the Próba to avoid
   # marketplace network deps at test-build time.
-  flake.probaTests.firefox = {
+  flake.featureTests.firefox = {
     extraHmModules = [
       ({lib, ...}: {
         programs.firefox.profiles.wiktor.extensions.packages = lib.mkForce [];
@@ -120,8 +120,8 @@
     ];
     testScript = ''
       machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-proba.service")
-      machine.succeed("su - proba -c 'command -v firefox'")
+      machine.wait_for_unit("home-manager-tester.service")
+      machine.succeed("su - tester -c 'command -v firefox'")
     '';
   };
 }

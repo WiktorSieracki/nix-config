@@ -18,7 +18,7 @@
   # Próba: typst and typstyle are on PATH.
   # typst-live and tinymist are LSP/live-preview tools; typst --version is the
   # canonical smoke.
-  flake.probaTests.typst = {
+  flake.featureTests.typst = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("typst --version")

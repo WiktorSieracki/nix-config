@@ -236,7 +236,7 @@ in {
   # Próba: proves programs.niri.enable installs the niri binary.
   # We don't launch the compositor (headless VM has no GPU), but confirming
   # the binary is present is sufficient for a Tier-1 gui Próba.
-  flake.probaTests.niri = {
+  flake.featureTests.niri = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("command -v niri")
