@@ -10,13 +10,13 @@ Change an existing **feature** and re-prove it green before metal.
 ## Procedure
 
 1. **Locate** the feature: `modules/features/.../<name>/<name>.nix`. Read its
-   `notes.md` (Dziennik) for known gotchas.
+   `notes.md` (feature notes) for known gotchas.
 2. **Make the change** — edit the module (config/package), or bump the flake input
    it pulls from (`nix flake update <input>` for an input-backed feature).
 3. **Keep meta honest:** if the change adds/removes a dependency, update
    `featureMeta.<name>.requires`. If behaviour changes, update the
-   `probaTests.<name>.testScript` assertions to match the new expectation.
-4. **Re-green:** run **/nix-loop** for `<name>`. Also rebuild any host Próba that
+   `featureTests.<name>.testScript` assertions to match the new expectation.
+4. **Re-green:** run **/nix-loop** for `<name>`. Also rebuild any host feature test that
    exercises it (`nix build .#checks.x86_64-linux.host-<host>` if present) so the
    e2e path still holds.
 5. **Apply (explicit, outside the loop):** `nh os switch --dry`, then `nh os test`

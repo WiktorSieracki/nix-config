@@ -49,14 +49,18 @@ so this is a single unit — half-renamed does not evaluate.
 
 ### Phase 5 — repo-local skills (`.claude/skills/*/SKILL.md`)
 
-- [ ] `nix-loop`, `install-feature`, `update-feature`, `remove-feature`: replace
+- [x] `nix-loop`, `install-feature`, `update-feature`, `remove-feature`: replaced
       "Próba"→"feature test", "Dziennik"→"feature notes", attr names per the map.
+      (One `[[project_proba_harness]]` wikilink left — it points at an out-of-scope
+      memory file; renaming that file is out of scope.)
 
 ### Phase 6 — agent docs
 
-- [ ] `CLAUDE.md` Architecture section: "Próba harness"→"feature-test harness",
+- [x] `CLAUDE.md` Architecture section: "Próba harness"→"feature-test harness",
       "Dziennik"→"feature notes", `proba.nix`→`feature-tests.nix`, etc.
-- [ ] `AGENTS.md`, `docs/agents/*`, `docs/running-the-vm.md`: sweep for stragglers.
+- [x] `AGENTS.md`, `docs/agents/*`, `docs/running-the-vm.md`: swept.
+- [x] Also translated the Polish comments + release body in
+      `.github/workflows/iso.yaml`, and the `Próba` comment in `switchboard/main.go`.
 
 ## Out of scope
 

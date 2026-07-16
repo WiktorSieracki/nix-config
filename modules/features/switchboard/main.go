@@ -44,7 +44,7 @@ func main() {
 		fmt.Fprintln(fs.Output(), "TUI for managing NixOS host feature lists (features.json).")
 		fs.PrintDefaults()
 	}
-	// flag.ExitOnError exits 0 on -h/--help — required by the Próba (no TTY).
+	// flag.ExitOnError exits 0 on -h/--help — required by the feature test (no TTY).
 	fs.Parse(os.Args[1:])
 
 	if *showVersion {

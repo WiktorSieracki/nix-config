@@ -1,7 +1,7 @@
 name: ISO Release
 
-# Buduje generyczny live ISO (host `iso`) i publikuje go jako rolling release
-# pod tagiem `latest`. Patrz docs/adr/0001-iso-release-pipeline.md.
+# Builds the generic live ISO (host `iso`) and publishes it as a rolling release
+# under the tag `latest`. See docs/adr/0001-iso-release-pipeline.md.
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
       - '**.md'
   workflow_dispatch:
 
-# Anuluj poprzedni build, jeśli pojawi się nowszy push.
+# Cancel the previous build if a newer push arrives.
 concurrency:
   group: iso-release
   cancel-in-progress: true
@@ -19,23 +19,23 @@ jobs:
   iso:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # tworzenie/nadpisywanie release'u
+      contents: write # create/overwrite the release
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ubuntu-latest ma ~14 GB wolnego; build ISO tego nie mieści.
-      # root-safe-haven: Stage artifacts kopiuje ~4.2 GB ISO do workspace na /,
-      # a domyślne 2 GB rezerwy zabijało ten krok (i samego workera) ENOSPC-em.
+      # ubuntu-latest has ~14 GB free; the ISO build doesn't fit in that.
+      # root-safe-haven: Stage artifacts copies the ~4.2 GB ISO to the workspace on /,
+      # and the default 2 GB reserve killed this step (and the worker itself) with ENOSPC.
       - name: Free disk space
         uses: wimpysworld/nothing-but-nix@main
         with:
           hatchet-protocol: rampage
           root-safe-haven: '12288'
 
-      # build-dir MUSI wskazywać na wolumen /nix (nothing-but-nix tworzy
-      # /nix/build dokładnie po to): bez tego demon buduje w /tmp na /, gdzie
-      # po czystkach zostaje ~2 GB — mksquashfs ISO umierał tam z ENOSPC
+      # build-dir MUST point at the /nix volume (nothing-but-nix creates
+      # /nix/build exactly for this): without it the daemon builds in /tmp on /,
+      # where ~2 GB is left after cleanup — the ISO mksquashfs died there with ENOSPC
       # "Probably out of space on output filesystem".
       - name: Install Nix
         uses: cachix/install-nix-action@v30
@@ -61,12 +61,12 @@ jobs:
             --out-link result \
             --flake 'git+file:.#nixosConfigurations.iso.config.system.build.isoImage'
 
-      # nix-fast-build z --skip-cached NIE tworzy symlinka result, gdy gotowe
-      # ISO siedzi już w cachix — realizujemy więc out-link osobno: no-op po
-      # świeżym buildzie, substytucja z cache po skipie.
-      # split: GitHub odrzuca pliki release'u >= 2 GiB ("size must be less
-      # than 2147483648"), a obraz ma ~4.2 GB — wydajemy części po 1990 MB
-      # składane z powrotem przez `cat` (patrz body release'u).
+      # nix-fast-build with --skip-cached does NOT create the result symlink when a
+      # finished ISO is already in cachix — so we realise the out-link separately: a
+      # no-op after a fresh build, a substitution from cache after a skip.
+      # split: GitHub rejects release files >= 2 GiB ("size must be less
+      # than 2147483648"), and the image is ~4.2 GB — we ship parts of 1990 MB
+      # reassembled with `cat` (see the release body).
       - name: Stage artifacts
         run: |
           nix build 'git+file:.#nixosConfigurations.iso.config.system.build.isoImage' --out-link result
@@ -80,15 +80,15 @@ jobs:
           tag_name: latest
           name: Latest ISO
           body: |
-            Najnowszy live ISO (host `iso`), zbudowany automatycznie z `main`.
-            GitHub ogranicza pliki release'u do 2 GiB, więc obraz jest pocięty —
-            po pobraniu wszystkich części złóż go i zweryfikuj:
+            The latest live ISO (host `iso`), built automatically from `main`.
+            GitHub limits release files to 2 GiB, so the image is split —
+            after downloading all parts, reassemble and verify it:
             ```
             cat nixos.iso.part-* > nixos.iso
             sha256sum -c checksums.txt
             ```
 
-            Zbootuj go i zainstaluj wybrany host:
+            Boot it and install the host of your choice:
             ```
             sudo nixos-install --flake github:${{ github.repository }}#desktopNixos
             sudo nixos-install --flake github:${{ github.repository }}#laptopNixos

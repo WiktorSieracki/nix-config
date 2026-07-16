@@ -24,12 +24,12 @@ niri msg action load-config-file
 # Validate niri config without applying
 niri validate
 
-# Run all checks (every Próba + the feature-coverage audit)
+# Run all checks (every feature test + the feature-coverage audit)
 nix flake check
 ```
 
 To boot the `vm` host or the live ISO in QEMU, see [`docs/running-the-vm.md`](docs/running-the-vm.md).
-To build/drive a single feature's Próba, use the `/nix-loop` skill (`nix build .#checks.<system>.feature-<name>`).
+To build/drive a single feature's feature test, use the `/nix-loop` skill (`nix build .#checks.<system>.feature-<name>`).
 
 ## Architecture
 
@@ -58,11 +58,11 @@ Most feature modules define both a NixOS part and a home-manager part under the 
 
 When a host enables `"git"` in its modules list, `loadNixosAndHmModuleForUser` imports both `flake.modules.nixos.git` (system) and `flake.modules.homeManager.git` (user `wiktor`).
 
-### AI-first testable features (Próba harness)
+### AI-first testable features (feature-test harness)
 
 Each feature is a *self-sufficient, self-testing* unit. See `CONTEXT.md` (glossary)
 and `docs/adr/0002-ai-first-testable-features.md` for the full model; the harness
-lives in `modules/proba.nix`. Key pieces:
+lives in `modules/feature-tests.nix`. Key pieces:
 
 - **`featureMeta.<name> = { requires; kind; }`** — a machine-readable dependency
   graph. `requires` lists the feature's deps; the loader in
@@ -71,20 +71,20 @@ lives in `modules/proba.nix`. Key pieces:
   cli, service, gui}` sets the rigor level of the test. `runtimeUntestable`
   exempts features whose runtime can't be checked in a VM (`nvidia`, `wacom`,
   `mouse`, `eduroam`, `home-wifi`, `sops`).
-- **Próba** — every feature ships a mandatory headless `nixosTest`, registered
-  under `flake.probaTests.<name>` and built via `flake.proba.mkProba`. It builds a
+- **feature test** — every feature ships a mandatory headless `nixosTest`, registered
+  under `flake.featureTests.<name>` and built via `flake.featureTestLib.mkFeatureTest`. It builds a
   minimal VM = `core` floor + the feature + the transitive closure of its
   `requires`, then asserts the feature works. Exposed as
   `checks.<system>.feature-<name>`.
 - **`feature-coverage`** — an eval-time check that **fails** if any feature module
-  lacks `featureMeta` or a Próba, so coverage can't silently regress.
+  lacks `featureMeta` or a feature test, so coverage can't silently regress.
 - **`core` vs `desktop`** — `flake.modules.nixos.nixos` is the irreducible `core`
-  floor (boot, nix, network, locale) present in every Próba and host. The graphical
+  floor (boot, nix, network, locale) present in every feature test and host. The graphical
   session is a separate `desktop` feature that `gui` features must `requires`, so a
-  `cli` feature's Próba boots without niri and catches hidden desktop deps.
-- **Dziennik (`notes.md`)** — a dated log of *non-executable* feature knowledge
+  `cli` feature's feature test boots without niri and catches hidden desktop deps.
+- **feature notes (`notes.md`)** — a dated log of *non-executable* feature knowledge
   (upstream quirks, workarounds), sitting next to each feature's `.nix`.
-  Reproducible bugs belong in the Próba as assertions; `notes.md` holds only what
+  Reproducible bugs belong in the feature test as assertions; `notes.md` holds only what
   can't be encoded in a test.
 
 ### Hosts
@@ -126,7 +126,7 @@ When writing scripts or modules that need a default editor, terminal, browser, o
 ## Notes
 
 - `README.md` documents a legacy Home Manager/WSL flow — ignore it for day-to-day work.
-- `CONTEXT.md` is the canonical glossary for this repo's language (Feature, Host, Próba, Kind, Core, Dziennik, …) — consult it before introducing terminology.
+- `CONTEXT.md` is the canonical glossary for this repo's language (Feature, Host, feature test, Kind, Core, feature notes, …) — consult it before introducing terminology.
 - `docs/adr/` holds architecture decision records (`0001-iso-release-pipeline`, `0002-ai-first-testable-features`) — the authoritative rationale for the architecture.
 - `AGENTS.md` is a thin pointer to this file — this is the canonical agent doc.
 - New `.nix` files must be `git add`ed before building — Nix flakes only evaluate git-tracked files, so `nix build` will fail to see untracked files.

@@ -12,7 +12,7 @@ Remove a **feature**. Because features are self-contained, this is clean.
 1. **Unwire from hosts:** remove `"<name>"` from the `modules` list of every host
    in `modules/hosts/*/default.nix` that enables it (grep for `"<name>"`).
 2. **Delete the feature folder:** `git rm -r modules/features/.../<name>/`
-   (removes module + `featureMeta` + Próba + `notes.md` in one go).
+   (removes module + `featureMeta` + feature test + `notes.md` in one go).
 3. **Check for dangling requires:** if another feature declared `requires =
    [ ... "<name>" ... ]`, either that feature also needs removing/updating, or the
    dependency was real — surface it. `feature-coverage` will flag meta that names a
@@ -21,7 +21,7 @@ Remove a **feature**. Because features are self-contained, this is clean.
    - `nix build .#checks.x86_64-linux.feature-coverage` (consistency holds),
    - `nix eval --raw .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath`
      for each affected host (still evaluates; loader doesn't complain),
-   - any `host-<host>` Próba still green.
+   - any `host-<host>` feature test still green.
 5. **Apply (explicit):** `nh os switch --dry`, then `nh os test` / `nh os switch`.
 
 ## Notes
