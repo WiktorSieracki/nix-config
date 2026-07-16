@@ -1,5 +1,5 @@
-# teams-for-linux — Dziennik
+# teams-for-linux — feature notes
 
-2026-06-26: Dodano featureMeta + Próbę.
+2026-06-26: Added featureMeta + a feature test.
 
-Brak znanych gotch. Binarka `teams-for-linux` jest dostępna jako open-source wrapper (nie oficjalny klient MS Teams), nie wymaga allowUnfree.
+No known gotchas. The `teams-for-linux` binary is available as an open-source wrapper (not the official MS Teams client) and doesn't require allowUnfree.

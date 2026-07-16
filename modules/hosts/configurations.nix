@@ -86,7 +86,7 @@ in {
         ];
     }
     # The password hash must be decrypted before user creation (sysusers runs
-    # early), hence neededForUsers. Guarded so hosts/Próby without the sops
+    # early), hence neededForUsers. Guarded so hosts/feature tests without the sops
     # module never even mention the option.
     // lib.optionalAttrs (userMeta ? passwordSecret) {
       sops.secrets.${userMeta.passwordSecret}.neededForUsers = true;

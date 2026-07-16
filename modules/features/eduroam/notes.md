@@ -1,20 +1,22 @@
-# eduroam — Dziennik
+# eduroam — feature notes
 
-## 2026-06-26 — ukryta zależność od `sops`
+## 2026-06-26 — hidden dependency on `sops`
 
-eduroam deklaruje własne `sops.secrets`, ale klucz (`age.sshKeyPaths`) i
-`defaultSopsFile` daje dopiero feature `sops` → `requires = ["sops"]`. Patrz też
-folderyzacja [[sops]] (jego względna ścieżka do `secrets.yaml` wymagała korekty).
+eduroam declares its own `sops.secrets`, but the key (`age.sshKeyPaths`) and
+`defaultSopsFile` are provided only by the `sops` feature → `requires = ["sops"]`.
+See also the folderization of [[sops]] (its relative path to `secrets.yaml`
+needed a fix).
 
-## 2026-06-26 — runtimeUntestable; render profilu NM w VM porzucony
+## 2026-06-26 — runtimeUntestable; rendering the NM profile in a VM abandoned
 
-**Objaw/Przyczyna:** próba wyrenderowania profilu NetworkManagera w VM jest
-krucha — sops-nix i tak wymaga prawdziwego klucza do renderu template'u
-(`sshKeyPaths=[]` → brak env → profil się nie tworzy). A eduroam i tak wymaga
-realnej sieci eduroam + RADIUS.
+**Symptom/Cause:** trying to render a NetworkManager profile in a VM is brittle —
+sops-nix needs a real key to render the template anyway (`sshKeyPaths=[]` → no env
+→ the profile isn't created). And eduroam needs a real eduroam network + RADIUS
+regardless.
 
-**Fix:** `runtimeUntestable = true`, Próba boot-only. Stub `lib.mkForce` zeruje
-sekrety/template'y ORAZ **pod-opcje** `ensureProfiles.environmentFiles`/`.profiles`
-(mkForce na rodzicu `ensureProfiles` nie wystarcza — feature ustawia pod-ścieżki,
-które dalej się ewaluują i odwołują do skasowanego template'u → `attribute
-'eduroam-env' missing`). Asercja: system wstaje + `nmcli` na PATH.
+**Fix:** `runtimeUntestable = true`, boot-only feature test. The `lib.mkForce`
+stub zeroes the secrets/templates AND the **sub-options**
+`ensureProfiles.environmentFiles`/`.profiles` (mkForce on the parent
+`ensureProfiles` isn't enough — the feature sets sub-paths that still evaluate and
+reference the deleted template → `attribute 'eduroam-env' missing`). Assertion:
+the system comes up + `nmcli` on PATH.

@@ -1,13 +1,13 @@
-# handy — Dziennik
+# handy — feature notes
 
-2026-06-26: Dodano featureMeta + Próbę.
+2026-06-26: Added featureMeta + a feature test.
 
-Feature używa `appimageTools.wrapType2` z osobno zinstancjonowanego nixpkgs (nie `pkgs` z perSystem) — jest to legacy pattern. Binarka to `handy`.
+The feature uses `appimageTools.wrapType2` from a separately instantiated nixpkgs (not the perSystem `pkgs`) — this is a legacy pattern. The binary is `handy`.
 
-Objaw: `handy --start-hidden --no-tray` uruchamiany przez niri bind może nie działać w headless VM.
-Przyczyna: AppImage wymaga środowiska graficznego (FUSE mount + Wayland/X11).
-Fix: Próba sprawdza tylko obecność binarki na PATH (kind=gui), nie uruchamia procesu.
+Symptom: `handy --start-hidden --no-tray` launched via a niri bind may not work in a headless VM.
+Cause: The AppImage needs a graphical environment (FUSE mount + Wayland/X11).
+Fix: The feature test only checks the binary is on PATH (kind=gui), it does not start the process.
 
-Objaw: AppImage może potrzebować `fuse` lub `fuse3` w runtime.
-Przyczyna: appimageTools.wrapType2 montuje AppImage przez FUSE.
-Fix: Na prawdziwej maszynie działa (nixos ma fuse). W VM headless nie jest testowany.
+Symptom: The AppImage may need `fuse` or `fuse3` at runtime.
+Cause: appimageTools.wrapType2 mounts the AppImage via FUSE.
+Fix: Works on the real machine (nixos has fuse). Not tested in the headless VM.

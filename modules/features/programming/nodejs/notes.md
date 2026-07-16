@@ -1,5 +1,5 @@
-# Dziennik — nodejs
+# feature notes — nodejs
 
 ## 2026-06-26
 
-Brak znanych pułapek. Feature jest czysto systemowy (nixos), `node` i `pnpm` trafiają na PATH przez `environment.systemPackages`.
+No known gotchas. The feature is purely system (nixos); `node` and `pnpm` land on PATH via `environment.systemPackages`.

@@ -8,15 +8,15 @@
       fileManager = "nautilus";
     };
 
-    # Tożsamości kont (ADR 0004). Konto istnieje na hoście ⇔ jego login jest
-    # kluczem sekcji `users` w features.json tego hosta; tworzy je loader
-    # (hosts/configurations.nix), czytając stąd dane. Feature'y użytkownika
-    # dostają ten attrset wstrzyknięty jako `userMeta` (+ `login`) do swojej
-    # ewaluacji home-managera i nie hardkodują żadnego loginu.
+    # Account identities (ADR 0004). An account exists on a host ⇔ its login is
+    # a key of that host's `users` section in features.json; the loader
+    # (hosts/configurations.nix) creates it, reading the data from here. User
+    # features receive this attrset injected as `userMeta` (+ `login`) into their
+    # home-manager evaluation and hardcode no login.
     #
-    # Pola: fullName (git user.name, GECOS), groups, shell (nazwa pakietu),
-    # emailSecret / passwordSecret (nazwy sekretów w secrets.yaml; hasło jako
-    # hash z `mkpasswd -m sha-512`), authorizedKeys (klucze publiczne sshd).
+    # Fields: fullName (git user.name, GECOS), groups, shell (package name),
+    # emailSecret / passwordSecret (secret names in secrets.yaml; the password as
+    # a hash from `mkpasswd -m sha-512`), authorizedKeys (sshd public keys).
     users = {
       wiktor = {
         fullName = "Wiktor Sieracki";
@@ -28,8 +28,8 @@
         ];
       };
 
-      # Konto pracowe: separacja danych i tożsamości od `wiktor` (bez wheel,
-      # homeMode 700 z NixOS-owego defaultu). Zarządzane przez wiktora.
+      # Work account: separation of data and identity from `wiktor` (no wheel,
+      # homeMode 700 from the NixOS default). Managed by wiktor.
       work = {
         fullName = "Wiktor Sieracki";
         groups = [];

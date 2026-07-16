@@ -1,5 +1,5 @@
-# Dziennik — pre-commit
+# feature notes — pre-commit
 
 ## 2026-06-26
 
-Brak znanych pułapek. Feature jest czysto systemowy (nixos). `pre-commit --version` zwraca exit 0 bez potrzeby inicjalizacji repo.
+No known gotchas. The feature is purely system (nixos). `pre-commit --version` returns exit 0 without needing repo initialization.

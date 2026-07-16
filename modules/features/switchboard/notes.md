@@ -1,131 +1,129 @@
-# switchboard — Dziennik
+# switchboard — feature notes
 
-Niewykonywalna wiedza o feature'rze `switchboard`. Błędy *odtwarzalne* →
-asercje w Próbie (`switchboard.nix`), nie tutaj. Wpisy datowane, format
-`Objaw → Przyczyna → Fix`.
+Non-executable knowledge about the `switchboard` feature. *Reproducible* bugs →
+assertions in the feature test (`switchboard.nix`), not here. Dated entries, format
+`Symptom → Cause → Fix`.
 
-## 2026-07-03 — Próba z `nix` w domknięciu `requires` a read-only `nixpkgs.config`
+## 2026-07-03 — a feature test with `nix` in the `requires` closure vs read-only `nixpkgs.config`
 
-**Objaw:** pierwsza Próba padła na evalu: „The option
-`nodes.machine.nixpkgs.config` is defined multiple times … nixpkgs.config is
-set to read-only". Switchboard to pierwszy feature, którego `requires`
-dociąga `nix` do VM-ki Próby.
+**Symptom:** the first feature test failed at eval: "The option
+`nodes.machine.nixpkgs.config` is defined multiple times … nixpkgs.config is set to
+read-only". Switchboard is the first feature whose `requires` pulls `nix` into the
+feature-test VM.
 
-**Przyczyna:** feature `nix` ustawia `nixpkgs.config.allowUnfree = true`, a
-`nixosTest` dostaje gotowe `pkgs` i oznacza `nixpkgs.config` node'a jako
-read-only — każda dodatkowa definicja to konflikt.
+**Cause:** the `nix` feature sets `nixpkgs.config.allowUnfree = true`, while
+`nixosTest` receives ready-made `pkgs` and marks the node's `nixpkgs.config` as
+read-only — any extra definition is a conflict.
 
-**Fix:** ten sam stub, którego używa własna Próba feature'a `nix`:
+**Fix:** the same stub the `nix` feature's own feature test uses:
 `extraNixosModules = [ ({lib, ...}: {nixpkgs.config = lib.mkForce {allowUnfree = true;};}) ]`.
-Dotyczy KAŻDEJ przyszłej Próby, której domknięcie `requires` zawiera `nix`.
+Applies to EVERY future feature test whose `requires` closure contains `nix`.
 
-## 2026-07-03 — `app.suspend()` „połyka" output komendy po jej zakończeniu
+## 2026-07-03 — `app.suspend()` "swallows" a command's output after it finishes
 
-> **[2026-07-04]** Wpis dotyczy wycofanej implementacji Python/Textual.
-> Ten sam problem (i analogiczny fix) występuje w wersji Go — patrz wpis
-> „`tea.ExecProcess` wraca do alternate screen…" niżej.
+> **[2026-07-04]** This entry concerns the retired Python/Textual implementation.
+> The same problem (and an analogous fix) exists in the Go version — see the
+> "`tea.ExecProcess` returns to the alternate screen…" entry below.
 
-**Objaw:** po `nh os test` odpalonym spod TUI output (w tym nvd-diff) znika
-w ułamku sekundy — nie da się go przeczytać.
+**Symptom:** after `nh os test` launched from the TUI, the output (including
+nvd-diff) disappears in a split second — it can't be read.
 
-**Przyczyna:** Textual rysuje w alternate screen terminala; wyjście z
-kontekstu `App.suspend()` natychmiast wraca do alternate screen i zasłania
-wszystko, co komenda wypisała.
+**Cause:** Textual draws in the terminal's alternate screen; leaving the
+`App.suspend()` context immediately returns to the alternate screen and hides
+everything the command printed.
 
-**Fix:** po `subprocess.call(...)` a przed końcem `suspend()` blokujące
-`input("… press Enter to return")` — użytkownik czyta output i sam wraca do
-TUI. `EOFError` trzeba złapać (brak stdin ≠ crash).
+**Fix:** after `subprocess.call(...)` and before the end of `suspend()`, a blocking
+`input("… press Enter to return")` — the user reads the output and returns to the
+TUI themselves. `EOFError` must be caught (no stdin ≠ a crash).
 
-## 2026-07-03 — SelectionList (Textual 8.x): stan trzymać w modelu, nie w widżecie
+## 2026-07-03 — SelectionList (Textual 8.x): keep state in the model, not the widget
 
-> **[2026-07-04]** Wpis dotyczy wycofanej implementacji Python/Textual.
-> Zasada „stan w modelu, nie w widżecie" przeszła do wersji Go naturalnie:
-> bubbletea (Elm architecture) nie ma stanowych widżetów — źródłem prawdy
-> jest lista `enabled` w modelu, checkboxy renderują się z niej przy każdym
-> View().
+> **[2026-07-04]** This entry concerns the retired Python/Textual implementation.
+> The "state in the model, not the widget" principle carried into the Go version
+> naturally: bubbletea (the Elm architecture) has no stateful widgets — the source
+> of truth is the `enabled` list in the model, and checkboxes render from it on
+> every View().
 
-**Objaw:** przy filtrze na żywo + auto-dociąganiu zależności checkboxy
-„gubią" stan; programowe `select()/deselect()` odpala kolejne
-`SelectionToggled` i łatwo o pętlę zdarzeń.
+**Symptom:** with a live filter + auto-pulling of dependencies, the checkboxes
+"lose" state; programmatic `select()/deselect()` fires further `SelectionToggled`
+and it's easy to hit an event loop.
 
-**Przyczyna:** filtr wymaga przebudowy listy opcji (widoczny jest podzbiór),
-więc widżet nie może być źródłem prawdy; API select/deselect różni się między
-wersjami Textuala i emituje zdarzenia jak toggle użytkownika.
+**Cause:** the filter requires rebuilding the option list (a subset is visible), so
+the widget can't be the source of truth; the select/deselect API differs between
+Textual versions and emits events like a user toggle.
 
-**Fix:** źródłem prawdy jest lista `enabled` w ekranie; każda zmiana →
-`clear_options()` + `add_option(...)` z `initial_state` z modelu, pod flagą
-`_rebuilding` ignorującą zdarzenia w trakcie. Blokada odznaczenia = odmowa w
-modelu + rebuild (checkbox wraca sam).
+**Fix:** the source of truth is the `enabled` list in the screen; every change →
+`clear_options()` + `add_option(...)` with `initial_state` from the model, under a
+`_rebuilding` flag that ignores events in the meantime. Blocking a deselect = a
+refusal in the model + a rebuild (the checkbox comes back by itself).
 
-## 2026-07-04 — Rewrite na Go + bubbletea (wersja Python/Textual wycofana)
+## 2026-07-04 — rewrite in Go + bubbletea (the Python/Textual version retired)
 
-Logika domenowa przeszła 1:1 (domknięcie `requires`, blokada odznaczenia,
-reconciliacja kolejności zapisu, diff flake.lock) — teraz w czystych funkcjach
-(`model.go`, `lock.go`, `grid.go`) pod unit testami `go test ./...`.
-Implementacja Python zostaje w historii gita (ostatnio commit `9c3b3e4`) jako
-referencja.
+The domain logic carried over 1:1 (the `requires` closure, deselect blocking,
+write-order reconciliation, the flake.lock diff) — now in pure functions
+(`model.go`, `lock.go`, `grid.go`) under unit tests `go test ./...`. The Python
+implementation stays in git history (last commit `9c3b3e4`) as a reference.
 
-## 2026-07-04 — `buildGoModule` ze `src = ./.` w folderze feature'a
+## 2026-07-04 — `buildGoModule` with `src = ./.` in the feature folder
 
-**Objaw:** brak — ale dwie nieoczywiste konsekwencje trzymania źródeł Go
-bezpośrednio w folderze feature'a.
+**Symptom:** none — but two non-obvious consequences of keeping the Go sources
+directly in the feature folder.
 
-**Przyczyna/wiedza:** (1) `src = ./.` obejmuje też `switchboard.nix` i
-`notes.md`, więc *każdy* wpis do Dziennika przebudowuje pakiet — akceptowalne
-(build trwa sekundy), ale nie dziwić się rebuildom. (2) `buildGoModule`
-odpala w checkPhase `go test ./...` — unit testy muszą być hermetyczne (bez
-sieci/gita), za to każdy build systemu jest bramkowany testami za darmo.
+**Cause/knowledge:** (1) `src = ./.` also covers `switchboard.nix` and `notes.md`,
+so *every* feature-notes entry rebuilds the package — acceptable (the build takes
+seconds), but don't be surprised by rebuilds. (2) `buildGoModule` runs
+`go test ./...` in checkPhase — the unit tests must be hermetic (no network/git),
+but in return every system build is gated by tests for free.
 
-**Fix (workflow vendorHash):** wpisać `lib.fakeHash` (albo dowolny
-`sha256-AAAA…=`), zbudować pakiet przez
-`nix build --impure --expr 'let flake = builtins.getFlake (toString /ścieżka/repo); pkgs = flake.inputs.nixpkgs.legacyPackages.x86_64-linux; in pkgs.buildGoModule { … }'`
-i przepisać hash z komunikatu `got: sha256-…`. Uwaga: nowe pliki `.go` muszą
-być `git add`nięte *przed* tym buildem (flake widzi tylko śledzone pliki).
+**Fix (vendorHash workflow):** put in `lib.fakeHash` (or any `sha256-AAAA…=`), build
+the package via
+`nix build --impure --expr 'let flake = builtins.getFlake (toString /path/to/repo); pkgs = flake.inputs.nixpkgs.legacyPackages.x86_64-linux; in pkgs.buildGoModule { … }'`
+and copy the hash from the `got: sha256-…` message. Note: new `.go` files must be
+`git add`ed *before* that build (the flake only sees tracked files).
 
-## 2026-07-04 — `tea.ExecProcess` wraca do alternate screen i zasłania output
+## 2026-07-04 — `tea.ExecProcess` returns to the alternate screen and hides output
 
-**Objaw:** ten sam co w Textualu: po `nh os test`/`nix build --dry-run`
-odpalonym spod TUI output znika natychmiast po zakończeniu komendy —
-bubbletea wraca do alternate screen.
+**Symptom:** the same as in Textual: after `nh os test`/`nix build --dry-run`
+launched from the TUI, the output disappears right after the command finishes —
+bubbletea returns to the alternate screen.
 
-**Przyczyna:** `tea.ExecProcess` oddaje terminal procesowi, ale po jego
-wyjściu program od razu re-renderuje TUI w alternate screen.
+**Cause:** `tea.ExecProcess` hands the terminal to the process, but after it exits
+the program immediately re-renders the TUI in the alternate screen.
 
-**Fix:** komendę opakować w `sh -c` ze skryptem: `cmd; rc=$?; printf '…press
-Enter…'; read -r _ || true; exit $rc`. `read` dostaje stdin = realny TTY (bo
-to wciąż ExecProcess), `|| true` chroni przed EOF (brak stdin ≠ crash), a
-`exit $rc` propaguje kod wyjścia komendy do callbacka (`*exec.ExitError`).
+**Fix:** wrap the command in `sh -c` with a script: `cmd; rc=$?; printf '…press
+Enter…'; read -r _ || true; exit $rc`. `read` gets stdin = a real TTY (since it's
+still ExecProcess), `|| true` guards against EOF (no stdin ≠ a crash), and
+`exit $rc` propagates the command's exit code to the callback (`*exec.ExitError`).
 
-## 2026-07-04 — `go vet`/`go test` poza Nixem: brak `gcc` na PATH
+## 2026-07-04 — `go vet`/`go test` outside Nix: no `gcc` on PATH
 
-**Objaw:** `nix shell nixpkgs#go -c go test ./...` pada na
-`cgo: C compiler "gcc" not found` (buduje `runtime/cgo`).
+**Symptom:** `nix shell nixpkgs#go -c go test ./...` fails on
+`cgo: C compiler "gcc" not found` (building `runtime/cgo`).
 
-**Przyczyna:** goły `nixpkgs#go` nie ciągnie toolchainu C, a cgo jest
-domyślnie włączone.
+**Cause:** a bare `nixpkgs#go` doesn't pull a C toolchain, and cgo is enabled by
+default.
 
-**Fix:** `CGO_ENABLED=0` — projekt jest pure-Go. W `buildGoModule` problem
-nie występuje (stdenv ma cc).
+**Fix:** `CGO_ENABLED=0` — the project is pure-Go. In `buildGoModule` the problem
+doesn't occur (stdenv has cc).
 
-## 2026-07-06 — migracja na `{system, users}` (ADR 0004)
+## 2026-07-06 — migration to `{system, users}` (ADR 0004)
 
-**Kontekst:** `features.json` przestał być płaską listą — teraz
-`{"system": [...], "users": {"<login>": [...]}}`. `HostSpec` (model.go)
-zastępuje gołe `[]string`; `Sections()`/`Get`/`Set`/`Clone`/`SpecEqual`
-operują na całym spec-u, a UI dostał zakładki sekcji (`tab`/`[`/`]`) — każda
-edytowana niezależnie, `enable()` liczy domknięcie `requires` względem
-`system ∪ bieżąca sekcja` (metoda `satisfiers()`), nie całego pliku.
+**Context:** `features.json` stopped being a flat list — it's now
+`{"system": [...], "users": {"<login>": [...]}}`. `HostSpec` (model.go) replaces the
+bare `[]string`; `Sections()`/`Get`/`Set`/`Clone`/`SpecEqual` operate on the whole
+spec, and the UI got section tabs (`tab`/`[`/`]`) — each edited independently, and
+`enable()` computes the `requires` closure against `system ∪ the current section`
+(the `satisfiers()` method), not the whole file.
 
-**Pułapka do zapamiętania:** `enable()` sprawdza już-obecne zależności przez
-`contains(m.enabled(), dep)` — bez tego auto-dociąganie potrafiłoby dodać
-duplikat feature'a, który jest spełniony przez `system`, ale nie przez samą
-sekcję usera. Test jednostkowy tego nie łapie (za mało scenariuszy w
-`model_test.go`) — jeśli coś tu się popsuje, objawi się jako duplikat w
-`features.json` po zapisaniu, nie jako crash.
+**Pitfall to remember:** `enable()` checks already-present dependencies via
+`contains(m.enabled(), dep)` — without that, auto-pulling could add a duplicate of a
+feature that's satisfied by `system` but not by the user's section itself. The unit
+test doesn't catch it (too few scenarios in `model_test.go`) — if something breaks
+here, it shows up as a duplicate in `features.json` after saving, not as a crash.
 
-## 2026-07-04 — `--help` z exit 0 bez TTY: `flag.ExitOnError`
+## 2026-07-04 — `--help` with exit 0 without a TTY: `flag.ExitOnError`
 
-Próba wymaga `switchboard --help` z kodem 0 w headless VM. Pakiet `flag` z
-`flag.ExitOnError` robi to out-of-the-box: `-h`/`--help` → usage + `os.Exit(0)`
-(inne błędy parsowania → exit 2). Nie zmieniać na ContinueOnError bez
-przeniesienia tej semantyki.
+The feature test needs `switchboard --help` to exit 0 in a headless VM. The `flag`
+package with `flag.ExitOnError` does this out of the box: `-h`/`--help` → usage +
+`os.Exit(0)` (other parse errors → exit 2). Don't change it to ContinueOnError
+without carrying that semantics over.

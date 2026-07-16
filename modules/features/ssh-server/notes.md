@@ -1,10 +1,10 @@
-# Dziennik: ssh-server
+# feature notes: ssh-server
 
-Feature serwera OpenSSH z wyłączoną autoryzacją hasłem i kluczem publicznym dla użytkownika wiktor.
+The OpenSSH server feature with password authentication disabled and a public key for the wiktor user.
 
 ## Gotchas
 
-**2026-06-26** — Na NixOS `services.openssh.enable = true` tworzy unit `sshd.service` (nie `ssh.service`).
-Próba asertuje `sshd.service` — jest to prawidłowa nazwa na NixOS (w przeciwieństwie do Debiana, gdzie może być `ssh.service`).
+**2026-06-26** — On NixOS `services.openssh.enable = true` creates the unit `sshd.service` (not `ssh.service`).
+The feature test asserts `sshd.service` — that's the correct name on NixOS (unlike Debian, where it may be `ssh.service`).
 
-**2026-06-26** — `PermitRootLogin = "no"` i `PasswordAuthentication = false` powodują, że VM z Próby nie może być debugowana przez hasło roota. W razie potrzeby debugowania dodać klucz testowy do `extraNixosModules`.
+**2026-06-26** — `PermitRootLogin = "no"` and `PasswordAuthentication = false` mean the feature-test VM can't be debugged via a root password. If debugging is needed, add a test key to `extraNixosModules`.

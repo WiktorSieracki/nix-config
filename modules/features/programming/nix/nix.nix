@@ -53,7 +53,7 @@
     kind = "config";
   };
 
-  # Próba: confirm key dev tools installed by this feature are on PATH.
+  # feature test: confirm key dev tools installed by this feature are on PATH.
   # nixpkgs.config in nixosTest is read-only (pkgs are pre-evaluated and
   # passed in), so we force-override it in extraNixosModules to avoid the
   # "defined multiple times" error from the allowUnfree setting in the module.

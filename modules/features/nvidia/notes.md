@@ -1,12 +1,12 @@
-# nvidia — Dziennik
+# nvidia — feature notes
 
-## 2026-06-26 — runtimeUntestable (brak GPU w VM)
+## 2026-06-26 — runtimeUntestable (no GPU in the VM)
 
-**Objaw:** nie da się zweryfikować sterownika — VM nie ma karty NVIDIA.
+**Symptom:** the driver can't be verified — the VM has no NVIDIA card.
 
-**Przyczyna:** sterownik ładuje się tylko przy fizycznym GPU; w VM moduł jądra
-nvidia po prostu się nie aktywuje (nieszkodliwie).
+**Cause:** the driver only loads with a physical GPU; in a VM the nvidia kernel
+module simply doesn't activate (harmlessly).
 
-**Fix:** `runtimeUntestable = true`. Próba sprawdza tylko, że system z włączonym
-nvidia bootuje do `multi-user.target` (regression guard na bumpy sterownika).
-Domknięcie jest duże (~sterowniki), więc build Próby bywa wolny.
+**Fix:** `runtimeUntestable = true`. The feature test only checks that a system
+with nvidia enabled boots to `multi-user.target` (a regression guard for driver
+bumps). The closure is large (~drivers), so the feature-test build can be slow.

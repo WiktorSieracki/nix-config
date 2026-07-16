@@ -70,7 +70,7 @@ in {
     kind = "cli";
   };
 
-  # Próba (Tier 1). git is secret-backed: the VM has no real SOPS key, so per
+  # feature test (Tier 1). git is secret-backed: the VM has no real SOPS key, so per
   # ADR 0002 (b) we *stub* — blank every SOPS secret/template so the VM boots,
   # and inject the email via a plaintext include. We then assert what actually
   # matters: git & gh run, user.name comes from the injected userMeta (the

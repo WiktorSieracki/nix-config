@@ -10,7 +10,7 @@
     kind = "gui";
   };
 
-  # Próba: nixpkgs.config.allowUnfree is already true in the outer perSystem
+  # feature test: nixpkgs.config.allowUnfree is already true in the outer perSystem
   # pkgs (parts.nix), so no extra module is needed.
   flake.featureTests.obsidian = {
     testScript = ''

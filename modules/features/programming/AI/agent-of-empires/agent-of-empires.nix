@@ -14,7 +14,7 @@
     kind = "cli";
   };
 
-  # Próba: aoe-with-web exposes mainProgram = "aoe".
+  # feature test: aoe-with-web exposes mainProgram = "aoe".
   # tmux is a standard binary; assert both are on PATH.
   flake.featureTests.agent-of-empires = {
     testScript = ''

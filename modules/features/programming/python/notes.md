@@ -1,7 +1,7 @@
-# Dziennik — python
+# feature notes — python
 
 ## 2026-06-26
 
-Objaw: `python3 --version` może nie znaleźć Pythona, jeśli zainstalowany jest `python314` bez wrappera `python3`.
-Przyczyna: Nixpkgs `python314` instaluje `python3.14` i `python3` jako symlinki w tym samym derivation, więc `python3` powinien być na PATH.
-Fix: Jeśli Próba failuje na `python3 --version`, zmienić asercję na `python3.14 --version` — to jest kanoniczny plik binarny paczki `python314`.
+Symptom: `python3 --version` may not find Python if `python314` is installed without a `python3` wrapper.
+Cause: nixpkgs `python314` installs `python3.14` and `python3` as symlinks in the same derivation, so `python3` should be on PATH.
+Fix: If the feature test fails on `python3 --version`, change the assertion to `python3.14 --version` — that's the canonical binary of the `python314` package.

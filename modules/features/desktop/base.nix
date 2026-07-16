@@ -7,7 +7,7 @@
   };
 
   # Core floor: the irreducible system substrate present in every host and every
-  # Próba. Deliberately holds NO graphical session and NO GUI apps — those moved
+  # feature test. Deliberately holds NO graphical session and NO GUI apps — those moved
   # to the `desktop` feature (see desktop.nix) so the modularity litmus test
   # ("does this feature work without niri?") is actually meaningful.
   flake.modules.nixos.nixos = {pkgs, ...}: {

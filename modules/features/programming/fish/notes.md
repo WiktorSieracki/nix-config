@@ -1,37 +1,38 @@
-# Dziennik: fish
+# feature notes: fish
 
-*Ostatnia aktualizacja: 2026-06-26*
+*Last updated: 2026-06-26*
 
-## Gotcha: fish-ssh-agent plugin z fetchFromGitHub wymaga sieciowego fetcha
+## Gotcha: the fish-ssh-agent plugin from fetchFromGitHub needs a network fetch
 
-**Objaw**: build w piaskownicy bez sieci (sandbox = true) może failować przy
-fetchFromGitHub dla pluginu `fish-ssh-agent`.  
-**Przyczyna**: Nix sandbox nie ma dostępu do internetu — hash musi być w
-locker lub fetched wcześniej.  
-**Fix**: SHA256 jest zahardkodowany (`cFroQ7...`), więc Nix może zweryfikować
-i pobrać go z binary cache. Jeśli plugin zmieni rev, trzeba zaktualizować sha256.
+**Symptom**: a sandboxed build without network (sandbox = true) may fail on
+fetchFromGitHub for the `fish-ssh-agent` plugin.
+**Cause**: the Nix sandbox has no internet access — the hash must be in the lock or
+fetched beforehand.
+**Fix**: the SHA256 is hardcoded (`cFroQ7...`), so Nix can verify it and pull it
+from a binary cache. If the plugin changes rev, the sha256 must be updated.
 
-## Gotcha: `users.users.wiktor.shell` wymaga, żeby user wiktor istniał
+## Gotcha: `users.users.wiktor.shell` requires that the wiktor user exists
 
-> **[2026-07-06]** Wpis nieaktualny po ADR 0004: feature `wiktor` został
-> rozpuszczony, `requires` na login zniknęło z całego grafu. Zobacz wpis
-> „Shell przeniesiony do `meta.users`" niżej.
+> **[2026-07-06]** Entry outdated after ADR 0004: the `wiktor` feature was
+> dissolved, and `requires` on a login disappeared from the whole graph. See the
+> "Shell moved to `meta.users`" entry below.
 
-**Objaw**: moduł NixOS fish ustawia `users.users.wiktor.shell = pkgs.fish`,
-co zakłada, że user wiktor jest już zdefiniowany.  
-**Przyczyna**: moduł `wiktor` tworzy usera; fish go modyfikuje — bez `wiktor`
-w `requires` host mógłby nie mieć usera.  
-**Fix**: `featureMeta.fish.requires = ["wiktor"]` — loader twardo failuje
-przy próbie włączenia fish bez wiktor.
+**Symptom**: the NixOS fish module sets `users.users.wiktor.shell = pkgs.fish`,
+which assumes the wiktor user is already defined.
+**Cause**: the `wiktor` module creates the user; fish modifies it — without
+`wiktor` in `requires` a host might not have the user.
+**Fix**: `featureMeta.fish.requires = ["wiktor"]` — the loader hard-fails on an
+attempt to enable fish without wiktor.
 
-## 2026-07-06 — Shell przeniesiony do `meta.users` (ADR 0004)
+## 2026-07-06 — Shell moved to `meta.users` (ADR 0004)
 
-**Kontekst:** feature'y użytkownika (git, fish, vscode, …) mogą teraz trafiać
-na listę wielu kont (np. `work`), więc żaden feature nie może hardkodować
-loginu. `fish.nix` już nie ustawia `users.users.<kogokolwiek>.shell` — to
-robi loader (`mkHostUser`) na podstawie `flake.meta.users.<login>.shell`.
+**Context:** user features (git, fish, vscode, …) can now land on the list of
+multiple accounts (e.g. `work`), so no feature may hardcode a login. `fish.nix` no
+longer sets `users.users.<anyone>.shell` — the loader (`mkHostUser`) does, based on
+`flake.meta.users.<login>.shell`.
 
-**Konsekwencja dla Próby:** shell fisha weryfikuje osobny check mechanizmu
-(`checks.host-users`, `modules/proba.nix`), nie Próba `fish` — jej zadaniem
-jest tylko udowodnić, że pakiet `fish` i HM-owy direnv istnieją na koncie
-testowym `proba`, niezależnie od tego, czy `proba` ma fisha jako login shell.
+**Consequence for the feature test:** the fish login shell is verified by a
+separate mechanism check (`checks.host-users`, `modules/feature-tests.nix`), not by
+the `fish` feature test — its only job is to prove the `fish` package and the HM
+direnv exist on the test account `tester`, regardless of whether `tester` has fish
+as a login shell.

@@ -1,22 +1,22 @@
-# Dziennik: niri
+# feature notes: niri
 
-*Ostatnia aktualizacja: 2026-06-26*
+*Last updated: 2026-06-26*
 
-## Gotcha: Próba nie uruchamia kompozytora (brak GPU w VM)
+## Gotcha: the feature test doesn't start the compositor (no GPU in the VM)
 
-**Objaw**: headless `nixosTest` nie może wyświetlić sesji Wayland — VM
-startuje bez GPU, `niri` uruchomiony jako program crashuje.  
-**Przyczyna**: niri wymaga działającego Wayland EGL / GPU.  
-**Fix**: Próba sprawdza tylko, że binarny `niri` jest na PATH (pakiet
-zainstalowany przez `programs.niri.enable`). Pełne smoke-testy kompozytora
-wymagają `virtio-vga-gl` i są robione manualnie przez człowieka (`vm` host).
+**Symptom**: a headless `nixosTest` can't display a Wayland session — the VM
+starts without a GPU, and `niri` launched as a program crashes.
+**Cause**: niri needs a working Wayland EGL / GPU.
+**Fix**: the feature test only checks that the `niri` binary is on PATH (the
+package installed by `programs.niri.enable`). Full compositor smoke tests need
+`virtio-vga-gl` and are done manually by a human (the `vm` host).
 
-## Gotcha: myNiri zależy od niriBinds i myNoctalia
+## Gotcha: myNiri depends on niriBinds and myNoctalia
 
-**Objaw**: eval niri feature'a wymaga, żeby `flake.niriBinds` i
-`self'.packages.myNoctalia` były zdefiniowane.  
-**Przyczyna**: perSystem w niri.nix buduje `myNiri` przez wrapper-modules,
-który scala wszystkie `flake.niriBinds` i embeduje ścieżkę do myNoctalia.  
-**Fix**: featureMeta.niri ma `requires = []` — oba atrybuty są dostępne
-przez flake-parts merge (niriBinds z wielu plików, myNoctalia z noctalia.nix)
-i nie wymagają jawnego `requires`.
+**Symptom**: evaluating the niri feature requires `flake.niriBinds` and
+`self'.packages.myNoctalia` to be defined.
+**Cause**: perSystem in niri.nix builds `myNiri` via wrapper-modules, which merges
+all `flake.niriBinds` and embeds the path to myNoctalia.
+**Fix**: featureMeta.niri has `requires = []` — both attributes are available
+through the flake-parts merge (niriBinds from many files, myNoctalia from
+noctalia.nix) and need no explicit `requires`.

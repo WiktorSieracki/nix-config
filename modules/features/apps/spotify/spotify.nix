@@ -32,7 +32,7 @@
     kind = "gui";
   };
 
-  # Próba: spicetify-nix wraps the unfree `spotify` package and installs it into
+  # feature test: spicetify-nix wraps the unfree `spotify` package and installs it into
   # the wiktor HM profile as `spotify`. allowUnfree is already true in the outer
   # perSystem pkgs (parts.nix) so no extra module is needed.
   flake.featureTests.spotify = {

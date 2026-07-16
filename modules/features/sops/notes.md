@@ -1,27 +1,27 @@
-# sops — Dziennik
+# sops — feature notes
 
-## 2026-06-26 — runtimeUntestable: brak klucza w VM
+## 2026-06-26 — runtimeUntestable: no key in the VM
 
-**Objaw:** Próba nie może zweryfikować deszyfracji — VM nie ma prywatnego klucza
-ssh wiktora (recipient z `.sops.yaml`).
+**Symptom:** the feature test can't verify decryption — the VM has no wiktor private
+ssh key (the recipient from `.sops.yaml`).
 
-**Przyczyna:** deszyfracja to istota feature'a, a klucz jest świadomie nieobecny
-w VM (sekret usera). Deszyfrowanie to domena sops-nix, nie nasza.
+**Cause:** decryption is the essence of the feature, and the key is deliberately
+absent from the VM (a user secret). Decrypting is sops-nix's domain, not ours.
 
-**Fix:** `featureMeta.sops.runtimeUntestable = true`. Próba zeruje sekrety
-(`lib.mkForce`) i sprawdza tylko, że moduł integruje się, system bootuje, a CLI
-`sops` jest na PATH. Realna deszyfracja weryfikowana wyłącznie na żywej maszynie.
+**Fix:** `featureMeta.sops.runtimeUntestable = true`. The feature test zeroes the
+secrets (`lib.mkForce`) and only checks that the module integrates, the system
+boots, and the `sops` CLI is on PATH. Real decryption is verified only on a live
+machine.
 
-## 2026-07-06 — usunięta część HM (ADR 0004)
+## 2026-07-06 — HM part removed (ADR 0004)
 
-**Objaw:** brak — usunięcie prewencyjne, nie naprawa.
+**Symptom:** none — a preventive removal, not a fix.
 
-**Przyczyna:** `homeManager.sops` odszyfrowywał zawsze kluczem
-`/home/wiktor/.ssh/id_ed25519` niezależnie od tego, które konto ewaluuje HM —
-działał tylko dla wiktora. Jedyny konsument (`git`'s email) przeszedł na
-system-level sops z `owner` per konto (p. `git/notes.md`), więc HM-owa
-połowa nie miała już żadnego użycia.
+**Cause:** `homeManager.sops` always decrypted with the key
+`/home/wiktor/.ssh/id_ed25519` regardless of which account evaluates HM — it only
+worked for wiktor. Its only consumer (`git`'s email) moved to system-level sops with
+per-account `owner` (see `git/notes.md`), so the HM half had no use left.
 
-**Fix:** `homeManager.sops` skasowany. Sops zostaje wyłącznie system-level;
-sekrety dla nie-roota trafiają do kont przez `owner`/render systemowego
-sops-nix (jak już robił `cachixAuthToken`), nigdy przez HM.
+**Fix:** `homeManager.sops` deleted. Sops stays system-level only; secrets for
+non-root land on accounts via `owner`/system sops-nix rendering (as
+`cachixAuthToken` already did), never via HM.

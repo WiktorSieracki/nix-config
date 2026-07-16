@@ -1,13 +1,13 @@
-# home-wifi — Dziennik
+# home-wifi — feature notes
 
-## 2026-06-26 — runtimeUntestable; render profilu NM porzucony
+## 2026-06-26 — runtimeUntestable; rendering the NM profile abandoned
 
-Analogicznie do [[eduroam]]: bez prawdziwego klucza SOPS profil NetworkManagera
-nie powstaje w VM, a feature i tak potrzebuje realnego AP. `runtimeUntestable =
-true`, Próba boot-only (stub zeruje sekrety + pod-opcje
-`ensureProfiles.environmentFiles`/`.profiles`; asercja: boot + `nmcli`).
+Analogous to [[eduroam]]: without a real SOPS key the NetworkManager profile isn't
+created in a VM, and the feature needs a real AP anyway. `runtimeUntestable =
+true`, boot-only feature test (the stub zeroes the secrets + the sub-options
+`ensureProfiles.environmentFiles`/`.profiles`; assertion: boot + `nmcli`).
 
-Drobiazgi zaobserwowane po drodze (gdyby kiedyś wracać do renderu w VM):
-- NM nazywa plik profilu wg `connection.id`, nie wg klucza atrybutu.
-- WPA-PSK wymaga hasła 8–63 znaków — krótszy fałszywy PSK jest odrzucany i plik
-  profilu nie powstaje (eduroam używa `wpa-eap`, bez tego limitu).
+Small things observed along the way (in case rendering in a VM is ever revisited):
+- NM names the profile file by `connection.id`, not by the attribute key.
+- WPA-PSK requires an 8–63 character password — a shorter fake PSK is rejected and
+  the profile file isn't created (eduroam uses `wpa-eap`, without that limit).

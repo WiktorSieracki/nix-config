@@ -1,7 +1,7 @@
-# Dziennik — java
+# feature notes — java
 
 ## 2026-06-26
 
-Objaw: `gradle --version` w Próbie uruchamia demona i może przekroczyć timeout VM.
-Przyczyna: Gradle przy pierwszym wywołaniu próbuje pobrać wrappera lub init-script z sieci.
-Fix: W środowisku VM sieć jest dostępna, ale Gradle działa offline, bo nie ma konfiguracji projektu — samo `gradle --version` nie uruchamia buildu, jedynie weryfikuje instalację; timeout VM (zwykle 5 min) jest wystarczający.
+Symptom: `gradle --version` in the feature test starts a daemon and may exceed the VM timeout.
+Cause: On its first invocation Gradle tries to fetch a wrapper or an init-script from the network.
+Fix: In the VM the network is available, but Gradle runs offline because there's no project config — `gradle --version` alone doesn't run a build, it only verifies the install; the VM timeout (usually 5 min) is enough.

@@ -31,7 +31,7 @@
     kind = "cli";
   };
 
-  # Próba: secret-backed feature — per ADR 0002 (b) we stub every SOPS
+  # feature test: secret-backed feature — per ADR 0002 (b) we stub every SOPS
   # secret (no real key in the VM) and assert the CLIs land on PATH. The
   # actual upload needs network + a real token, so runtime push is out of
   # scope; we do assert cache-push fails *gracefully* when the token file

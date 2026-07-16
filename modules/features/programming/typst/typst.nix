@@ -15,7 +15,7 @@
     kind = "cli";
   };
 
-  # Próba: typst and typstyle are on PATH.
+  # feature test: typst and typstyle are on PATH.
   # typst-live and tinymist are LSP/live-preview tools; typst --version is the
   # canonical smoke.
   flake.featureTests.typst = {

@@ -1,10 +1,10 @@
-# Dziennik: ssh
+# feature notes: ssh
 
-Feature konfiguracji klienta SSH przez HM (`programs.ssh`) z matchBlocks i ssh-agent.
+The SSH client configuration feature via HM (`programs.ssh`) with matchBlocks and ssh-agent.
 
 ## Gotchas
 
-**2026-06-26** — HM generuje `~/.ssh/config` z `programs.ssh.matchBlocks`. Plik nie jest tworzony, jeśli `home-manager-wiktor.service` nie dobiegnie końca pomyślnie.
-Próba czeka na `home-manager-wiktor.service` przed asercją `test -f ~/.ssh/config`.
+**2026-06-26** — HM generates `~/.ssh/config` from `programs.ssh.matchBlocks`. The file isn't created if `home-manager-wiktor.service` doesn't finish successfully.
+The feature test waits for `home-manager-wiktor.service` before asserting `test -f ~/.ssh/config`.
 
-**2026-06-26** — Deprecation warnings od HM: `matchBlocks.<host>.extraOptions` jest przestarzałe na rzecz `programs.ssh.settings.<host>`. Nie blokuje buildu ani testu — tylko ostrzeżenie przy ewaluacji. Migracja do nowego formatu odkłada się do refaktoru feature'a.
+**2026-06-26** — Deprecation warnings from HM: `matchBlocks.<host>.extraOptions` is deprecated in favour of `programs.ssh.settings.<host>`. It doesn't block the build or the test — just a warning at eval. Migration to the new format is deferred to a feature refactor.

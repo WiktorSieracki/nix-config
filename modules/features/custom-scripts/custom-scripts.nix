@@ -16,7 +16,7 @@
     kind = "cli";
   };
 
-  # Próba: at least one script is on PATH and executable.
+  # feature test: at least one script is on PATH and executable.
   flake.featureTests."custom-scripts" = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")

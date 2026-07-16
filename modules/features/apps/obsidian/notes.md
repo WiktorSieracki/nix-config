@@ -1,3 +1,3 @@
-# Dziennik: obsidian
+# feature notes: obsidian
 
-*Ostatnia aktualizacja: 2026-07-09*
+*Last updated: 2026-07-09*

@@ -6,7 +6,7 @@
     kind = "gui";
   };
 
-  # Próba: zeditor binary is in wiktor's profile PATH.
+  # feature test: zeditor binary is in wiktor's profile PATH.
   flake.featureTests.zeditor = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")

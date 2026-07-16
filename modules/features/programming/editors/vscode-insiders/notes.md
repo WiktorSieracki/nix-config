@@ -1,23 +1,24 @@
-# Dziennik: vscode-insiders
+# feature notes: vscode-insiders
 
-Feature VS Code Insiders instalowanego jako system package (nie przez HM).
+The VS Code Insiders feature, installed as a system package (not via HM).
 
 ## Gotchas
 
-**2026-06-26** — VS Code Insiders nie jest paczką w nixpkgs — budowany jest przez nadpisanie `pkgs.vscode.override {isInsiders = true;}` z URL do najnowszego tarballa.
-Objaw: hash `sha256-...` w `fetchurl` przestaje pasować po aktualizacji upstream.
-Przyczyna: URL `https://update.code.visualstudio.com/latest/linux-x64/insider` wskazuje zawsze na najnowszą wersję — hash musi być aktualizowany ręcznie.
-Fix: `nix store prefetch-file --name vscode-insiders.tar.gz https://update.code.visualstudio.com/latest/linux-x64/insider` i wklejenie nowego hasha.
+**2026-06-26** — VS Code Insiders isn't a package in nixpkgs — it's built by overriding `pkgs.vscode.override {isInsiders = true;}` with a URL to the latest tarball.
+Symptom: the `sha256-...` hash in `fetchurl` stops matching after an upstream update.
+Cause: the URL `https://update.code.visualstudio.com/latest/linux-x64/insider` always points at the latest version — the hash must be updated by hand.
+Fix: `nix store prefetch-file --name vscode-insiders.tar.gz https://update.code.visualstudio.com/latest/linux-x64/insider` and paste the new hash.
 
-**2026-06-26** — Binarka nosi nazwę `code-insiders` (nie `cursor` ani `code`). Próba asertuje `command -v code-insiders` na poziomie systemu (bez `su - wiktor`), bo to system package.
+**2026-06-26** — The binary is named `code-insiders` (not `cursor` or `code`). The feature test asserts `command -v code-insiders` at the system level (no `su - wiktor`), because it's a system package.
 
-**2026-06-26** — `buildInputs` wymaga `libxtst libjpeg8 pipewire libei` z powodu bundled Copilot extension (`computer.node`). Pominięcie tych bibliotek skutkuje błędem linkowania przy starcie.
+**2026-06-26** — `buildInputs` needs `libxtst libjpeg8 pipewire libei` because of the bundled Copilot extension (`computer.node`). Omitting these libraries causes a link error at startup.
 
-**2026-07-04** — Nieaktualny hash psuje nie tylko lokalny rebuild, ale każdą
-**świeżą instalację hosta** (`nixos-install --flake github:...`): maszyna bez
-tarballa w store musi go pobrać, a `latest` już wskazuje nowszy daily → hash
-mismatch w FOD i kaskada "dependency failed" na całym system-path. Binary
-cache nie ratuje, bo `cache-push` pushuje closure runtime, a źródłowy tarball
-do niego nie należy. Wykryte przy teście instalacji laptopNixos z release'owego
-ISO w QEMU. Po odświeżeniu hasha warto wypchnąć do cachix też sam tarball:
+**2026-07-04** — A stale hash breaks not only the local rebuild but every **fresh
+host install** (`nixos-install --flake github:...`): a machine without the tarball
+in its store must fetch it, and `latest` already points at a newer daily → a hash
+mismatch in the FOD and a cascade of "dependency failed" across the whole
+system-path. The binary cache doesn't save you, because `cache-push` pushes the
+runtime closure and the source tarball isn't part of it. Discovered while testing
+a laptopNixos install from the release ISO in QEMU. After refreshing the hash it's
+worth pushing the tarball itself to cachix too:
 `cachix push wiktor-nixos $(nix store prefetch-file --json ... | jq -r .storePath)`.

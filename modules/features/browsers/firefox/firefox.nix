@@ -110,7 +110,7 @@
   };
 
   # firefox-addons extensions are fetched from addons.mozilla.org as
-  # fixed-output derivations — stub them out in the Próba to avoid
+  # fixed-output derivations — stub them out in the feature test to avoid
   # marketplace network deps at test-build time.
   flake.featureTests.firefox = {
     extraHmModules = [

@@ -23,7 +23,7 @@
 
         profiles.default = {
           # Guard with `pkgs ? nix4vscode` so the module degrades gracefully
-          # when the nix4vscode overlay is not applied (e.g. in the Próba VM
+          # when the nix4vscode overlay is not applied (e.g. in the feature test VM
           # where nixpkgs.pkgs is read-only and overlays are ignored).
           extensions =
             if pkgs ? nix4vscode
@@ -96,7 +96,7 @@
   };
 
   # nix4vscode extensions are fetched from the VS Code marketplace as
-  # fixed-output derivations — skip them in the Próba to keep the VM lean
+  # fixed-output derivations — skip them in the feature test to keep the VM lean
   # and avoid marketplace network deps at test-build time.
   # The nixos.vscode module sets nixpkgs.overlays but the nixosTest framework
   # injects pkgs as `nixpkgs.pkgs` (read-only), creating a "defined multiple

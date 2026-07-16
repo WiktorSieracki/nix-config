@@ -59,7 +59,7 @@
     kind = "config";
   };
 
-  # Próba: fish binary on PATH and the HM part (direnv) lands in the test
+  # feature test: fish binary on PATH and the HM part (direnv) lands in the test
   # user's profile. Shell *assignment* is the loader's job — asserted by the
   # host-users mechanism check, not here.
   flake.featureTests.fish = {

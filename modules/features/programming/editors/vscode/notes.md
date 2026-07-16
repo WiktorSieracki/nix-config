@@ -1,14 +1,14 @@
-# Dziennik: vscode
+# feature notes: vscode
 
-Feature edytora VS Code z profilem HM, rozszerzeniami (nix4vscode) i konfiguracją nixd LSP.
+The VS Code editor feature with an HM profile, extensions (nix4vscode) and nixd LSP config.
 
 ## Gotchas
 
-**2026-06-26** — Rozszerzenia z `nix4vscode.forVscode [...]` to fixed-output derivations pobierane z VS Code Marketplace.
-Objaw: Próba może nie zbudować się bez dostępu do internetu lub gdy rozszerzenia nie są w Cachix.
-Przyczyna: `programs.vscode.profiles.default.extensions` materializuje się przy budowaniu nixos testu.
-Fix: Próba używa `extraHmModules` z `lib.mkForce []` żeby wyzerować listę rozszerzeń — sprawdzamy tylko obecność binarki `code` na PATH.
+**2026-06-26** — Extensions from `nix4vscode.forVscode [...]` are fixed-output derivations fetched from the VS Code Marketplace.
+Symptom: the feature test may fail to build without internet access, or when the extensions aren't in Cachix.
+Cause: `programs.vscode.profiles.default.extensions` materializes while building the nixos test.
+Fix: The feature test uses `extraHmModules` with `lib.mkForce []` to zero out the extension list — we only check that the `code` binary is on PATH.
 
-**2026-06-26** — `vscode-insiders` i `vscode` nie mogą współistnieć w HM (`lib/vscode/` collision w buildEnv).
-Przyczyna: oba pakiety dzielą ścieżki w `lib/vscode/`. VS Code Insiders jest dlatego instalowany jako system package, nie przez HM.
-Fix: `vscode-insiders` korzysta z `environment.systemPackages`, a nie `programs.vscode`.
+**2026-06-26** — `vscode-insiders` and `vscode` can't coexist in HM (`lib/vscode/` collision in buildEnv).
+Cause: both packages share paths in `lib/vscode/`. VS Code Insiders is therefore installed as a system package, not via HM.
+Fix: `vscode-insiders` uses `environment.systemPackages`, not `programs.vscode`.

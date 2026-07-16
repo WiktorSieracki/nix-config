@@ -43,8 +43,9 @@ so this is a single unit — half-renamed does not evaluate.
 
 ### Phase 4 — feature prose
 
-- [ ] Translate every `notes.md` (feature notes) to English.
-- [ ] Translate Polish comments inside feature `.nix` files.
+- [x] Translated every `notes.md` (feature notes) to English (43 files).
+- [x] Translated Polish comments inside feature `.nix` files (incl. meta.nix prose;
+      `Próba`→feature test everywhere).
 
 ### Phase 5 — repo-local skills (`.claude/skills/*/SKILL.md`)
 

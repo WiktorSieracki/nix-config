@@ -22,11 +22,11 @@
     kind = "cli";
   };
 
-  # Próba (kind cli): the binary is on PATH and handles --version/--help
+  # feature test (kind cli): the binary is on PATH and handles --version/--help
   # headless (no TTY) with exit 0 — the TUI itself needs a real terminal.
   # The `requires` closure pulls in `nix`, whose nixpkgs.config.allowUnfree
   # collides with nixosTest's read-only nixpkgs — force-override it, same
-  # stub as the nix feature's own Próba.
+  # stub as the nix feature's own feature test.
   flake.featureTests.switchboard = {
     extraNixosModules = [
       ({lib, ...}: {nixpkgs.config = lib.mkForce {allowUnfree = true;};})

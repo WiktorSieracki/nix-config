@@ -1,7 +1,7 @@
-# discord — Dziennik
+# discord — feature notes
 
-2026-06-26: Dodano featureMeta + Próbę.
+2026-06-26: Added featureMeta + a feature test.
 
-Objaw: `command -v discord` zwraca „not found" mimo zainstalowanego pakietu.
-Przyczyna: Upstream pakiet nixpkgs eksponuje binarke jako `Discord` (wielka litera D), nie `discord`.
-Fix: Próba asertuje `command -v Discord`. Pakiet jest unfree, ale `allowUnfree = true` jest już ustawione w perSystem pkgs (modules/parts.nix) i propaguje do VM testu — nie trzeba dodawać extraNixosModules (próba dodania `nixpkgs.config.allowUnfree` w extra module skutkuje błędem „config is read-only").
+Symptom: `command -v discord` returns "not found" despite the package being installed.
+Cause: The upstream nixpkgs package exposes the binary as `Discord` (capital D), not `discord`.
+Fix: The feature test asserts `command -v Discord`. The package is unfree, but `allowUnfree = true` is already set in the perSystem pkgs (modules/parts.nix) and propagates to the VM test — no need to add extraNixosModules (trying to add `nixpkgs.config.allowUnfree` in an extra module fails with "config is read-only").

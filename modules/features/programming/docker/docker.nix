@@ -18,7 +18,7 @@
     kind = "service";
   };
 
-  # Próba: docker CLI is on PATH (rootless installs it system-wide). The daemon
+  # feature test: docker CLI is on PATH (rootless installs it system-wide). The daemon
   # itself is a systemd *user* service and cannot be asserted with
   # machine.wait_for_unit() in nixosTest (no user session started). We stub out
   # hardware.graphics.enable32Bit to avoid pulling in 32-bit Mesa — it has no

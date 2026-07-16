@@ -10,7 +10,7 @@
     kind = "cli";
   };
 
-  # Próba: binary name from meta.mainProgram: pi → "pi".
+  # feature test: binary name from meta.mainProgram: pi → "pi".
   flake.featureTests.pi = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")

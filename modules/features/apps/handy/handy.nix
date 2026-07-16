@@ -29,7 +29,7 @@ in {
     kind = "gui";
   };
 
-  # Próba: handy is an AppImage wrapped via appimageTools; binary is `handy`.
+  # feature test: handy is an AppImage wrapped via appimageTools; binary is `handy`.
   # Asserted as wiktor since it lives in the HM profile.
   flake.featureTests.handy = {
     testScript = ''

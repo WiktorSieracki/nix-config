@@ -10,7 +10,7 @@
     kind = "cli";
   };
 
-  # Próba: binary name from meta.mainProgram: opencode → "opencode".
+  # feature test: binary name from meta.mainProgram: opencode → "opencode".
   flake.featureTests.opencode = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")

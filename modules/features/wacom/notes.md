@@ -1,10 +1,10 @@
-# wacom — Dziennik
+# wacom — feature notes
 
-## 2026-06-26 — serwis użytkownika, nie systemowy
+## 2026-06-26 — a user service, not a system one
 
-**Objaw:** `systemctl cat opentabletdriver.service` (skala systemu) zawodzi —
-opentabletdriver to serwis **użytkownika** (`systemd.user`).
+**Symptom:** `systemctl cat opentabletdriver.service` (system scope) fails —
+opentabletdriver is a **user** service (`systemd.user`).
 
-**Fix:** Próba sprawdza obecność CLI `otd` na PATH (pakiet jest w
-`systemPackages`) zamiast jednostki systemowej. Realne wejście z tabletu jest
-runtimeUntestable (brak tabletu w VM).
+**Fix:** the feature test checks the `otd` CLI is on PATH (the package is in
+`systemPackages`) instead of a system unit. Actual tablet input is
+runtimeUntestable (no tablet in the VM).

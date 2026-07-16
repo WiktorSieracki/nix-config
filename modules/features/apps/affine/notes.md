@@ -1,5 +1,5 @@
-# affine — Dziennik
+# affine — feature notes
 
-2026-06-26: Dodano featureMeta + Próbę.
+2026-06-26: Added featureMeta + a feature test.
 
-Brak znanych gotch. Pakiet `affine` w nixpkgs nie ma ustawionego `meta.mainProgram`, ale binarka to `affine` (zgodnie z `pname`).
+No known gotchas. The `affine` package in nixpkgs has no `meta.mainProgram` set, but the binary is `affine` (matching `pname`).

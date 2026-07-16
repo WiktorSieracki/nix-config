@@ -1,9 +1,9 @@
-# pi — Dziennik
+# pi — feature notes
 
-2026-07-11: Wydzielono z dawnego feature `llm-agents` (podzielonego na `claude-code`, `opencode`, `pi`).
+2026-07-11: Split out of the former `llm-agents` feature (split into `claude-code`, `opencode`, `pi`).
 
-Feature pobiera pakiet z zewnętrznego flake `github:numtide/llm-agents.nix`. Binarka: `pi` → `pi` (meta.mainProgram = "pi").
+The feature pulls the package from the external flake `github:numtide/llm-agents.nix`. Binary: `pi` → `pi` (meta.mainProgram = "pi").
 
-Objaw: Ewal może być wolny przy pierwszym budowaniu z powodu braku cache numtide.
-Przyczyna: Flake numtide/llm-agents.nix reklamuje własne substitutory (`cache.numtide.com`), ale nie są one domyślnie zaufane.
-Fix: Dodać `https://cache.numtide.com` do `nix.settings.substituters` lub budować lokalnie.
+Symptom: The eval may be slow on first build due to a missing numtide cache.
+Cause: The numtide/llm-agents.nix flake advertises its own substituters (`cache.numtide.com`), but they aren't trusted by default.
+Fix: Add `https://cache.numtide.com` to `nix.settings.substituters`, or build locally.

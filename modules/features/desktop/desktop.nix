@@ -1,7 +1,7 @@
 {
   # Graphical-session layer extracted from the old `nixos` base bucket so that
   # `core` (the slimmed `flake.modules.nixos.nixos`) stays truly minimal. This
-  # makes the modularity litmus test real: a `cli`/`service` feature's Próba runs
+  # makes the modularity litmus test real: a `cli`/`service` feature's feature test runs
   # on `core` alone, so if it secretly needed the niri desktop the test fails.
   #
   # Hosts that want a GUI enable "desktop"; it `requires` "niri" (the compositor
@@ -75,7 +75,7 @@
     kind = "service";
   };
 
-  # Próba: the desktop layer is present (display-manager exists — the opposite of
+  # feature test: the desktop layer is present (display-manager exists — the opposite of
   # core-smoke), it's SDDM with the qylock forest theme, and the niri session it
   # points at is installed.
   flake.featureTests.desktop = {

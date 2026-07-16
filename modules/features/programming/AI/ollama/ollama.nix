@@ -14,7 +14,7 @@
   # libs, so we just fix the ELF interpreter/rpath (autoPatchelfHook) and stamp
   # the NVIDIA driver runpath on it (autoAddDriverRunpath) so the bundled CUDA
   # libs find libcuda at runtime where a GPU+driver exist, and fall back to the
-  # bundled CPU ggml backends where they don't (e.g. the VM Próba). See notes.md.
+  # bundled CPU ggml backends where they don't (e.g. the VM feature test). See notes.md.
   mkOllamaBin = pkgs:
     pkgs.stdenv.mkDerivation (finalAttrs: {
       pname = "ollama-bin";
@@ -62,7 +62,7 @@ in {
     kind = "service";
   };
 
-  # Próba: prove the daemon comes up, the HTTP API listens, the CLI reaches it,
+  # feature test: prove the daemon comes up, the HTTP API listens, the CLI reaches it,
   # and the server reports the bumped version (guards the prebuilt override). No
   # GPU in the VM — the bundled CPU ggml backends carry it.
   flake.featureTests.ollama = {

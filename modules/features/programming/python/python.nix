@@ -13,7 +13,7 @@
     kind = "cli";
   };
 
-  # Próba: the three CLIs are on PATH and respond to version flags.
+  # feature test: the three CLIs are on PATH and respond to version flags.
   flake.featureTests.python = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")

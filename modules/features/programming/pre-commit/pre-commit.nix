@@ -11,7 +11,7 @@
     kind = "cli";
   };
 
-  # Próba: pre-commit is on PATH.
+  # feature test: pre-commit is on PATH.
   flake.featureTests.pre-commit = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")

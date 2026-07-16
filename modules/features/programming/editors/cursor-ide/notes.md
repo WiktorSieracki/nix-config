@@ -1,8 +1,8 @@
-# Dziennik: cursor-ide
+# feature notes: cursor-ide
 
-Feature edytora Cursor IDE instalowanego przez HM jako `pkgs.code-cursor`.
+The Cursor IDE editor feature, installed via HM as `pkgs.code-cursor`.
 
 ## Gotchas
 
-**2026-06-26** — Binarka nosi nazwę `cursor` (mainProgram nixpkgs `code-cursor`), nie `cursor-ide` ani `code-cursor`.
-Próba asertuje `command -v cursor` przez `su - wiktor`.
+**2026-06-26** — The binary is named `cursor` (mainProgram of nixpkgs `code-cursor`), not `cursor-ide` or `code-cursor`.
+The feature test asserts `command -v cursor` via `su - wiktor`.

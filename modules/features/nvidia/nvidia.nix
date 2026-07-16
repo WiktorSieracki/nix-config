@@ -8,7 +8,7 @@
   };
 
   # No NVIDIA GPU in a VM — the driver is inert, so runtime is untestable. The
-  # Próba proves the config integrates and the system still boots cleanly with
+  # feature test proves the config integrates and the system still boots cleanly with
   # the nvidia driver/kernel-module set up (regression guard on driver bumps).
   flake.featureMeta.nvidia = {
     requires = [];

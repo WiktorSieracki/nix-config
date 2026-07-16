@@ -1,22 +1,23 @@
-# Dziennik: sending-cv
+# feature notes: sending-cv
 
-*Ostatnia aktualizacja: 2026-06-26*
+*Last updated: 2026-06-26*
 
-## Gotcha: NIE przenosić sending-cv.nix — `default.nix` ma readFile ./form-at.sh
+## Gotcha: do NOT move sending-cv.nix — `default.nix` has readFile ./form-at.sh
 
-**Objaw**: przeniesienie `sending-cv.nix` do osobnego podfolderu nie psuje
-samego sending-cv, ale `default.nix` obok używa `builtins.readFile ./form-at.sh`.  
-**Przyczyna**: `modules/features/workspaces/default.nix` (który dodaje `form-at`
-do `flake.modules.nixos.niri`) czyta `./form-at.sh` względnie. Folder jest
-spójną całością.  
-**Fix**: Cały folder `workspaces/` traktujemy jako monolityczną grupę.
-Wyjątek od reguły folder-per-feature.
+**Symptom**: moving `sending-cv.nix` into a separate subfolder doesn't break
+sending-cv itself, but the `default.nix` next to it uses
+`builtins.readFile ./form-at.sh`.
+**Cause**: `modules/features/workspaces/default.nix` (which adds `form-at` to
+`flake.modules.nixos.niri`) reads `./form-at.sh` relatively. The folder is a
+coherent whole.
+**Fix**: treat the whole `workspaces/` folder as one monolithic group. An exception
+to the folder-per-feature rule.
 
-## Gotcha: `sending-cv` uruchamia niri msg — nie testowalne headless
+## Gotcha: `sending-cv` runs niri msg — not headless-testable
 
-**Objaw**: Próba sprawdza tylko, że binarny `sending-cv` jest na PATH. Faktyczne
-działanie (otwieranie okien w konkretnych workspace'ach niri) wymaga działającej
-sesji Wayland z niri.  
-**Przyczyna**: `nixosTest` jest headless — brak sesji graficznej.  
-**Fix**: Smoke test weryfikuje obecność binarnego. Integracyjne testy workspace'a
-są wykonywane manualnie na desktopNixos.
+**Symptom**: the feature test only checks that the `sending-cv` binary is on PATH.
+The actual behaviour (opening windows in specific niri workspaces) needs a working
+Wayland session with niri.
+**Cause**: `nixosTest` is headless — there's no graphical session.
+**Fix**: the smoke test verifies the binary is present. Integration tests of the
+workspace behaviour are run manually on desktopNixos.

@@ -14,7 +14,7 @@
     kind = "gui";
   };
 
-  # Próba: binary present on PATH; localsend's actual executable is `localsend_app`
+  # feature test: binary present on PATH; localsend's actual executable is `localsend_app`
   # (upstream Flutter naming). Firewall ports are config-only, not runtime-testable.
   flake.featureTests.localsend = {
     testScript = ''

@@ -1,5 +1,5 @@
-# bruno — Dziennik
+# bruno — feature notes
 
-2026-06-26: Dodano featureMeta + Próbę.
+2026-06-26: Added featureMeta + a feature test.
 
-Brak znanych gotch. Pakiet `bruno` i `bruno-cli` są open-source i nie wymagają allowUnfree.
+No known gotchas. The `bruno` and `bruno-cli` packages are open-source and don't require allowUnfree.

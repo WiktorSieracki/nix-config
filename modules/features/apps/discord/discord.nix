@@ -17,7 +17,7 @@
     kind = "gui";
   };
 
-  # Próba: nixpkgs.config.allowUnfree is already true in the outer perSystem pkgs
+  # feature test: nixpkgs.config.allowUnfree is already true in the outer perSystem pkgs
   # (parts.nix), so no extra module is needed. Binary is `Discord` (capital D).
   flake.featureTests.discord = {
     testScript = ''

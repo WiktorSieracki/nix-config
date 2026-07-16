@@ -1,9 +1,9 @@
-# Dziennik: brave
+# feature notes: brave
 
-Feature przeglądarki Brave z rozszerzeniami konfigurowanymi przez HM (`programs.brave.extensions`).
+The Brave browser feature with extensions configured via HM (`programs.brave.extensions`).
 
 ## Gotchas
 
-**2026-06-26** — `programs.brave.extensions` przyjmuje listy ID rozszerzeń Chrome Web Store (nie paczki nix).
-Rozszerzenia te są pobierane przez samą przeglądarkę przy pierwszym uruchomieniu, nie przez nix — Próba nie musi ich stubować.
-Binarka instalowana przez HM nosi nazwę `brave` (mainProgram z nixpkgs).
+**2026-06-26** — `programs.brave.extensions` takes lists of Chrome Web Store extension IDs (not nix packages).
+These extensions are fetched by the browser itself on first launch, not by nix — the feature test doesn't need to stub them.
+The binary installed by HM is named `brave` (mainProgram from nixpkgs).

@@ -15,7 +15,7 @@
     kind = "cli";
   };
 
-  # Próba: home-manager activates and the C++ toolchain CLIs are on wiktor's PATH.
+  # feature test: home-manager activates and the C++ toolchain CLIs are on wiktor's PATH.
   flake.featureTests.cpp = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")

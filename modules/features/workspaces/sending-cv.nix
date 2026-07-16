@@ -29,7 +29,7 @@ in {
     kind = "cli";
   };
 
-  # Próba: the sending-cv binary lands on PATH.
+  # feature test: the sending-cv binary lands on PATH.
   flake.featureTests."sending-cv" = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")

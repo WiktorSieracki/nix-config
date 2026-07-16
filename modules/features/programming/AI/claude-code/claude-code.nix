@@ -10,7 +10,7 @@
     kind = "cli";
   };
 
-  # Próba: binary name from meta.mainProgram: claude-code → "claude".
+  # feature test: binary name from meta.mainProgram: claude-code → "claude".
   flake.featureTests.claude-code = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")

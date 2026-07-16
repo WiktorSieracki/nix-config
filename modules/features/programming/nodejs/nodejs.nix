@@ -12,7 +12,7 @@
     kind = "cli";
   };
 
-  # Próba: node and pnpm are on PATH.
+  # feature test: node and pnpm are on PATH.
   flake.featureTests.nodejs = {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
