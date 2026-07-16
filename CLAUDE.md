@@ -191,3 +191,17 @@ When writing scripts or modules that need a default editor, terminal, browser, o
 - `docs/adr/` holds architecture decision records (`0001-iso-release-pipeline`, `0002-ai-first-testable-features`) — the authoritative rationale for the architecture.
 - `AGENTS.md` is a short quick-reference for commands and repo shape.
 - New `.nix` files must be `git add`ed before building — Nix flakes only evaluate git-tracked files, so `nix build` will fail to see untracked files.
+
+## Agent skills
+
+### Issue tracker
+
+Issues tracked as GitHub issues (`gh` CLI) in `WiktorSieracki/nix-config`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical five-role labels, used as-is. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
