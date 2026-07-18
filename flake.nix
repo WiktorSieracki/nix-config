@@ -68,6 +68,19 @@
     llm-agents.url = "github:numtide/llm-agents.nix";
 
     agent-of-empires.url = "github:agent-of-empires/agent-of-empires";
+
+    # Claude Code skill sources, consumed as raw file trees (flake = false) by
+    # the `claude-skills` feature, which links each skill folder into
+    # ~/.claude/skills/. Bump with `nix flake update mattpocock-skills`.
+    mattpocock-skills = {
+      url = "github:mattpocock/skills";
+      flake = false;
+    };
+
+    vercel-skills = {
+      url = "github:vercel-labs/skills";
+      flake = false;
+    };
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);

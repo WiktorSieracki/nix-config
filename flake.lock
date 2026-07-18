@@ -206,6 +206,22 @@
         "type": "github"
       }
     },
+    "mattpocock-skills": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784192592,
+        "narHash": "sha256-S6pARK99oGGSi6XdFm6zYKHT4gjOCN0wIPZFcl1hREE=",
+        "owner": "mattpocock",
+        "repo": "skills",
+        "rev": "9603c1cc8118d08bc1b3bf34cf714f62178dea3b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mattpocock",
+        "repo": "skills",
+        "type": "github"
+      }
+    },
     "nix4vscode": {
       "inputs": {
         "nixpkgs": [
@@ -298,11 +314,13 @@
         "home-manager": "home-manager",
         "import-tree": "import-tree",
         "llm-agents": "llm-agents",
+        "mattpocock-skills": "mattpocock-skills",
         "nix4vscode": "nix4vscode",
         "nixpkgs": "nixpkgs_3",
         "sops-nix": "sops-nix",
         "spicetify-nix": "spicetify-nix",
         "systems": "systems_4",
+        "vercel-skills": "vercel-skills",
         "wrapper-modules": "wrapper-modules"
       }
     },
@@ -426,6 +444,22 @@
       "original": {
         "owner": "numtide",
         "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "vercel-skills": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784224436,
+        "narHash": "sha256-lxf2ODxgwin83JHRrDynMccTFtCo+tYFb053XrS1IqA=",
+        "owner": "vercel-labs",
+        "repo": "skills",
+        "rev": "777599e1159e401b11ce4c8a57c20f09a8f1596e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "vercel-labs",
+        "repo": "skills",
         "type": "github"
       }
     },
