@@ -23,6 +23,13 @@ in {
         "org.freedesktop.impl.portal.ScreenCast" = ["wlr"];
       };
     };
+
+    # niri's `Print` screenshot action puts the PNG on the Wayland clipboard,
+    # but only Wayland-native apps can read it back through the protocol.
+    # Terminal programs shell out instead: Claude Code runs
+    # `wl-paste --type image/png` (falling back to `xclip`), so without
+    # wl-clipboard on PATH an image paste silently yields an empty clipboard.
+    environment.systemPackages = [pkgs.wl-clipboard];
   };
 
   perSystem = {
@@ -240,6 +247,11 @@ in {
     testScript = ''
       machine.wait_for_unit("multi-user.target")
       machine.succeed("command -v niri")
+      # Screenshot-to-clipboard is only half a flow: non-Wayland consumers
+      # (Claude Code, and anything else shelling out) need wl-paste to read
+      # the image back. Guard both halves of wl-clipboard.
+      machine.succeed("command -v wl-paste")
+      machine.succeed("command -v wl-copy")
     '';
   };
 }

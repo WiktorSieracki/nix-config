@@ -1,6 +1,20 @@
 # feature notes: niri
 
-*Last updated: 2026-06-26*
+*Last updated: 2026-07-26*
+
+## Gotcha: screenshot-to-clipboard needs wl-clipboard for non-Wayland consumers
+
+**Symptom** (2026-07-26): `Print` takes a screenshot and Wayland apps can paste
+it, but pasting into Claude Code in the terminal yields nothing — it reports an
+empty clipboard.
+**Cause**: niri's screenshot action offers the PNG over the Wayland data-device
+protocol, which only Wayland-native clients speak. Terminal programs shell out
+to a CLI instead — Claude Code runs `wl-paste --type image/png`, falling back to
+`xclip -selection clipboard -t image/png -o`. Neither binary was installed, so
+the read failed silently and looked like "no picture in clipboard".
+**Fix**: `wl-clipboard` is in the niri feature's `environment.systemPackages`,
+asserted by the feature test. Note this is *not* a screenshot bug — the image
+was on the clipboard the whole time; only the reader was missing.
 
 ## Gotcha: the feature test doesn't start the compositor (no GPU in the VM)
 
