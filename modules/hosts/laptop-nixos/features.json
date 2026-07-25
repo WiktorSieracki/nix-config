@@ -16,11 +16,14 @@
     "docker",
     "eduroam",
     "switchboard",
-    "agent-of-empires"
+    "agent-of-empires",
+    "claude-agent-acp",
+    "claude-code"
   ],
   "users": {
     "wiktor": [
       "fish",
+      "claude-skills",
       "git",
       "ssh",
       "ssh-personal-hosts",
