@@ -34,13 +34,11 @@
   flake.featureMeta.playwright = {
     requires = [];
     kind = "cli";
+    provides.userBins = ["playwright"];
   };
 
   flake.featureTests.playwright = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("su - tester -c 'command -v playwright'")
       machine.succeed("su - tester -c 'playwright --version'")
       # session vars (for npm playwright) must point at the nix-built browsers;
       # the minimal VM has no HM-managed shell, so source hm-session-vars directly

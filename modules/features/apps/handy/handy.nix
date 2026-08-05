@@ -27,15 +27,10 @@ in {
   flake.featureMeta.handy = {
     requires = ["desktop"];
     kind = "gui";
+    # AppImage wrapped via appimageTools; binary is `handy`, in the HM profile.
+    provides.userBins = ["handy"];
   };
 
-  # feature test: handy is an AppImage wrapped via appimageTools; binary is `handy`.
-  # Asserted as wiktor since it lives in the HM profile.
-  flake.featureTests.handy = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("su - tester -c 'command -v handy'")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.handy = {};
 }

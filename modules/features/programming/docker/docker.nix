@@ -16,6 +16,8 @@
   flake.featureMeta.docker = {
     requires = [];
     kind = "service";
+    runtimeUntestable = true;
+    provides.systemBins = ["docker"];
   };
 
   # feature test: docker CLI is on PATH (rootless installs it system-wide). The daemon
@@ -30,7 +32,6 @@
       })
     ];
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
       machine.succeed("docker --version")
     '';
   };

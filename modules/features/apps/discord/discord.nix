@@ -15,14 +15,11 @@
   flake.featureMeta.discord = {
     requires = ["desktop"];
     kind = "gui";
+    # Binary is `Discord` (capital D).
+    provides.systemBins = ["Discord"];
   };
 
   # feature test: nixpkgs.config.allowUnfree is already true in the outer perSystem pkgs
-  # (parts.nix), so no extra module is needed. Binary is `Discord` (capital D).
-  flake.featureTests.discord = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v Discord")
-    '';
-  };
+  # (parts.nix), so no extra module is needed.
+  flake.featureTests.discord = {};
 }

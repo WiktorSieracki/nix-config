@@ -32,12 +32,9 @@
   flake.featureMeta.vscode-insiders = {
     requires = ["desktop"];
     kind = "gui";
+    provides.systemBins = ["code-insiders"];
   };
 
-  flake.featureTests.vscode-insiders = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v code-insiders")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.vscode-insiders = {};
 }

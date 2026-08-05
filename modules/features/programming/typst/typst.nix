@@ -13,14 +13,14 @@
   flake.featureMeta.typst = {
     requires = [];
     kind = "cli";
+    # typst-live and tinymist are LSP/live-preview tools; these two are the
+    # canonical smoke.
+    provides.systemBins = ["typst" "typstyle"];
   };
 
-  # feature test: typst and typstyle are on PATH.
-  # typst-live and tinymist are LSP/live-preview tools; typst --version is the
-  # canonical smoke.
+  # feature test: `provides` covers PATH; the version calls are the runtime smoke.
   flake.featureTests.typst = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
       machine.succeed("typst --version")
       machine.succeed("typstyle --version")
     '';

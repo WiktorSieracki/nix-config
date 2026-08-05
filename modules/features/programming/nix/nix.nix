@@ -51,6 +51,10 @@
   flake.featureMeta.nix = {
     requires = [];
     kind = "config";
+    provides = {
+      systemBins = ["alejandra" "nh"];
+      units = ["nix-optimise.timer"];
+    };
   };
 
   # feature test: confirm key dev tools installed by this feature are on PATH.
@@ -62,10 +66,8 @@
       ({lib, ...}: {nixpkgs.config = lib.mkForce {allowUnfree = true;};})
     ];
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
       machine.succeed("alejandra --version")
       machine.succeed("nh --version")
-      machine.wait_for_unit("nix-optimise.timer")
     '';
   };
 }

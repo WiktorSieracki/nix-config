@@ -26,14 +26,12 @@
   flake.featureMeta.ssh = {
     requires = [];
     kind = "config";
+    provides = {
+      userBins = ["ssh"];
+      userFiles = ["~/.ssh/config"];
+    };
   };
 
-  flake.featureTests.ssh = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("su - tester -c 'test -f ~/.ssh/config'")
-      machine.succeed("su - tester -c 'ssh -V'")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.ssh = {};
 }

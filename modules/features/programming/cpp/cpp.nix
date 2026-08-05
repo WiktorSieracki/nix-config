@@ -13,13 +13,12 @@
   flake.featureMeta.cpp = {
     requires = [];
     kind = "cli";
+    provides.userBins = ["cmake" "clang" "just" "make"];
   };
 
-  # feature test: home-manager activates and the C++ toolchain CLIs are on wiktor's PATH.
+  # feature test: `provides` covers PATH; the version calls are the runtime smoke.
   flake.featureTests.cpp = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
       machine.succeed("su - tester -c 'cmake --version'")
       machine.succeed("su - tester -c 'clang --version'")
       machine.succeed("su - tester -c 'just --version'")

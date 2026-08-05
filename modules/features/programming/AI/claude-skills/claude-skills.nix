@@ -63,22 +63,21 @@ in {
   flake.featureMeta.claude-skills = {
     requires = ["claude-code"];
     kind = "config";
+    # One skill per source (mattpocock, vercel, vendored) — a renamed or removed
+    # upstream skill otherwise shows up only as a dangling symlink at runtime,
+    # which is exactly how this feature rotted before discovery was automatic.
+    provides.userFiles = [
+      "~/.claude/skills/tdd/SKILL.md"
+      "~/.claude/skills/find-skills/SKILL.md"
+      "~/.claude/skills/create-issue/SKILL.md"
+      "~/.claude/skills/obsidian-vault/SKILL.md"
+    ];
   };
 
-  # feature test: the linked skill files land in the test user's home. Spot-check
-  # one skill per source (mattpocock, vercel, vendored), then assert the whole
-  # tree resolves — a renamed or removed upstream skill otherwise shows up only
-  # as a dangling symlink at runtime, which is exactly how this feature rotted
-  # before discovery was automatic.
+  # feature test: `provides` spot-checks one skill per source; this asserts the
+  # whole tree resolves.
   flake.featureTests.claude-skills = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("test -f ~tester/.claude/skills/tdd/SKILL.md")
-      machine.succeed("test -f ~tester/.claude/skills/find-skills/SKILL.md")
-      machine.succeed("test -f ~tester/.claude/skills/create-issue/SKILL.md")
-      machine.succeed("test -f ~tester/.claude/skills/obsidian-vault/SKILL.md")
-
       # No dangling links, and every linked skill really is a skill.
       dangling = machine.succeed(
           "find -L ~tester/.claude/skills -maxdepth 1 -type l -print"

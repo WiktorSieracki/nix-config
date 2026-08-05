@@ -50,6 +50,7 @@
     requires = ["sops"];
     kind = "service";
     runtimeUntestable = true;
+    provides.systemBins = ["nmcli"];
   };
 
   flake.featureTests.eduroam = {
@@ -69,9 +70,5 @@
         networking.networkmanager.ensureProfiles.profiles = lib.mkForce {};
       })
     ];
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v nmcli")
-    '';
   };
 }

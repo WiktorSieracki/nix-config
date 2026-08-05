@@ -8,13 +8,10 @@
   flake.featureMeta.opencode = {
     requires = [];
     kind = "cli";
+    # Binary name from meta.mainProgram: opencode → "opencode".
+    provides.systemBins = ["opencode"];
   };
 
-  # feature test: binary name from meta.mainProgram: opencode → "opencode".
-  flake.featureTests.opencode = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v opencode")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.opencode = {};
 }

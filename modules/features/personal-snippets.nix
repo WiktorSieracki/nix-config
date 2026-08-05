@@ -15,6 +15,9 @@
     requires = ["desktop" "sops"];
     kind = "gui";
     runtimeUntestable = true;
+    # This feature contributes keybinds, not packages — `niri` on PATH is the
+    # proof that the snippet binds compiled into the myNiri build.
+    provides.systemBins = ["niri"];
   };
 
   # feature test: build-only (runtimeUntestable). Boots the desktop closure with
@@ -29,9 +32,5 @@
         sops.age.sshKeyPaths = lib.mkForce [];
       })
     ];
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v niri")
-    '';
   };
 }

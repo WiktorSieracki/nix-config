@@ -12,12 +12,13 @@
   flake.featureMeta.tailscale = {
     requires = [];
     kind = "service";
+    provides = {
+      units = ["tailscaled.service"];
+      systemBins = ["tailscale"];
+    };
   };
 
-  flake.featureTests.tailscale = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("tailscaled.service")
-    '';
-  };
+  # feature test: joining a tailnet needs a real auth key, so the daemon coming
+  # up and the CLI being reachable is as far as a VM goes.
+  flake.featureTests.tailscale = {};
 }

@@ -8,12 +8,9 @@
   flake.featureMeta.affine = {
     requires = ["desktop"];
     kind = "gui";
+    provides.systemBins = ["affine"];
   };
 
-  flake.featureTests.affine = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v affine")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.affine = {};
 }

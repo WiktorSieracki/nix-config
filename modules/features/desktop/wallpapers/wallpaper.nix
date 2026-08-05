@@ -11,13 +11,9 @@
   flake.featureMeta.wallpapers = {
     requires = [];
     kind = "config";
+    provides.userFiles = ["~/Pictures/Wallpapers/wallhaven_p92g1m.jpg"];
   };
 
-  flake.featureTests.wallpapers = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("test -f /home/tester/Pictures/Wallpapers/wallhaven_p92g1m.jpg")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.wallpapers = {};
 }

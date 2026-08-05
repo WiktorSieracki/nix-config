@@ -123,6 +123,7 @@
     requires = [];
     kind = "service";
     runtimeUntestable = true;
+    provides.systemBins = ["mic-mute-toggle" "deafen-toggle" "g502-apply-buttons"];
   };
 
   flake.featureTests.mouse = {
@@ -134,10 +135,8 @@
       })
     ];
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v mic-mute-toggle")
-      machine.succeed("command -v deafen-toggle")
-      machine.succeed("command -v g502-apply-buttons")
+      # ratbagd is dbus-activated and has no physical device to bind to here, so
+      # it can't be waited on — but the unit must be installed.
       machine.succeed("systemctl cat ratbagd.service")
     '';
   };

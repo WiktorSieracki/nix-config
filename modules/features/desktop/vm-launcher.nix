@@ -48,13 +48,13 @@
   flake.featureMeta.vm-launcher = {
     requires = [];
     kind = "cli";
+    provides.userBins = ["run-vm-windowed"];
   };
 
+  # feature test: the .desktop entry can land in either profile layout depending
+  # on useUserPackages, so it needs a script rather than a `provides` path.
   flake.featureTests.vm-launcher = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("su - tester -c 'command -v run-vm-windowed'")
       machine.succeed("su - tester -c 'test -f ~/.nix-profile/share/applications/run-vm-windowed.desktop || test -f /etc/profiles/per-user/tester/share/applications/run-vm-windowed.desktop'")
     '';
   };

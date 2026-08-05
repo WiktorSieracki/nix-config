@@ -18,12 +18,13 @@
   flake.featureMeta.java = {
     requires = [];
     kind = "cli";
+    provides.systemBins = ["java" "gradle"];
   };
 
-  # feature test: java and gradle are on PATH and respond to version flags.
+  # feature test: `provides` covers PATH; the version calls are the smoke that a
+  # toolchain actually runs (a broken JDK is on PATH but won't start).
   flake.featureTests.java = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
       machine.succeed("java -version")
       machine.succeed("gradle --version")
     '';

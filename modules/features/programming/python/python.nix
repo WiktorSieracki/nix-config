@@ -11,12 +11,12 @@
   flake.featureMeta.python = {
     requires = [];
     kind = "cli";
+    provides.systemBins = ["python3" "uv" "ruff"];
   };
 
-  # feature test: the three CLIs are on PATH and respond to version flags.
+  # feature test: `provides` covers PATH; the version calls are the runtime smoke.
   flake.featureTests.python = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
       machine.succeed("python3 --version")
       machine.succeed("uv --version")
       machine.succeed("ruff --version")

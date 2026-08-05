@@ -32,12 +32,13 @@
   flake.featureMeta.ssh-personal-hosts = {
     requires = ["ssh"];
     kind = "config";
+    provides.userFiles = ["~/.ssh/config"];
   };
 
+  # feature test: this feature's content is host *aliases*, so the assertion has
+  # to look inside the file `provides` proves exists.
   flake.featureTests.ssh-personal-hosts = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
       machine.succeed("su - tester -c 'grep -q laptopnixos ~/.ssh/config'")
     '';
   };

@@ -15,12 +15,9 @@
   flake.featureMeta.teams-for-linux = {
     requires = ["desktop"];
     kind = "gui";
+    provides.systemBins = ["teams-for-linux"];
   };
 
-  flake.featureTests.teams-for-linux = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v teams-for-linux")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.teams-for-linux = {};
 }

@@ -72,15 +72,11 @@
   flake.featureMeta.buzz = {
     requires = ["desktop"];
     kind = "gui";
+    # `buzz` is the CLI, `buzz-desktop` the GUI.
+    provides.systemBins = ["buzz" "buzz-desktop"];
   };
 
-  # feature test: GUI app — assert the binaries land on PATH (per ADR 0002, don't
-  # launch a window in the VM). `buzz` is the CLI, `buzz-desktop` the GUI.
-  flake.featureTests.buzz = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v buzz")
-      machine.succeed("command -v buzz-desktop")
-    '';
-  };
+  # feature test: per ADR 0002 a gui feature doesn't launch a window in the VM,
+  # so the binaries landing on PATH is the whole assertion.
+  flake.featureTests.buzz = {};
 }

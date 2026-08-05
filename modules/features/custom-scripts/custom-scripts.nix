@@ -14,15 +14,9 @@
   flake.featureMeta."custom-scripts" = {
     requires = [];
     kind = "cli";
+    provides.systemBins = ["gitHttpsToSsh" "pull" "resetnet"];
   };
 
-  # feature test: at least one script is on PATH and executable.
-  flake.featureTests."custom-scripts" = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v gitHttpsToSsh")
-      machine.succeed("command -v pull")
-      machine.succeed("command -v resetnet")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests."custom-scripts" = {};
 }

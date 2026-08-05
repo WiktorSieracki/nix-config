@@ -9,13 +9,9 @@
   flake.featureMeta.slack = {
     requires = ["desktop"];
     kind = "gui";
+    provides.userBins = ["slack"];
   };
 
-  flake.featureTests.slack = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("su - tester -c 'command -v slack'")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.slack = {};
 }

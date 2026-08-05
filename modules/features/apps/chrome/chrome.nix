@@ -9,13 +9,9 @@
   flake.featureMeta.chrome = {
     requires = ["desktop"];
     kind = "gui";
+    provides.userBins = ["google-chrome-stable"];
   };
 
-  flake.featureTests.chrome = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("su - tester -c 'command -v google-chrome-stable'")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.chrome = {};
 }

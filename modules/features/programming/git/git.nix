@@ -39,10 +39,9 @@ in {
       hostUsers ? {},
       ...
     }: let
-      gitUsers =
-        lib.filter (
-          u: builtins.elem "git" hostUsers.${u} && (usersMeta.${u} or {}) ? emailSecret
-        ) (builtins.attrNames hostUsers);
+      gitUsers = lib.filter (
+        u: builtins.elem "git" hostUsers.${u} && (usersMeta.${u} or {}) ? emailSecret
+      ) (builtins.attrNames hostUsers);
     in {
       environment.systemPackages = with pkgs; [
         gh
@@ -50,15 +49,16 @@ in {
 
       sops.secrets = lib.genAttrs (map (u: usersMeta.${u}.emailSecret) gitUsers) (_: {});
       sops.templates = lib.listToAttrs (map (u: {
-        name = "git-email-${u}";
-        value = {
-          content = ''
-            [user]
-              email = ${config.sops.placeholder.${usersMeta.${u}.emailSecret}}
-          '';
-          owner = u;
-        };
-      }) gitUsers);
+          name = "git-email-${u}";
+          value = {
+            content = ''
+              [user]
+                email = ${config.sops.placeholder.${usersMeta.${u}.emailSecret}}
+            '';
+            owner = u;
+          };
+        })
+        gitUsers);
     };
   };
 
@@ -68,6 +68,7 @@ in {
   flake.featureMeta.git = {
     requires = ["sops"];
     kind = "cli";
+    provides.userBins = ["git" "gh"];
   };
 
   # feature test (Tier 1). git is secret-backed: the VM has no real SOPS key, so per
@@ -96,10 +97,6 @@ in {
       })
     ];
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("su - tester -c 'gh --version'")
-      machine.succeed("su - tester -c 'git --version'")
       machine.succeed("su - tester -c 'git config --get user.name' | grep -q 'Test User'")
       machine.succeed("su - tester -c 'git config --get user.email' | grep -q 'test@example.test'")
     '';

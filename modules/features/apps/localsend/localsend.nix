@@ -12,14 +12,11 @@
   flake.featureMeta.localsend = {
     requires = ["desktop"];
     kind = "gui";
+    # localsend's actual executable is `localsend_app` (upstream Flutter naming).
+    provides.systemBins = ["localsend_app"];
   };
 
-  # feature test: binary present on PATH; localsend's actual executable is `localsend_app`
-  # (upstream Flutter naming). Firewall ports are config-only, not runtime-testable.
-  flake.featureTests.localsend = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v localsend_app")
-    '';
-  };
+  # feature test: the firewall ports this feature opens are config-only — nothing
+  # listens on them in the VM — so `provides` covers everything assertable.
+  flake.featureTests.localsend = {};
 }

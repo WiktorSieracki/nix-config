@@ -9,12 +9,12 @@
   flake.featureMeta.pre-commit = {
     requires = [];
     kind = "cli";
+    provides.systemBins = ["pre-commit"];
   };
 
-  # feature test: pre-commit is on PATH.
+  # feature test: `provides` covers PATH; the version call is the runtime smoke.
   flake.featureTests.pre-commit = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
       machine.succeed("pre-commit --version")
     '';
   };
