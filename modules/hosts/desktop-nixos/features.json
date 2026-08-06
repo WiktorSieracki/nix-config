@@ -19,7 +19,8 @@
     "mouse",
     "switchboard",
     "obsidian",
-    "orca"
+    "orca",
+    "t3code"
   ],
   "users": {
     "wiktor": [
@@ -43,6 +44,7 @@
       "localsend",
       "buzz",
       "orca",
+      "t3code",
       "handy",
       "wallpapers",
       "vm-launcher",
