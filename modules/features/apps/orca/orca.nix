@@ -50,6 +50,16 @@
         xorg.libxcb
       ];
 
+      # The bundled ANGLE `libEGL.so` dlopens the *native* `libEGL.so.1`, so
+      # libglvnd has to be on **its** runpath — without it the GPU process aborts
+      # during init ("Initialization of all (2) EGL display types failed") and
+      # the app silently drops to software rendering. `runtimeDependencies` is
+      # not enough here: it only reaches ELFs with unresolved NEEDED entries, and
+      # ANGLE's libEGL.so has none. `appendRunpaths` hits every patched ELF.
+      # libglvnd itself finds the vendor driver (libEGL_nvidia) under
+      # /run/opengl-driver/lib.
+      appendRunpaths = [(pkgs.lib.makeLibraryPath [pkgs.libglvnd])];
+
       # The bundled chrome-sandbox is setuid-only; NixOS provides its own
       # sandbox story, so let Electron fall back to the kernel user namespaces.
       dontWrapGApps = true;

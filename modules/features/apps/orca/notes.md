@@ -34,6 +34,44 @@ This feature is only the desktop app. It does **not** install any coding agent �
 Orca drives whatever `claude` / `codex` / etc. it finds on PATH, which come from
 their own features.
 
+## 2026-08-06 — GPU process died on start: `libEGL.so.1` not found
+
+Objaw → apka startuje, okno **renderuje się poprawnie** (Wayland natywnie,
+App ID `orca`), ale w logach lecą setki błędów i GPU process pada:
+
+```
+ANGLE Display::initialize error 12289: Could not dlopen native EGL: libEGL.so.1
+eglInitialize OpenGL/OpenGLES failed with error EGL_NOT_INITIALIZED
+Initialization of all (2) EGL display types failed.
+Exiting GPU process due to errors during initialization
+```
+
+Przyczyna → zbundlowany **ANGLE `libEGL.so`** robi `dlopen("libEGL.so.1")` na
+*natywny* glvnd. `dlopen` używa runpathu **biblioteki wołającej**, więc libglvnd
+musi być na runpacie samego `libEGL.so`, nie tylko głównej binarki.
+
+**Pułapka: `runtimeDependencies` tu nie wystarcza.** Dodało libglvnd tylko do
+`orca-ide` (główna binarka), a `libEGL.so` zostało z samym libgcc —
+`runtimeDependencies` dosięga ELF-y z nierozwiązanymi wpisami `NEEDED`, a ANGLE
+`libEGL.so` żadnych nie ma. Sprawdzalne:
+
+```bash
+patchelf --print-rpath $out/share/orca/libEGL.so
+```
+
+Fix → **`appendRunpaths = [ (lib.makeLibraryPath [ libglvnd ]) ];`** — trafia do
+*każdego* patchowanego ELF-a. Po tym: zero błędów EGL, `gpu-process` żyje.
+libglvnd sam znajduje `libEGL_nvidia` w `/run/opengl-driver/lib`.
+
+Uwaga: renderer i tak dostaje `--disable-gpu-compositing` — to flaga, którą
+**Orca ustawia sama**, nie objaw awarii; była tam również przed fixem.
+
+## Uruchamianie z automatyzacji
+
+W przeciwieństwie do [buzz](../buzz/notes.md), Orca **działa** odpalona detached
+(`systemd-run --user`) — okno powstaje i renderuje pełny onboarding. Wystarczy
+przekazać `WAYLAND_DISPLAY` i `XDG_RUNTIME_DIR`.
+
 ## Updating the version
 
 Bump `version` in `orca.nix`, then refresh the hash:
