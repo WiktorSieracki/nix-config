@@ -34,3 +34,20 @@ all `flake.niriBinds` and embeds the path to myNoctalia.
 **Fix**: featureMeta.niri has `requires = []` — both attributes are available
 through the flake-parts merge (niriBinds from many files, myNoctalia from
 noctalia.nix) and need no explicit `requires`.
+
+## Gotcha: ScreenCast portal must be gnome, not wlr (2026-08-06)
+
+**Symptom**: any screen share (Discord, Firefox `getDisplayMedia`) delivers a
+single frozen frame instead of live video.
+**Cause**: `xdg.portal.config.niri` routed
+`org.freedesktop.impl.portal.ScreenCast` to `wlr`. xdg-desktop-portal-wlr talks
+wlr-screencopy, and on niri the resulting stream never advances past its first
+frame. This override also deviated from the nixpkgs niri module's default
+(`gnome`).
+**Fix**: route ScreenCast to `gnome` and add `xdg-desktop-portal-gnome` to
+`extraPortals`. niri implements the `org.gnome.Mutter.ScreenCast` D-Bus API for
+exactly this backend (`busctl --user list | grep Mutter` shows niri owning it).
+Screenshot stays on `wlr` deliberately — it grabs without an interactive picker,
+which the gnome backend would force.
+Full context, including the Electron/XWayland half of the same bug, is in
+`modules/features/apps/discord/notes.md`.
