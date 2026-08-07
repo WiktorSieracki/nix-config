@@ -21,7 +21,8 @@
     "obsidian",
     "orca",
     "t3code",
-    "ollama"
+    "ollama",
+    "open-webui"
   ],
   "users": {
     "wiktor": [

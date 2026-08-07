@@ -65,3 +65,17 @@ it falls back to CPU). **Verification:** the binary runs natively without
 (`nix hash file ollama-linux-amd64.tar.zst` after downloading from a new release).
 Once nixpkgs finally packages a newer ollama with a correct patch, you can go back
 to `services.ollama.package = pkgs.ollama-cuda` and delete `mkOllamaBin`.
+
+## 2026-08-07 — default 4096 context too small for real chats
+
+**Symptom:** chatting via open-webui (`hf.co/unsloth/Qwen3.5-9B-GGUF:Q4_K_M`)
+fails with `exceed_context_size_error: request (5768 tokens) exceeds the
+available context size (4096 tokens)`.
+
+**Cause:** the daemon loads models with `OLLAMA_CONTEXT_LENGTH=4096` by default;
+any prompt + history longer than that is rejected, and open-webui's system
+prompt + chat history crosses it almost immediately.
+
+**Fix:** set `OLLAMA_CONTEXT_LENGTH=16384` in
+`services.ollama.environmentVariables` (asserted in the feature test). Raise it
+further if VRAM allows; per-request `num_ctx` can still lower it.
