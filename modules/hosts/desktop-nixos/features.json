@@ -20,7 +20,8 @@
     "switchboard",
     "obsidian",
     "orca",
-    "t3code"
+    "t3code",
+    "ollama"
   ],
   "users": {
     "wiktor": [
