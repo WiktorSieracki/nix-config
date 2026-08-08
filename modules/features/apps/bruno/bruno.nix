@@ -9,12 +9,9 @@
   flake.featureMeta.bruno = {
     requires = ["desktop"];
     kind = "gui";
+    provides.systemBins = ["bruno"];
   };
 
-  flake.featureTests.bruno = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v bruno")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.bruno = {};
 }

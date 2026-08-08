@@ -8,13 +8,10 @@
   flake.featureMeta.pi = {
     requires = [];
     kind = "cli";
+    # Binary name from meta.mainProgram: pi → "pi".
+    provides.systemBins = ["pi"];
   };
 
-  # feature test: binary name from meta.mainProgram: pi → "pi".
-  flake.featureTests.pi = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v pi")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.pi = {};
 }

@@ -93,6 +93,7 @@
   flake.featureMeta.vscode = {
     requires = ["desktop"];
     kind = "gui";
+    provides.userBins = ["code"];
   };
 
   # nix4vscode extensions are fetched from the VS Code marketplace as
@@ -109,10 +110,5 @@
         nixpkgs.overlays = lib.mkForce [];
       })
     ];
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("su - tester -c 'command -v code'")
-    '';
   };
 }

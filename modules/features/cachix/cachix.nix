@@ -29,6 +29,7 @@
   flake.featureMeta.cachix = {
     requires = ["sops"];
     kind = "cli";
+    provides.systemBins = ["cachix" "cache-push"];
   };
 
   # feature test: secret-backed feature — per ADR 0002 (b) we stub every SOPS
@@ -45,9 +46,6 @@
       })
     ];
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v cachix")
-      machine.succeed("command -v cache-push")
       machine.fail("cache-push")
       # `|| true` neutralizes cache-push's exit 1 — the test shell runs with
       # pipefail, which would otherwise fail the pipeline despite grep matching.

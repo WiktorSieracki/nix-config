@@ -64,17 +64,24 @@ Each feature is a *self-sufficient, self-testing* unit. See `CONTEXT.md` (glossa
 and `docs/adr/0002-ai-first-testable-features.md` for the full model; the harness
 lives in `modules/feature-tests.nix`. Key pieces:
 
-- **`featureMeta.<name> = { requires; kind; }`** — a machine-readable dependency
-  graph. `requires` lists the feature's deps; the loader in
+- **`featureMeta.<name> = { requires; kind; provides; }`** — a machine-readable
+  dependency graph. `requires` lists the feature's deps; the loader in
   `modules/hosts/configurations.nix` **hard-fails** if a host enables a feature
   without all of its `requires` also enabled (no auto-pulling). `kind ∈ {config,
   cli, service, gui}` sets the rigor level of the test. `runtimeUntestable`
   exempts features whose runtime can't be checked in a VM (`nvidia`, `wacom`,
-  `mouse`, `eduroam`, `home-wifi`, `sops`).
+  `mouse`, `eduroam`, `home-wifi`, `sops`, `docker`).
+- **`provides`** — what the feature puts on the system: `systemBins`, `userBins`,
+  `units`, `ports`, `files`, `userFiles`. `mkFeatureTest` generates the matching
+  assertions (plus the boot and home-manager-activation waits), so a feature test
+  only writes what a declaration can't express. `kind` decides what must be
+  declared — a `cli`/`gui` feature needs a binary, a `service` needs a unit —
+  and `feature-coverage` fails the build otherwise.
 - **feature test** — every feature ships a mandatory headless `nixosTest`, registered
   under `flake.featureTests.<name>` and built via `flake.featureTestLib.mkFeatureTest`. It builds a
   minimal VM = `core` floor + the feature + the transitive closure of its
-  `requires`, then asserts the feature works. Exposed as
+  `requires`, then asserts the feature works. The registered spec may be `{}`
+  when `provides` already says everything. Exposed as
   `checks.<system>.feature-<name>`.
 - **`feature-coverage`** — an eval-time check that **fails** if any feature module
   lacks `featureMeta` or a feature test, so coverage can't silently regress.

@@ -8,13 +8,10 @@
   flake.featureMeta.claude-code = {
     requires = [];
     kind = "cli";
+    # Binary name from meta.mainProgram: claude-code → "claude".
+    provides.systemBins = ["claude"];
   };
 
-  # feature test: binary name from meta.mainProgram: claude-code → "claude".
-  flake.featureTests.claude-code = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v claude")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.claude-code = {};
 }

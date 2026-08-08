@@ -17,12 +17,12 @@
   flake.featureMeta.ssh-server = {
     requires = [];
     kind = "service";
+    provides = {
+      units = ["sshd.service"];
+      ports = [22];
+    };
   };
 
-  flake.featureTests.ssh-server = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("sshd.service")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.ssh-server = {};
 }

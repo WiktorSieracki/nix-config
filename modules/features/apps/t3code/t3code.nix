@@ -111,15 +111,13 @@
   flake.featureMeta.t3code = {
     requires = ["desktop"];
     kind = "gui";
+    provides = {
+      systemBins = ["t3code"];
+      files = ["/run/current-system/sw/share/applications/t3code.desktop"];
+    };
   };
 
   # feature test: GUI app — per ADR 0002 assert the binary lands on PATH and the
-  # Electron entrypoint is fully patched, rather than launching a window.
-  flake.featureTests.t3code = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v t3code")
-      machine.succeed("test -f /run/current-system/sw/share/applications/t3code.desktop")
-    '';
-  };
+  # desktop entry is installed (via `provides`), rather than launching a window.
+  flake.featureTests.t3code = {};
 }

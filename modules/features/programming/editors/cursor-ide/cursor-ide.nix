@@ -6,13 +6,9 @@
   flake.featureMeta.cursor-ide = {
     requires = ["desktop"];
     kind = "gui";
+    provides.userBins = ["cursor"];
   };
 
-  flake.featureTests.cursor-ide = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("su - tester -c 'command -v cursor'")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.cursor-ide = {};
 }

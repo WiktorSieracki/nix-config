@@ -27,16 +27,12 @@ in {
   flake.featureMeta."sending-cv" = {
     requires = [];
     kind = "cli";
+    provides.systemBins = ["sending-cv"];
   };
 
-  # feature test: the sending-cv binary lands on PATH.
-  flake.featureTests."sending-cv" = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("command -v sending-cv")
-    '';
-  };
+  # feature test: the window-placement flow needs a live niri session and two
+  # named monitors, so PATH is as far as a headless VM reaches.
+  flake.featureTests."sending-cv" = {};
 
   flake.modules.nixos."sending-cv" = {pkgs, ...}: {
     environment.systemPackages = [

@@ -32,14 +32,15 @@ in {
   flake.featureMeta.discord = {
     requires = ["desktop"];
     kind = "gui";
+    # Binary is `Discord` (capital D).
+    provides.systemBins = ["Discord"];
   };
 
   # feature test: nixpkgs.config.allowUnfree is already true in the outer perSystem pkgs
-  # (parts.nix), so no extra module is needed. Binary is `Discord` (capital D).
+  # (parts.nix), so no extra module is needed. `provides` covers the binary; the
+  # script guards the wrapper on top of it.
   flake.featureTests.discord = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v Discord")
       # Screen sharing is dead-on-arrival unless Electron runs Wayland-native,
       # so guard the wrapper that flips it on.
       machine.succeed("grep -q NIXOS_OZONE_WL $(command -v Discord)")

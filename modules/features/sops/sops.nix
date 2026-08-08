@@ -45,6 +45,7 @@
     requires = [];
     kind = "config";
     runtimeUntestable = true;
+    provides.systemBins = ["sops"];
   };
 
   flake.featureTests.sops = {
@@ -55,9 +56,5 @@
         sops.age.sshKeyPaths = lib.mkForce [];
       })
     ];
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v sops")
-    '';
   };
 }

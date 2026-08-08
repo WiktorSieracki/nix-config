@@ -20,11 +20,20 @@
     requires = [];
     kind = "config";
     runtimeUntestable = true;
+    # The driver is inert without a GPU, but the module still has to *build* and
+    # install: assert the kernel module and the userspace bits landed.
+    provides.files = [
+      "/run/current-system/kernel-modules/lib/modules"
+      "/run/opengl-driver/lib"
+    ];
   };
 
-  # The test VM has no NVIDIA driver, so nvidia-container-toolkit's driver
-  # assertion fires there even though it holds on the real host. Suppress it in
-  # CI only — same stubbing pattern docker.nix uses for enable32Bit.
+  # feature test: boot regression guard on driver bumps (runtimeUntestable — no
+  # NVIDIA GPU in a VM). `provides` proves the driver was actually assembled
+  # rather than silently evaluated away. The test VM also has no NVIDIA driver,
+  # so nvidia-container-toolkit's driver assertion fires there even though it
+  # holds on the real host — suppress it in CI only, same stubbing pattern
+  # docker.nix uses for enable32Bit.
   flake.featureTests.nvidia = {
     extraNixosModules = [
       ({lib, ...}: {
@@ -32,7 +41,7 @@
       })
     ];
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
+      machine.succeed("test -n \"$(ls /run/current-system/kernel-modules/lib/modules)\"")
     '';
   };
 }

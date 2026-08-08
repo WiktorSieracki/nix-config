@@ -57,17 +57,13 @@
   flake.featureMeta.fish = {
     requires = [];
     kind = "config";
+    provides = {
+      systemBins = ["fish"];
+      userBins = ["direnv"];
+    };
   };
 
-  # feature test: fish binary on PATH and the HM part (direnv) lands in the test
-  # user's profile. Shell *assignment* is the loader's job — asserted by the
-  # host-users mechanism check, not here.
-  flake.featureTests.fish = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("command -v fish")
-      machine.succeed("su - tester -c 'command -v direnv'")
-    '';
-  };
+  # feature test: shell *assignment* is the loader's job — asserted by the
+  # host-users mechanism check, not here. `provides` covers the rest.
+  flake.featureTests.fish = {};
 }

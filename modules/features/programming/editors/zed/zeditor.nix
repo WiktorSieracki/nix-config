@@ -4,16 +4,11 @@
   flake.featureMeta.zeditor = {
     requires = ["desktop"];
     kind = "gui";
+    provides.userBins = ["zeditor"];
   };
 
-  # feature test: zeditor binary is in wiktor's profile PATH.
-  flake.featureTests.zeditor = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("su - tester -c 'command -v zeditor'")
-    '';
-  };
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.zeditor = {};
 
   flake.modules.homeManager.zeditor = {
     pkgs,

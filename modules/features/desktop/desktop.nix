@@ -73,6 +73,15 @@
   flake.featureMeta.desktop = {
     requires = ["niri"];
     kind = "service";
+    provides = {
+      units = ["display-manager.service"];
+      systemBins = ["niri"];
+      files = [
+        "/run/current-system/sw/share/sddm/themes/forest/Main.qml"
+        "/run/current-system/sw/share/sddm/themes/forest/bg.mp4"
+        "/run/current-system/sw/share/icons/Bibata-Modern-Ice/cursors/left_ptr"
+      ];
+    };
   };
 
   # feature test: the desktop layer is present (display-manager exists — the opposite of
@@ -80,24 +89,19 @@
   # points at is installed.
   flake.featureTests.desktop = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
       machine.succeed("systemctl cat display-manager.service | grep -qi sddm")
       machine.succeed("grep -q 'Current=forest' /etc/sddm.conf.d/00-nixos.conf")
-      machine.succeed("test -e /run/current-system/sw/share/sddm/themes/forest/Main.qml")
-      # The theme is a video background (bg.mp4) plus QML that imports
-      # QtMultimedia and Qt5Compat.GraphicalEffects; a missing QML dep makes the
-      # greeter fall back to a bare screen with no eval error, so assert the
-      # greeter env (built from sddm + extraPackages) carries both modules.
-      machine.succeed("test -e /run/current-system/sw/share/sddm/themes/forest/bg.mp4")
-      # The wrapped greeter binary embeds its QML import paths, so a binary grep
-      # proves the modules are on the greeter's path.
+      # The theme is a video background (bg.mp4, asserted via provides.files)
+      # plus QML that imports QtMultimedia and Qt5Compat.GraphicalEffects; a
+      # missing QML dep makes the greeter fall back to a bare screen with no
+      # eval error. The wrapped greeter binary embeds its QML import paths, so a
+      # binary grep proves the modules are on the greeter's path.
       machine.succeed("grep -aq qt5compat /run/current-system/sw/bin/sddm-greeter-qt6")
       machine.succeed("grep -aq qtmultimedia /run/current-system/sw/bin/sddm-greeter-qt6")
-      # Cursor theme must be configured AND resolvable, or the greeter pointer
-      # is invisible (mouse input still works, so only this guards it).
+      # Cursor theme must be configured as well as resolvable (provides.files
+      # covers the latter), or the greeter pointer is invisible — mouse input
+      # still works, so only this guards it.
       machine.succeed("grep -q 'CursorTheme=Bibata-Modern-Ice' /etc/sddm.conf.d/00-nixos.conf")
-      machine.succeed("test -e /run/current-system/sw/share/icons/Bibata-Modern-Ice/cursors/left_ptr")
-      machine.succeed("command -v niri")
     '';
   };
 }

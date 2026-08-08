@@ -30,16 +30,11 @@
   flake.featureMeta.spotify = {
     requires = ["desktop"];
     kind = "gui";
+    # spicetify-nix wraps the unfree `spotify` package into the HM profile.
+    provides.userBins = ["spotify"];
   };
 
-  # feature test: spicetify-nix wraps the unfree `spotify` package and installs it into
-  # the wiktor HM profile as `spotify`. allowUnfree is already true in the outer
-  # perSystem pkgs (parts.nix) so no extra module is needed.
-  flake.featureTests.spotify = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("su - tester -c 'command -v spotify'")
-    '';
-  };
+  # feature test: allowUnfree is already true in the outer perSystem pkgs
+  # (parts.nix), so no extra module is needed.
+  flake.featureTests.spotify = {};
 }

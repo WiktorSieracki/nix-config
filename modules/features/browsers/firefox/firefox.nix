@@ -107,6 +107,7 @@
   flake.featureMeta.firefox = {
     requires = ["desktop"];
     kind = "gui";
+    provides.userBins = ["firefox"];
   };
 
   # firefox-addons extensions are fetched from addons.mozilla.org as
@@ -118,10 +119,5 @@
         programs.firefox.profiles.wiktor.extensions.packages = lib.mkForce [];
       })
     ];
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("home-manager-tester.service")
-      machine.succeed("su - tester -c 'command -v firefox'")
-    '';
   };
 }

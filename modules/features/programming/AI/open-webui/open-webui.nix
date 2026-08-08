@@ -24,17 +24,19 @@
   flake.featureMeta.open-webui = {
     requires = ["ollama"];
     kind = "service";
+    provides = {
+      units = ["open-webui.service"];
+      ports = [8080];
+    };
   };
 
-  # feature test: daemon and UI both come up, the UI serves its frontend, and it
-  # can reach ollama through its own API proxy (proves OLLAMA_BASE_URL wiring).
+  # feature test: `provides` covers the UI's own unit + port; the script waits
+  # for the ollama dep, proves the UI serves its frontend, and reaches ollama
+  # through its own API proxy (proves OLLAMA_BASE_URL wiring).
   flake.featureTests.open-webui = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
       machine.wait_for_unit("ollama.service")
-      machine.wait_for_unit("open-webui.service")
       machine.wait_for_open_port(11434)
-      machine.wait_for_open_port(8080)
       # First start runs DB migrations — poll until the app answers. The served
       # index.html doesn't literally contain "open-webui", so probe /health.
       machine.wait_until_succeeds("curl -sf http://127.0.0.1:8080/health", timeout=120)

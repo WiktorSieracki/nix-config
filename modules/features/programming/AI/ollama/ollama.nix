@@ -66,18 +66,22 @@ in {
   flake.featureMeta.ollama = {
     requires = [];
     kind = "service";
+    provides = {
+      units = ["ollama.service"];
+      ports = [11434];
+      systemBins = ["ollama"];
+    };
   };
 
-  # feature test: prove the daemon comes up, the HTTP API listens, the CLI reaches it,
-  # and the server reports the bumped version (guards the prebuilt override). No
-  # GPU in the VM — the bundled CPU ggml backends carry it.
+  # feature test: `provides` covers daemon + API port + CLI. The extra script
+  # proves the CLI actually reaches the daemon and that the server reports the
+  # pinned version — the guard on the prebuilt override, interpolated from
+  # `ollamaVersion` so a bump can't leave the assertion behind. No GPU in the
+  # VM; the bundled CPU ggml backends carry it.
   flake.featureTests.ollama = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.wait_for_unit("ollama.service")
-      machine.wait_for_open_port(11434)
       machine.succeed("ollama list")
-      machine.succeed("ollama --version 2>&1 | grep -q 0.30.11")
+      machine.succeed("ollama --version 2>&1 | grep -q ${ollamaVersion}")
       # Guard the raised default context window (see notes.md 2026-08-07).
       machine.succeed("systemctl show ollama -p Environment | grep -q OLLAMA_CONTEXT_LENGTH=16384")
     '';

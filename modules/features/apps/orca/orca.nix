@@ -106,15 +106,13 @@
   flake.featureMeta.orca = {
     requires = ["desktop"];
     kind = "gui";
+    provides = {
+      systemBins = ["orca-ide"];
+      files = ["/run/current-system/sw/share/applications/orca-ide.desktop"];
+    };
   };
 
   # feature test: GUI app — per ADR 0002 assert the binary lands on PATH and the
-  # Electron entrypoint is fully patched, rather than launching a window.
-  flake.featureTests.orca = {
-    testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v orca-ide")
-      machine.succeed("test -f /run/current-system/sw/share/applications/orca-ide.desktop")
-    '';
-  };
+  # desktop entry is installed (via `provides`), rather than launching a window.
+  flake.featureTests.orca = {};
 }

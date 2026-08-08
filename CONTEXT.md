@@ -50,8 +50,21 @@ feature is and how "it works" is checked: `config` (pure configuration —
 validated by eval + a validator such as `niri validate`), `cli` (a binary on
 PATH, `--version`/smoke → exit 0), `service` (a systemd unit `active` + port
 listen), `gui` (the process starts and holds a window in the session). It sets
-the rigor level of the **feature test**.
+the rigor level of the **feature test** — concretely, it decides which
+**Provides** a feature is obliged to declare, and `feature-coverage` hard-fails
+when the obligation is unmet.
 _Avoid_: type, category.
+
+**Provides** (`featureMeta.<feature>.provides`):
+What a feature puts on the system, declared rather than asserted by hand:
+`systemBins`, `userBins`, `units`, `ports`, `files`, `userFiles`. `mkFeatureTest`
+turns each entry into the corresponding assertion, so the boot/activation/PATH
+lines every **feature test** used to hand-copy live in one place. A feature test's
+`testScript` is what's left over — behaviour a declaration can't express — and is
+optional. The pairing with **Kind** is what stops a feature test from existing
+while asserting nothing: a `cli`/`gui` feature must name a binary, a `service`
+must name a unit, unless it is **runtimeUntestable**.
+_Avoid_: outputs, artifacts, expectations.
 
 **Requires**:
 A feature's explicit dependency list in `featureMeta.<feature>.requires`. The
@@ -79,7 +92,10 @@ _Avoid_: gui-base, session.
 **Feature test** (Tier 1):
 A headless `nixosTest` that builds the **minimal** VM = the feature under test +
 the closure of its **Requires**, and asserts the feature "works" at the rigor
-level of its **Kind**. Mandatory for *every* feature (CI fails without it) — even
+level of its **Kind**. Most of it is generated from **Provides**; the registered
+spec (`flake.featureTests.<name>`) carries only the remainder — an extra
+`testScript`, `extraNixosModules`, `extraHmModules` — and may legitimately be
+empty (`{}`). Mandatory for *every* feature (CI fails without it) — even
 a trivial feature with a single `systemPackage` must prove its binary runs. It
 fails when a feature has an undeclared dependency → it forces modularity
 structurally. **User features** are tested on a neutral test account (`tester`),

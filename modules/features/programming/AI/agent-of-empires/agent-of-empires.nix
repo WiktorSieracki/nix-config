@@ -14,16 +14,12 @@
     # for Claude that's `claude-agent-acp`. aoe ships no adapters itself.
     requires = ["claude-agent-acp"];
     kind = "cli";
+    # aoe-with-web exposes mainProgram = "aoe"; tmux is a standard binary.
+    provides.systemBins = ["aoe" "tmux"];
   };
 
-  # feature test: aoe-with-web exposes mainProgram = "aoe".
-  # tmux is a standard binary; assert both are on PATH.
   flake.featureTests.agent-of-empires = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v aoe")
-      machine.succeed("command -v tmux")
-
       # `aoe acp doctor` is aoe's own view of which agents it can actually
       # drive — it marks each configured agent [OK] or [!!] by probing $PATH.
       # Assert Claude is usable, i.e. the requires above is really wired.

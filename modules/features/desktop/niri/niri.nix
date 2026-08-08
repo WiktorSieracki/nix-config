@@ -107,17 +107,17 @@ in {
         window-rules =
           extraWindowRules
           ++ [
-          {
-            matches = [{app-id = "code";}];
-            default-column-width = {
-              proportion = 1.0;
-            };
-          }
-          {
-            matches = [{app-id = "qalculate-gtk";}];
-            open-floating = true;
-          }
-        ];
+            {
+              matches = [{app-id = "code";}];
+              default-column-width = {
+                proportion = 1.0;
+              };
+            }
+            {
+              matches = [{app-id = "qalculate-gtk";}];
+              open-floating = true;
+            }
+          ];
 
         layer-rules = [
           {
@@ -245,20 +245,17 @@ in {
   flake.featureMeta.niri = {
     requires = [];
     kind = "gui";
+    # Screenshot-to-clipboard is only half a flow: non-Wayland consumers (Claude
+    # Code, and anything else shelling out) need wl-paste to read the image
+    # back. Guard both halves of wl-clipboard.
+    provides.systemBins = ["niri" "wl-paste" "wl-copy"];
   };
 
-  # feature test: proves programs.niri.enable installs the niri binary.
-  # We don't launch the compositor (headless VM has no GPU), but confirming
-  # the binary is present is sufficient for a Tier-1 gui feature test.
+  # feature test: we don't launch the compositor (headless VM has no GPU), so
+  # the binaries `provides` names carry the Tier-1 assertion; the script pins
+  # the portal routing on top.
   flake.featureTests.niri = {
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v niri")
-      # Screenshot-to-clipboard is only half a flow: non-Wayland consumers
-      # (Claude Code, and anything else shelling out) need wl-paste to read
-      # the image back. Guard both halves of wl-clipboard.
-      machine.succeed("command -v wl-paste")
-      machine.succeed("command -v wl-copy")
       # ScreenCast routed anywhere but gnome yields a frozen first frame on
       # niri, so pin the portal routing that makes screen sharing live.
       machine.succeed(

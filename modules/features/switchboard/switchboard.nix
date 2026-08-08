@@ -20,6 +20,7 @@
   flake.featureMeta.switchboard = {
     requires = ["nix"];
     kind = "cli";
+    provides.systemBins = ["switchboard"];
   };
 
   # feature test (kind cli): the binary is on PATH and handles --version/--help
@@ -32,8 +33,6 @@
       ({lib, ...}: {nixpkgs.config = lib.mkForce {allowUnfree = true;};})
     ];
     testScript = ''
-      machine.wait_for_unit("multi-user.target")
-      machine.succeed("command -v switchboard")
       machine.succeed("switchboard --version")
       machine.succeed("switchboard --help")
     '';
