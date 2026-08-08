@@ -18,7 +18,11 @@
     "home-wifi",
     "mouse",
     "switchboard",
-    "obsidian"
+    "obsidian",
+    "orca",
+    "t3code",
+    "ollama",
+    "open-webui"
   ],
   "users": {
     "wiktor": [
@@ -41,6 +45,8 @@
       "affine",
       "localsend",
       "buzz",
+      "orca",
+      "t3code",
       "handy",
       "wallpapers",
       "vm-launcher",

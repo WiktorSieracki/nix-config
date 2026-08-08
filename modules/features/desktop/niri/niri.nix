@@ -17,10 +17,17 @@ in {
       extraPortals = with pkgs; [
         xdg-desktop-portal-wlr
         xdg-desktop-portal-gtk
+        xdg-desktop-portal-gnome
       ];
       config.niri = {
+        # Screenshot stays on wlr: it grabs without an interactive picker.
         "org.freedesktop.impl.portal.Screenshot" = ["wlr"];
-        "org.freedesktop.impl.portal.ScreenCast" = ["wlr"];
+        # ScreenCast must be gnome. niri implements the org.gnome.Mutter.ScreenCast
+        # D-Bus API that xdg-desktop-portal-gnome drives; xdg-desktop-portal-wlr
+        # hands out a stream that never advances past its first frame, which is
+        # what makes Discord/Firefox screen shares look like a still image.
+        # See notes.md.
+        "org.freedesktop.impl.portal.ScreenCast" = ["gnome"];
       };
     };
 
@@ -245,6 +252,16 @@ in {
   };
 
   # feature test: we don't launch the compositor (headless VM has no GPU), so
-  # the binaries `provides` names are the whole Tier-1 assertion.
-  flake.featureTests.niri = {};
+  # the binaries `provides` names carry the Tier-1 assertion; the script pins
+  # the portal routing on top.
+  flake.featureTests.niri = {
+    testScript = ''
+      # ScreenCast routed anywhere but gnome yields a frozen first frame on
+      # niri, so pin the portal routing that makes screen sharing live.
+      machine.succeed(
+          "grep -qx 'org.freedesktop.impl.portal.ScreenCast=gnome' "
+          "/etc/xdg/xdg-desktop-portal/niri-portals.conf"
+      )
+    '';
+  };
 }

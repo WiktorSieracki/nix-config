@@ -50,6 +50,12 @@ in {
       # CLI on PATH. Daemon listens on 127.0.0.1:11434 (local only, firewall
       # closed) — local clients like `omp` (llm-agents) talk to it over HTTP.
       package = mkOllamaBin pkgs;
+      environmentVariables = {
+        # Daemon default is 4096, which real chats (esp. via open-webui) blow
+        # past immediately: "request exceeds the available context size".
+        # Clients can still request less per-call via num_ctx.
+        OLLAMA_CONTEXT_LENGTH = "16384";
+      };
     };
   };
 
@@ -76,6 +82,8 @@ in {
     testScript = ''
       machine.succeed("ollama list")
       machine.succeed("ollama --version 2>&1 | grep -q ${ollamaVersion}")
+      # Guard the raised default context window (see notes.md 2026-08-07).
+      machine.succeed("systemctl show ollama -p Environment | grep -q OLLAMA_CONTEXT_LENGTH=16384")
     '';
   };
 }
