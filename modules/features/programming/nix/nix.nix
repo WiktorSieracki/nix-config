@@ -35,13 +35,23 @@
     ];
 
     environment.sessionVariables = {
-      NH_FLAKE = "/home/wiktor/.config/nix-config";
-      FLAKE = "/home/wiktor/.config/nix-config";
       # Lets ad-hoc `nix shell/run nixpkgs#pkg --impure` and legacy
       # nix-shell/nix-env (impure by default already) pick up unfree
       # packages too; system builds already get allowUnfree via the
       # config above.
       NIXPKGS_ALLOW_UNFREE = "1";
+    };
+  };
+
+  # NH_FLAKE/FLAKE live in the always-on home-manager floor, not in the NixOS
+  # part above: every account keeps its *own* checkout of this repo under
+  # ~/.config/nix-config (ADR 0004 — homes are 700, so one account can't reach
+  # another's copy). A system-wide value would hardcode one login's home and
+  # point every other account at a directory it cannot read.
+  flake.modules.homeManager.homeManager = {config, ...}: {
+    home.sessionVariables = {
+      NH_FLAKE = "${config.home.homeDirectory}/.config/nix-config";
+      FLAKE = "${config.home.homeDirectory}/.config/nix-config";
     };
   };
 

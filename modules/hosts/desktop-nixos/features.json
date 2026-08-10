@@ -19,10 +19,11 @@
     "mouse",
     "switchboard",
     "obsidian",
-    "orca",
     "t3code",
     "ollama",
-    "open-webui"
+    "open-webui",
+    "claude-agent-acp",
+    "agent-of-empires"
   ],
   "users": {
     "wiktor": [
@@ -32,7 +33,6 @@
       "ssh-personal-hosts",
       "vscode",
       "zeditor",
-      "cursor-ide",
       "agent-of-empires",
       "claude-agent-acp",
       "bruno",
@@ -44,8 +44,6 @@
       "discord",
       "affine",
       "localsend",
-      "buzz",
-      "orca",
       "t3code",
       "handy",
       "wallpapers",
@@ -60,7 +58,9 @@
       "vscode",
       "slack",
       "chrome",
-      "wallpapers"
+      "wallpapers",
+      "agent-of-empires",
+      "claude-agent-acp"
     ]
   }
 }
