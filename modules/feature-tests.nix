@@ -309,6 +309,10 @@
                   login = "tester2";
                   userMeta = {
                     fullName = "Second Test User";
+                    # Two accounts of one person share a fullName; displayName is
+                    # what the greeter shows, so it must win over fullName here
+                    # while git (fullName) keeps the plain name.
+                    displayName = "Second Test User (Work)";
                     groups = [];
                   };
                   hmModules = [];
@@ -323,6 +327,11 @@
               # Accounts exist, identity (GECOS) comes from userMeta.
               machine.succeed("getent passwd tester | grep -q 'Test User'")
               machine.succeed("getent passwd tester2 | grep -q 'Second Test User'")
+
+              # The greeter label (GECOS) is displayName when set, fullName
+              # otherwise — so two accounts of one person stay distinguishable.
+              machine.succeed("getent passwd tester | cut -d: -f5 | grep -qx 'Test User'")
+              machine.succeed("getent passwd tester2 | cut -d: -f5 | grep -qx 'Second Test User (Work)'")
 
               # Login shell comes from userMeta.shell, not from the fish feature.
               machine.succeed("getent passwd tester | cut -d: -f7 | grep -q fish")

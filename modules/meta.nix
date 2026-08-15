@@ -14,12 +14,17 @@
     # features receive this attrset injected as `userMeta` (+ `login`) into their
     # home-manager evaluation and hardcode no login.
     #
-    # Fields: fullName (git user.name, GECOS), groups, shell (package name),
+    # Fields: fullName (git user.name), displayName (GECOS — the label the SDDM
+    # greeter shows for the account; defaults to fullName), groups, shell (package name),
     # emailSecret / passwordSecret (secret names in secrets.yaml; the password as
     # a hash from `mkpasswd -m sha-512`), authorizedKeys (sshd public keys).
     users = {
       wiktor = {
         fullName = "Wiktor Sieracki";
+        # Both accounts belong to the same person, so a bare fullName made the
+        # greeter show two identical entries. displayName disambiguates them
+        # there without touching the git identity (fullName).
+        displayName = "Wiktor Sieracki (Personal)";
         groups = ["networkmanager" "wheel"];
         shell = "fish";
         emailSecret = "studentEmail";
@@ -32,6 +37,7 @@
       # homeMode 700 from the NixOS default). Managed by wiktor.
       work = {
         fullName = "Wiktor Sieracki";
+        displayName = "Wiktor Sieracki (Work)";
         groups = [];
         shell = "fish";
         emailSecret = "workEmail";

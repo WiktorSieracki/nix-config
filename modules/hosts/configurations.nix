@@ -60,7 +60,10 @@ in {
       users.users.${login} =
         {
           isNormalUser = true;
-          description = userMeta.fullName or login;
+          # GECOS is what the SDDM greeter labels the account with, so it takes
+          # displayName when the identity distinguishes the two (fullName alone
+          # made the two accounts of one person indistinguishable at login).
+          description = userMeta.displayName or userMeta.fullName or login;
           extraGroups = userMeta.groups or [];
         }
         // lib.optionalAttrs (userMeta ? shell) {
