@@ -17,7 +17,18 @@
       ];
     };
 
-    homeManager.vscode = {pkgs, ...}: {
+    homeManager.vscode = {
+      pkgs,
+      lib,
+      ...
+    }: let
+      # The Noctalia theme extension is deliberately NOT in the HM extension
+      # list below — see home.activation.noctaliaVscodeTheme.
+      noctaliaTheme =
+        if pkgs ? nix4vscode
+        then lib.head (pkgs.nix4vscode.forVscode ["Noctalia.noctaliatheme"])
+        else null;
+    in {
       programs.vscode = {
         enable = true;
 
@@ -29,7 +40,6 @@
             if pkgs ? nix4vscode
             then
               pkgs.nix4vscode.forVscode [
-                "Noctalia.noctaliatheme"
                 # nix
                 "bbenoist.nix"
                 "jnoortheen.nix-ide"
@@ -86,6 +96,40 @@
             };
           };
         };
+      };
+
+      # The Noctalia VS Code theme is a *rendered* artifact, not a static
+      # extension: noctalia's `code` template rewrites the extension's
+      # NoctaliaTheme-color-theme.json with the active colour scheme. Two things
+      # make the plain HM install useless for that:
+      #   - noctalia only looks at dirs matching `noctalia.noctaliatheme-`
+      #     (Scripts/python/src/theming/vscode-helper.py, trailing dash), while
+      #     HM installs to the unversioned `noctalia.noctaliatheme`;
+      #   - the HM entry is a symlink into the store, so the render can't write.
+      # Result on a fresh home: VS Code loads the theme's shipped placeholder
+      # navy (#070722) instead of the scheme's colours, forever.
+      # So we install this one extension ourselves, as a writable versioned copy.
+      # The colour file is only seeded when missing — an activation must never
+      # clobber what noctalia already rendered into it.
+      home.activation = lib.mkIf (noctaliaTheme != null) {
+        noctaliaVscodeTheme = lib.hm.dag.entryAfter ["writeBoundary"] ''
+          src=${noctaliaTheme}/share/vscode/extensions/noctalia.noctaliatheme
+          dst="$HOME/.vscode/extensions/noctalia.noctaliatheme-${noctaliaTheme.version}"
+          theme="$dst/themes/NoctaliaTheme-color-theme.json"
+
+          run rm -rf "$dst.new"
+          if [ -e "$theme" ]; then
+            run cp -r --no-preserve=mode,ownership -T "$src" "$dst.new"
+            run rm -f "$dst.new/themes/NoctaliaTheme-color-theme.json"
+            run cp -a "$theme" "$dst.new/themes/NoctaliaTheme-color-theme.json"
+            run rm -rf "$dst"
+            run mv "$dst.new" "$dst"
+          else
+            run rm -rf "$dst"
+            run cp -r --no-preserve=mode,ownership -T "$src" "$dst"
+          fi
+          run chmod -R u+w "$dst"
+        '';
       };
     };
   };

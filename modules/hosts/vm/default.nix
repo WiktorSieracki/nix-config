@@ -19,6 +19,9 @@
       "vscode"
       "firefox"
       "localsend"
+      # Without it noctalia's startup hook points at a wallpaper that doesn't
+      # exist in a fresh home, so the VM boots to a bare desktop.
+      "wallpapers"
     ];
   };
 in {
