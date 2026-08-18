@@ -64,6 +64,8 @@ in {
         xwayland-satellite.path = lib.getExe pkgs.xwayland-satellite;
         input = {
           keyboard.xkb.layout = "pl";
+          # Focus follows the pointer: hovering a window focuses it, no click.
+          focus-follows-mouse = _: {};
           mouse = {
             # TUNABLE: pointer speed. Range -1.0 (slowest) .. 1.0 (fastest).
             # 0.0 = niri's default feel; go negative to slow the cursor down.

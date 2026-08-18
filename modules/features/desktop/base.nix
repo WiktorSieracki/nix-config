@@ -6,6 +6,15 @@
     };
   };
 
+  # Nautilus opens as a centred floating popup rather than a tiled column.
+  # niri centres new floating windows by default, so only the size is declared.
+  flake.niriWindowRules.nautilus = _: {
+    matches = [{app-id = "^org\\.gnome\\.Nautilus$";}];
+    open-floating = true;
+    default-column-width.proportion = 0.5;
+    default-window-height.proportion = 0.6;
+  };
+
   # Core floor: the irreducible system substrate present in every host and every
   # feature test. Deliberately holds NO graphical session and NO GUI apps — those moved
   # to the `desktop` feature (see desktop.nix) so the modularity litmus test
