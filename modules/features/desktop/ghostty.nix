@@ -14,6 +14,10 @@
   flake.modules.homeManager.homeManager = {
     xdg.configFile."ghostty/config".text = ''
       theme = noctalia
+
+      # No "Close Window? All terminal sessions will be terminated" dialog —
+      # closing a surface just closes it, even with a shell/TUI still running.
+      confirm-close-surface = false
     '';
   };
 }

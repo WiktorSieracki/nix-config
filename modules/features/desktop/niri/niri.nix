@@ -83,6 +83,9 @@ in {
 
         layout = {
           always-center-single-column = _: {};
+          # New windows open full-width by default; narrow them per-app with a
+          # window rule (or live with Mod+R to cycle preset widths).
+          default-column-width.proportion = 1.0;
         };
 
         outputs."HP Inc. HP E243 CNC0171FR8" = {
@@ -109,12 +112,6 @@ in {
         window-rules =
           extraWindowRules
           ++ [
-            {
-              matches = [{app-id = "code";}];
-              default-column-width = {
-                proportion = 1.0;
-              };
-            }
             {
               matches = [{app-id = "qalculate-gtk";}];
               open-floating = true;
