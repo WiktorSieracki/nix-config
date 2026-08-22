@@ -8,13 +8,92 @@
   # contribute to them (otherwise flake-parts rejects >1 definition as
   # "defined multiple times" — same reason niri-binds.nix declares niriBinds).
   options.flake = {
+    # Typed (not `anything`) so a typo'd field or kind fails at eval instead of
+    # silently weakening the rigor obligations feature-coverage derives from it.
     featureMeta = lib.mkOption {
-      type = lib.types.attrsOf lib.types.anything;
+      type = lib.types.attrsOf (lib.types.submodule {
+        options = {
+          requires = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [];
+            description = "Features this feature depends on; the host loader hard-fails unless they are enabled too (ADR 0002).";
+          };
+          kind = lib.mkOption {
+            type = lib.types.enum ["config" "cli" "service" "gui"];
+            description = "What the feature is; sets the rigor level (which `provides` it must declare).";
+          };
+          runtimeUntestable = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = "Runtime can't be reached from a VM (hardware/secrets); the feature test only guards eval + boot.";
+          };
+          # The `provides` vocabulary — the declarative half of a feature test.
+          # Each key maps a thing the feature puts on the system to the
+          # assertion mkFeatureTest generates for it. Adding a kind of evidence
+          # means adding an option here and its assertion line in mkFeatureTest.
+          provides = lib.mkOption {
+            default = {};
+            description = "What the feature puts on the system; mkFeatureTest turns each entry into an assertion.";
+            type = lib.types.submodule {
+              options = {
+                systemBins = lib.mkOption {
+                  type = lib.types.listOf lib.types.str;
+                  default = [];
+                  description = "Binaries in the system profile → command -v.";
+                };
+                userBins = lib.mkOption {
+                  type = lib.types.listOf lib.types.str;
+                  default = [];
+                  description = "Binaries in the tester's HM profile → su - tester -c 'command -v'.";
+                };
+                units = lib.mkOption {
+                  type = lib.types.listOf lib.types.str;
+                  default = [];
+                  description = "systemd system units → wait_for_unit.";
+                };
+                ports = lib.mkOption {
+                  type = lib.types.listOf lib.types.port;
+                  default = [];
+                  description = "TCP ports something listens on → wait_for_open_port.";
+                };
+                files = lib.mkOption {
+                  type = lib.types.listOf lib.types.str;
+                  default = [];
+                  description = "Paths that must exist (root's view) → test -e.";
+                };
+                userFiles = lib.mkOption {
+                  type = lib.types.listOf lib.types.str;
+                  default = [];
+                  description = "Paths in the tester's home → su - tester -c 'test -e'.";
+                };
+              };
+            };
+          };
+        };
+      });
       default = {};
       description = "Per-feature metadata: { <feature> = { requires; kind; provides?; }; }.";
     };
     featureTests = lib.mkOption {
-      type = lib.types.attrsOf lib.types.anything;
+      type = lib.types.attrsOf (lib.types.submodule {
+        options = {
+          testScript = lib.mkOption {
+            type = lib.types.lines;
+            default = "";
+            description = "Assertions a `provides` declaration can't express; appended after the generated ones.";
+          };
+          extraNixosModules = lib.mkOption {
+            type = lib.types.listOf lib.types.raw;
+            default = [];
+            description = "Extra NixOS modules merged into the test VM.";
+          };
+          extraHmModules = lib.mkOption {
+            type = lib.types.listOf lib.types.raw;
+            default = [];
+            description = "Extra home-manager modules merged into the tester's HM (e.g. stub secret-backed config).";
+          };
+        };
+      });
       default = {};
       description = "Per-feature feature-test specs: { <feature> = { testScript?; extraNixosModules?; extraHmModules?; }; }.";
     };
@@ -27,19 +106,6 @@
 
   # Having an `options` block forces all settings under an explicit `config`.
   config = {
-    # The `provides` vocabulary — the declarative half of a feature test. Each key
-    # maps a thing the feature puts on the system to the assertion that proves it.
-    # `feature-coverage` reads the same table to reject unknown keys, so adding a
-    # kind of evidence means adding it here and nowhere else.
-    flake.featureTestLib.providesKeys = [
-      "systemBins" # binaries in the system profile        → command -v
-      "userBins" #   binaries in the tester's HM profile   → su - tester -c 'command -v'
-      "units" #      systemd system units                  → wait_for_unit
-      "ports" #      TCP ports something listens on        → wait_for_open_port
-      "files" #      paths that must exist (root's view)   → test -e
-      "userFiles" #  paths in the tester's home            → su - tester -c 'test -e'
-    ];
-
     # mkFeatureTest — builds a Tier-1 feature test: a headless `nixosTest` whose VM
     # is the `core` floor (flake.modules.nixos.nixos) + the feature under test + the
     # transitive closure of its `requires` (read from flake.featureMeta). The VM
@@ -189,8 +255,8 @@
       # `kind` says what a feature *is*; `provides` says what it puts on the
       # system. This pairing is what stops a test from existing while asserting
       # nothing. `runtimeUntestable` features are exempt — by definition their
-      # runtime can't be reached from a VM.
-      providesKeys = config.flake.featureTestLib.providesKeys;
+      # runtime can't be reached from a VM. (Unknown `provides` keys need no
+      # check here anymore — the featureMeta option type rejects them at eval.)
       provOf = f: (meta.${f} or {}).provides or {};
       declares = f: keys: lib.any (k: (provOf f).${k} or [] != []) keys;
       testable = f: !((meta.${f} or {}).runtimeUntestable or false);
@@ -203,15 +269,8 @@
         ([f] ++ reqClosure f);
 
       rigorProblems =
-        # unknown `provides` key — typo guard, applies to every feature
-        lib.concatMap (
-          f:
-            map (k: "  featureMeta.${f}.provides.${k} is not a known key — expected one of: ${lib.concatStringsSep ", " providesKeys}")
-            (lib.subtractLists providesKeys (lib.attrNames (provOf f)))
-        )
-        metaNames
         # cli/gui must put a binary somewhere
-        ++ map (f: "  ${kindOf f} feature '${f}' declares no binary — add featureMeta.${f}.provides.systemBins or .userBins (or mark it runtimeUntestable)")
+        map (f: "  ${kindOf f} feature '${f}' declares no binary — add featureMeta.${f}.provides.systemBins or .userBins (or mark it runtimeUntestable)")
         (lib.filter (f: testable f && !(declares f ["systemBins" "userBins"]))
           (lib.filter (f: builtins.elem (kindOf f) ["cli" "gui"]) metaNames))
         # service must name a unit
