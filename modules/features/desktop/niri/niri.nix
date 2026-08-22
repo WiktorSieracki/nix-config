@@ -88,24 +88,9 @@ in {
           default-column-width.proportion = 1.0;
         };
 
-        outputs."HP Inc. HP E243 CNC0171FR8" = {
-          mode = "1920x1080@60.000";
-          position = _: {
-            props = {
-              x = 0;
-              y = 0;
-            };
-          };
-        };
-        outputs."Ancor Communications Inc ASUS VX239 G6LMTJ040329" = {
-          mode = "1920x1080@60.000";
-          position = _: {
-            props = {
-              x = 1920;
-              y = 0;
-            };
-          };
-        };
+        # Monitor layouts are host data, contributed from modules/hosts/*
+        # (e.g. desktop-nixos/monitors.nix) — this feature knows no machine.
+        outputs = config.flake.niriOutputs;
 
         workspaces = config.flake.niriWorkspaces;
 
