@@ -1,6 +1,21 @@
 # feature notes: niri
 
-*Last updated: 2026-07-26*
+*Last updated: 2026-08-22*
+
+## Gotcha: noctalia IPC binds must not bake a store path (2026-08-22)
+
+**Symptom**: after a few `nh os switch`, `Mod+Space`/`Mod+P` silently do nothing
+while every other bind works; a fresh login fixes it.
+**Cause**: the binds used to call `<store>/bin/noctalia-shell ipc …`. quickshell
+matches the running instance by its `-p <pkg>/share/noctalia-shell` config path,
+so an IPC client from another generation prints "No running instances" (exit
+255) and niri ignores spawn-sh exit codes. The running noctalia is spawned once
+at login and never restarted, while the loaded niri config can be newer (manual
+`load-config-file --path …`) — the pair drifts.
+**Fix**: binds and hooks go through `noctalia-ipc` (noctalia.nix), which greps
+the running quickshell's `-p` path and execs *that* build's client — resolution
+happens at invocation time, so client and instance can never diverge. Falls back
+to `noctalia-shell` on PATH when no instance is running.
 
 ## Gotcha: screenshot-to-clipboard needs wl-clipboard for non-Wayland consumers
 

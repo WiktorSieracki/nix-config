@@ -137,7 +137,11 @@ in {
               };
             };
 
-            "Mod+Space".spawn-sh = "${lib.getExe self'.packages.myNoctalia} ipc call launcher toggle";
+            # noctalia IPC goes through noctalia-ipc (see noctalia.nix): it
+            # resolves the running instance's client at invocation time, so the
+            # bind keeps working when this config and the running noctalia come
+            # from different generations.
+            "Mod+Space".spawn-sh = "${lib.getExe self'.packages.noctalia-ipc} call launcher toggle";
 
             "Mod+F".maximize-column = _: {};
 
@@ -150,7 +154,7 @@ in {
               };
             };
 
-            "Mod+P".spawn-sh = "${lib.getExe self'.packages.myNoctalia} ipc call sessionMenu toggle";
+            "Mod+P".spawn-sh = "${lib.getExe self'.packages.noctalia-ipc} call sessionMenu toggle";
 
             "Mod+Shift+Slash".show-hotkey-overlay = _: {};
 
@@ -246,8 +250,10 @@ in {
     kind = "gui";
     # Screenshot-to-clipboard is only half a flow: non-Wayland consumers (Claude
     # Code, and anything else shelling out) need wl-paste to read the image
-    # back. Guard both halves of wl-clipboard.
-    provides.systemBins = ["niri" "wl-paste" "wl-copy"];
+    # back. Guard both halves of wl-clipboard. noctalia-shell/noctalia-ipc are
+    # the stable PATH names the niri config's noctalia wiring relies on
+    # (noctalia.nix contributes them to this module).
+    provides.systemBins = ["niri" "wl-paste" "wl-copy" "noctalia-shell" "noctalia-ipc"];
   };
 
   # feature test: we don't launch the compositor (headless VM has no GPU), so

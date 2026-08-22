@@ -1,12 +1,52 @@
-{inputs, ...}: {
+{
+  inputs,
+  self,
+  ...
+}: {
+  # noctalia rides along with the niri feature (niri spawns it at startup and
+  # binds its IPC). These packages go into the niri module so `noctalia-shell`
+  # and `noctalia-ipc` resolve via PATH (/run/current-system/sw/bin) — a stable
+  # name instead of a per-generation store path.
+  flake.modules.nixos.niri = {pkgs, ...}: {
+    environment.systemPackages = [
+      self.packages.${pkgs.stdenv.hostPlatform.system}.myNoctalia
+      self.packages.${pkgs.stdenv.hostPlatform.system}.noctalia-ipc
+    ];
+  };
+
   perSystem = {
     pkgs,
     lib,
+    self',
     ...
   }: let
     # The wallpaper installed by wallpapers/wallpaper.nix into ~/Pictures/Wallpapers.
     wallpaper = "/home/wiktor/Pictures/Wallpapers/wallhaven_p92g1m.jpg";
   in {
+    # noctalia's IPC interface for niri binds and hooks. quickshell matches the
+    # running instance by its `-p <pkg>/share/noctalia-shell` config path, so an
+    # IPC client from a different generation than the running instance prints
+    # "No running instances" (exit 255) and niri silently drops the bind — the
+    # Mod+Space/Mod+P drift after rebuilds. This wrapper reads the -p path off
+    # the running quickshell process and calls THAT build's client, so the pair
+    # can never diverge; a baked store path to this script stays correct even
+    # when stale, because the resolution happens at invocation time.
+    packages.noctalia-ipc = pkgs.writeShellApplication {
+      name = "noctalia-ipc";
+      runtimeInputs = [pkgs.procps pkgs.gnugrep];
+      text = ''
+        share=$(pgrep -af 'quickshell -p .*/share/noctalia-shell' \
+          | grep -oE '/nix/store/[^ ]+/share/noctalia-shell' | head -n1) || true
+        client="''${share%/share/noctalia-shell}/bin/noctalia-shell"
+        if [ -n "$share" ] && [ -x "$client" ]; then
+          exec "$client" ipc "$@"
+        fi
+        # No running instance found: fall back to the current generation's
+        # client on PATH (best effort, e.g. right after login).
+        exec noctalia-shell ipc "$@"
+      '';
+    };
+
     packages.myNoctalia = inputs.wrapper-modules.wrappers.noctalia-shell.wrap {
       inherit pkgs;
       settings = {
@@ -728,8 +768,9 @@
           # wallpaper only in the writable cache (~/.cache/noctalia/wallpapers.json),
           # not in the read-only store settings.json, so without this a fresh
           # cache (new machine / VM / cleared cache) falls back to the bundled
-          # default instead of ours. The IPC client reaches the running instance.
-          startup = "${lib.getExe pkgs.noctalia-shell} ipc call wallpaper set ${wallpaper} all";
+          # default instead of ours. noctalia-ipc resolves the client from the
+          # running instance, so the pair can't drift across generations.
+          startup = "${lib.getExe self'.packages.noctalia-ipc} call wallpaper set ${wallpaper} all";
           session = "";
           colorGeneration = "";
           enabled = true;
