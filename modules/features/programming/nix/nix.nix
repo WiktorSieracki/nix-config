@@ -5,6 +5,13 @@
       "nix-command"
       "flakes"
     ];
+    # Remote deploys between the machines of this fleet (`nh os switch/test
+    # --target-host`) copy locally-built, *unsigned* store paths over SSH.
+    # The receiving daemon rejects those unless the SSH user is trusted, so
+    # without this a deploy dies with "lacks a signature by a trusted key".
+    # @wheel is the admin group here (sudo is already passwordless for it in
+    # the core floor), so this grants no privilege it didn't already have.
+    nix.settings.trusted-users = ["root" "@wheel"];
     # Periodic store deduplication (hardlinks identical files; default 03:45
     # daily). Deliberately a timer, not auto-optimise-store = true — the
     # per-build variant slows builds and has a history of hardlink races.
@@ -78,6 +85,9 @@
     testScript = ''
       machine.succeed("alejandra --version")
       machine.succeed("nh --version")
+      # trusted-users must include @wheel, or remote deploys from a sibling
+      # machine fail on unsigned store paths (see the setting's comment).
+      machine.succeed("nix config show | grep -E '^trusted-users =.*@wheel'")
     '';
   };
 }
