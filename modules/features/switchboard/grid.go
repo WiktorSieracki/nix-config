@@ -94,6 +94,18 @@ func BuildGrid(groups []GridGroup, cols int) Grid {
 // Start returns the flat index of the group's first item.
 func (g Grid) Start(gi int) int { return g.starts[gi] }
 
+// IndexOf returns the flat index of a feature name (-1 when absent).
+func (g Grid) IndexOf(name string) int {
+	for gi, grp := range g.Groups {
+		for li, item := range grp.Items {
+			if item == name {
+				return g.starts[gi] + li
+			}
+		}
+	}
+	return -1
+}
+
 // NameAt returns the feature name at a flat index ("" when out of range).
 func (g Grid) NameAt(idx int) string {
 	gi, li, ok := g.locate(idx)

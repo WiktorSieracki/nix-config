@@ -502,17 +502,11 @@ func (m model) handleHostKey(key string) (tea.Model, tea.Cmd) {
 		}
 	case "tab", "]":
 		if len(m.sections) > 1 {
-			m.section = (m.section + 1) % len(m.sections)
-			m.cursor = 0
-			m.status = ""
-			m.rebuildGrid()
+			m.switchSection((m.section + 1) % len(m.sections))
 		}
 	case "shift+tab", "[":
 		if len(m.sections) > 1 {
-			m.section = (m.section - 1 + len(m.sections)) % len(m.sections)
-			m.cursor = 0
-			m.status = ""
-			m.rebuildGrid()
+			m.switchSection((m.section - 1 + len(m.sections)) % len(m.sections))
 		}
 	case " ":
 		m.toggle(m.grid.NameAt(m.cursor))
@@ -520,6 +514,18 @@ func (m model) handleHostKey(key string) (tea.Model, tea.Cmd) {
 		return m.review()
 	}
 	return m, nil
+}
+
+// switchSection changes the edited section, keeping the cursor on the same
+// feature (the catalog is shared across sections, so it's almost always there).
+func (m *model) switchSection(section int) {
+	name := m.grid.NameAt(m.cursor)
+	m.section = section
+	m.status = ""
+	m.rebuildGrid()
+	if idx := m.grid.IndexOf(name); idx >= 0 {
+		m.cursor = idx
+	}
 }
 
 func (m *model) toggle(name string) {

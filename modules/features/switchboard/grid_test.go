@@ -70,6 +70,19 @@ func TestGridLayout(t *testing.T) {
 	}
 }
 
+func TestGridIndexOf(t *testing.T) {
+	g := testGrid()
+	if got := g.IndexOf("a"); got != 0 {
+		t.Errorf("IndexOf(a) = %d, want 0", got)
+	}
+	if got := g.IndexOf("z"); got != 7 {
+		t.Errorf("IndexOf(z) = %d, want 7", got)
+	}
+	if got := g.IndexOf("missing"); got != -1 {
+		t.Errorf("IndexOf(missing) = %d, want -1", got)
+	}
+}
+
 func TestGridDown(t *testing.T) {
 	g := testGrid()
 	if got := g.Down(0); g.NameAt(got) != "b" {
