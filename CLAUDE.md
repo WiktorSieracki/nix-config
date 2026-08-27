@@ -11,6 +11,9 @@ nh os switch
 # Dry-run before applying
 nh os switch --dry
 
+# Deploy to the laptop (build locally, activate remotely) — procedure + failure modes: /nh-deploy skill
+nh os switch -H laptopNixos --target-host laptop
+
 # Build a specific host without switching
 nix build .#nixosConfigurations.desktopNixos.config.system.build.toplevel
 nix build .#nixosConfigurations.laptopNixos.config.system.build.toplevel
