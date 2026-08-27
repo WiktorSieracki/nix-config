@@ -1,6 +1,6 @@
 ---
 name: nh-deploy
-description: Apply this NixOS config with nh — the local test→verify→switch loop, and remote deploys that build on one machine and activate on the other over SSH (desktop → laptop). Use when the user wants to apply/rebuild the config, deploy to the laptop, or a remote deploy fails.
+description: Apply this NixOS config with nh — the local test→verify→switch loop, and remote SSH flows in both directions (--target-host deploys desktop → laptop; --build-host switches the laptop while the desktop builds). Use when the user wants to apply/rebuild the config, deploy to the laptop, offload a build to the desktop, or a remote deploy fails.
 ---
 
 # /nh-deploy
@@ -39,8 +39,23 @@ remotely — the laptop needs no checkout of the repo and builds nothing.
   depend on what the target currently calls itself.
 - The direction is symmetric: from the laptop,
   `nh os switch -H desktopNixos --target-host desktop`.
-- `--build-host` is the opposite flag (build remotely, activate locally) —
-  unused in this fleet; the machine you sit at is the build host.
+
+## Remote build: run on the laptop, build on the desktop
+
+`--build-host` is the mirror image of `--target-host`: activate *here*, build
+*there*. Use it when sitting at the laptop and its own build would be too slow.
+
+1. Update the checkout on the laptop (`git pull`) — unlike `--target-host`,
+   the flake is evaluated **locally**, so the laptop needs the current repo.
+2. Reachability: `ssh desktop true`.
+3. `nh os test --build-host desktop` — derivations are copied to the desktop,
+   built there, the results copied back and activated on the laptop. No `-H`
+   needed: it defaults to the local hostname (`laptopNixos`).
+4. Verify, then `nh os switch --build-host desktop`.
+
+The trusted-users requirement applies here too, just on the laptop's side: the
+paths copied back from the desktop are unsigned, and the local daemon accepts
+them only from a trusted user (@wheel).
 
 ## Failure modes
 
