@@ -59,11 +59,16 @@ them only from a trusted user (@wheel).
 
 ## Failure modes
 
-- **`…lacks a signature by a trusted key`** — the receiving nix daemon rejects
-  the locally-built, unsigned store paths. The target must have
-  `nix.settings.trusted-users = ["root" "@wheel"]` (set in the `nix` feature
-  since 39bf69f). If the target predates that commit, it can't be fixed
-  remotely: apply the config once locally on the target, then deploys work.
+- **`…lacks a signature by a trusted key`** — the *receiving* nix daemon
+  rejects unsigned store paths built elsewhere. Which machine that is depends
+  on the direction: with `--target-host` it's the deploy target; with
+  `--build-host` it's the local machine (surfaces as
+  `nix copy --from '<host>' failed` right after the build finishes). The
+  receiver needs `nix.settings.trusted-users = ["root" "@wheel"]` (set in the
+  `nix` feature since 39bf69f). Chicken-and-egg: a machine that predates that
+  commit can't receive the config that fixes it — the copy is the thing being
+  rejected — so build once *on that machine* with a plain `nh os test`/`switch`
+  (no remote flags); every remote flow works from then on.
 - **Activation stalls waiting for a password** — remote elevation detection
   failed; retry with `-e passwordless` (tells nh the target's sudo is
   NOPASSWD, which this fleet's wheel group is).
