@@ -23,6 +23,15 @@
       # exist in a fresh home, so the VM boots to a bare desktop.
       "wallpapers"
     ];
+    # The work account, so switching to it can be exercised in the VM. Its
+    # real feature list needs secrets (git email template, …), so this is the
+    # same secret-free subset as wiktor's.
+    users.work = [
+      "fish"
+      "vscode"
+      "firefox"
+      "wallpapers"
+    ];
   };
 in {
   # A normal, bootable host used purely to produce disk images
@@ -56,6 +65,9 @@ in {
 
           # Log straight into wiktor's niri session; password set for sudo.
           users.users.wiktor.initialPassword = "nixos";
+          # work's real password comes from sops (absent here), so give it the
+          # same throwaway password to make the SDDM login usable.
+          users.users.work.initialPassword = "nixos";
           services.displayManager.autoLogin = {
             enable = true;
             user = "wiktor";

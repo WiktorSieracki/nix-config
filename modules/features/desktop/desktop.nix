@@ -56,6 +56,13 @@
     };
     services.displayManager.defaultSession = "niri";
 
+    # Removable media in Nautilus: udisks2 does the mounting over D-Bus, gvfs
+    # provides the volume monitor Nautilus reads its sidebar from. Without both
+    # a plugged-in USB stick is invisible in the file manager (it still shows in
+    # `lsblk`), and gnome-disk-utility above has no daemon to talk to.
+    services.udisks2.enable = true;
+    services.gvfs.enable = true;
+
     environment.systemPackages = with pkgs; [
       qylock-forest
       bibata-cursors # greeter cursor (settings.Theme.CursorTheme above)

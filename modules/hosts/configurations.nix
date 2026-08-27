@@ -51,7 +51,13 @@ in {
     login,
     userMeta,
     hmModules ? [],
-  }: {
+    # A passwordSecret can only be honored where the sops module exists; on
+    # secret-less hosts (vm/iso) the account is created without it and the
+    # host sets its own initialPassword. loadHost derives this from the spec.
+    sopsAvailable ? true,
+  }: let
+    hasSopsPassword = (userMeta ? passwordSecret) && sopsAvailable;
+  in {
     pkgs,
     config,
     ...
@@ -72,7 +78,7 @@ in {
         // lib.optionalAttrs (userMeta ? authorizedKeys) {
           openssh.authorizedKeys.keys = userMeta.authorizedKeys;
         }
-        // lib.optionalAttrs (userMeta ? passwordSecret) {
+        // lib.optionalAttrs hasSopsPassword {
           hashedPasswordFile = config.sops.secrets.${userMeta.passwordSecret}.path;
         };
 
@@ -91,7 +97,7 @@ in {
     # The password hash must be decrypted before user creation (sysusers runs
     # early), hence neededForUsers. Guarded so hosts/feature tests without the sops
     # module never even mention the option.
-    // lib.optionalAttrs (userMeta ? passwordSecret) {
+    // lib.optionalAttrs hasSopsPassword {
       sops.secrets.${userMeta.passwordSecret}.neededForUsers = true;
     };
 
@@ -164,6 +170,7 @@ in {
             config.flake.lib.mkHostUser {
               inherit login;
               userMeta = usersMeta.${login};
+              sopsAvailable = builtins.elem "sops" system;
               hmModules =
                 # The always-on HM floor (cursor/ghostty theme, …) plus the
                 # user's own features.
