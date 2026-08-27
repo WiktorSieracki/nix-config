@@ -4,20 +4,24 @@
   # exactly what a shared user feature must not hardcode (ADR 0004). Enable
   # only on the accounts that should reach these machines as wiktor.
   #
-  # Migrated from the deprecated `programs.ssh.matchBlocks`/`extraOptions` to
-  # `programs.ssh.settings` (home-manager): the attribute name is the `Host`
-  # pattern. Folding the short alias into the same pattern (`laptop
-  # laptopnixos`) so `ssh laptop` actually resolves.
+  # One block per machine: the short name is the `Host` alias, `HostName`
+  # points at the real Tailscale MagicDNS name (the machine's hostname,
+  # lowercased). A bare `Host laptop laptopnixos` pattern without `HostName`
+  # only *matches* settings — it never resolved, so `ssh laptop` used to fail
+  # with "Could not resolve hostname". The long names still work raw via
+  # MagicDNS, just without this block's settings.
   flake.modules.homeManager.ssh-personal-hosts = {
     programs.ssh.settings = {
-      "laptop laptopnixos" = {
+      "laptop" = {
+        HostName = "laptopnixos";
         User = "wiktor";
         IdentityFile = "~/.ssh/id_ed25519";
         ServerAliveInterval = "60";
         ServerAliveCountMax = "3";
         ConnectTimeout = "30";
       };
-      "desktop desktopnixos" = {
+      "desktop" = {
+        HostName = "desktopnixos";
         User = "wiktor";
         IdentityFile = "~/.ssh/id_ed25519";
         ServerAliveInterval = "60";
@@ -35,11 +39,13 @@
     provides.userFiles = ["~/.ssh/config"];
   };
 
-  # feature test: this feature's content is host *aliases*, so the assertion has
-  # to look inside the file `provides` proves exists.
+  # feature test: the aliases only work if the block carries a HostName that
+  # translates the short name — a bare Host pattern regresses to an
+  # unresolvable alias, so assert the translation, not just the block.
   flake.featureTests.ssh-personal-hosts = {
     testScript = ''
-      machine.succeed("su - tester -c 'grep -q laptopnixos ~/.ssh/config'")
+      machine.succeed("su - tester -c 'grep -iq hostname.laptopnixos ~/.ssh/config'")
+      machine.succeed("su - tester -c 'grep -iq hostname.desktopnixos ~/.ssh/config'")
     '';
   };
 }
