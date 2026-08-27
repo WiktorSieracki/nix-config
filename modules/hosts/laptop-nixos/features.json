@@ -16,9 +16,9 @@
     "docker",
     "eduroam",
     "switchboard",
-    "agent-of-empires",
     "claude-agent-acp",
-    "claude-code"
+    "claude-code",
+    "home-wifi"
   ],
   "users": {
     "wiktor": [
@@ -28,7 +28,6 @@
       "ssh",
       "ssh-personal-hosts",
       "vscode",
-      "cpp",
       "bruno",
       "personal-snippets",
       "firefox",
@@ -36,7 +35,8 @@
       "spotify",
       "discord",
       "localsend",
-      "wallpapers"
+      "wallpapers",
+      "t3code"
     ]
   }
 }
