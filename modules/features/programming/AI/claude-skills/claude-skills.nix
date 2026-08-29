@@ -55,6 +55,15 @@ in {
       // {
         ".claude/skills/create-issue".source = ./create-issue;
         ".claude/skills/obsidian-vault".source = ./obsidian-vault;
+      }
+      # `todo` is the one skill that is *not* Claude-Code-specific: it only
+      # shells out to `noctalia-ipc`, so it is also linked into ~/.agents/skills,
+      # the shared dir the other agent CLIs read. Only this skill is dual-linked
+      # — the rest of ~/.agents/skills is owned by an external installer, and
+      # claiming a name there that it already manages would break activation.
+      // {
+        ".agents/skills/todo".source = ./todo;
+        ".claude/skills/todo".source = ./todo;
       };
   };
 
@@ -71,6 +80,9 @@ in {
       "~/.claude/skills/find-skills/SKILL.md"
       "~/.claude/skills/create-issue/SKILL.md"
       "~/.claude/skills/obsidian-vault/SKILL.md"
+      # Dual-linked; the ~/.agents copy is the one nothing else asserts.
+      "~/.claude/skills/todo/SKILL.md"
+      "~/.agents/skills/todo/SKILL.md"
     ];
   };
 
@@ -87,6 +99,12 @@ in {
           "for s in ~tester/.claude/skills/*/; do test -f \"$s/SKILL.md\" || "
           "{ echo \"missing SKILL.md: $s\"; exit 1; }; done"
       )
+
+      # ~/.agents/skills is a second link root, not covered by the sweep above.
+      dangling_agents = machine.succeed(
+          "find -L ~tester/.agents/skills -maxdepth 1 -type l -print"
+      ).strip()
+      assert dangling_agents == "", f"dangling agent skill symlinks: {dangling_agents}"
     '';
   };
 }
