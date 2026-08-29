@@ -1,123 +1,109 @@
-{
-  flake.modules.nixos.t3code = {pkgs, ...}: let
-    pname = "t3code";
-    version = "0.0.31";
-
-    src = pkgs.fetchurl {
-      url = "https://github.com/pingdotgg/t3code/releases/download/v${version}/T3-Code-${version}-x86_64.AppImage";
-      hash = "sha256-AqTkoSKeQwmql3L9F5SbD1XyqeFyqe11ciq9Tp04Zyw=";
+{inputs, ...}: let
+  # One package, two features. Upstream ships the desktop client and the
+  # headless server from the same tree, and so does nixpkgs: `bin/t3code-desktop`
+  # (Electron) and `bin/t3` (the Node server + CLI). The override therefore
+  # lives here rather than inside either module.
+  #
+  # nixpkgs wraps every t3code binary with a PATH prefix of the agents it should
+  # drive. We swap nixpkgs' claude-code for the llm-agents one so t3code runs the
+  # exact same `claude` the `claude-code` feature puts on PATH, and drop codex
+  # (nixpkgs enables it by default) — no account here is logged into it. t3code
+  # finds a provider by binary name, so `claude` on PATH is the whole contract;
+  # see notes.md.
+  t3codeFor = pkgs:
+    pkgs.t3code.override {
+      enableClaude = true;
+      claude-code = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code;
+      enableCodex = false;
     };
+in {
+  flake.modules = {
+    nixos = {
+      # The client: the Electron app, plus the `t3` CLI for one-off servers.
+      t3code = {pkgs, ...}: {
+        environment.systemPackages = [(t3codeFor pkgs)];
+      };
 
-    # Upstream ships *only* an AppImage for Linux (no .deb/.rpm), so unlike
-    # orca we have to unpack it ourselves. Inside it is the same plain
-    # electron-builder tree, which `autoPatchelfHook` then links against
-    # nixpkgs' own libs — we do not run the AppImage through `wrapType2`,
-    # whose FHS sandbox hides `/run/opengl-driver` from the GPU process.
-    # See notes.md.
-    appimageContents = pkgs.appimageTools.extract {inherit pname version src;};
-
-    t3code = pkgs.stdenv.mkDerivation {
-      inherit pname version src;
-
-      nativeBuildInputs = with pkgs; [
-        autoPatchelfHook
-        makeWrapper
-        wrapGAppsHook3
-      ];
-
-      buildInputs = with pkgs; [
-        # Electron/Chromium runtime
-        alsa-lib
-        at-spi2-atk
-        at-spi2-core
-        atk
-        cairo
-        cups
-        dbus
-        expat
-        glib
-        gtk3
-        libdrm
-        libgbm
-        libxkbcommon
-        libGL
-        nspr
-        nss
-        pango
-        udev
-        stdenv.cc.cc.lib
-        xorg.libX11
-        xorg.libXcomposite
-        xorg.libXdamage
-        xorg.libXext
-        xorg.libXfixes
-        xorg.libXrandr
-        xorg.libxcb
-      ];
-
-      # Same ANGLE trap as orca: the bundled `libEGL.so` dlopens the *native*
-      # `libEGL.so.1`, and `dlopen` resolves against the runpath of the calling
-      # library, so libglvnd must be on every patched ELF — not just the main
-      # binary (`runtimeDependencies` would miss it).
-      appendRunpaths = [(pkgs.lib.makeLibraryPath [pkgs.libglvnd])];
-
-      # The bundled chrome-sandbox is setuid-only; on NixOS Electron falls back
-      # to kernel user namespaces instead.
-      dontWrapGApps = true;
-
-      unpackPhase = ''
-        cp -r ${appimageContents} ./app
-        chmod -R u+w ./app
-      '';
-
-      installPhase = ''
-        runHook preInstall
-
-        mkdir -p $out/share
-        cp -r app $out/share/t3code
-        cp -r app/usr/share/icons $out/share/icons
-        # AppImage scaffolding: `usr/lib` is a stack of ancient distro shims and
-        # the two icon symlinks only point into `usr/share`.
-        rm -rf $out/share/t3code/usr
-        rm -f $out/share/t3code/t3code.png $out/share/t3code/.DirIcon
-
-        install -Dm644 app/t3code.desktop $out/share/applications/t3code.desktop
-        substituteInPlace $out/share/applications/t3code.desktop \
-          --replace-fail "Exec=AppRun" "Exec=t3code"
-
-        runHook postInstall
-      '';
-
-      # `AppRun` only exists to bootstrap the AppImage mount; the real
-      # entrypoint is the `t3code` binary next to it.
-      postFixup = ''
-        rm -f $out/share/t3code/AppRun
-        makeWrapper $out/share/t3code/t3code $out/bin/t3code \
-          "''${gappsWrapperArgs[@]}"
-      '';
-
-      meta = {
-        description = "Agent harness control surface for Claude Code, Codex, Cursor and friends";
-        homepage = "https://github.com/pingdotgg/t3code";
-        license = pkgs.lib.licenses.mit;
-        platforms = ["x86_64-linux"];
-        mainProgram = "t3code";
+      # Without lingering, a user service only exists between login and logout —
+      # which defeats the point of reaching this machine from a phone. `hostUsers`
+      # is the loader's account → features map, so only the accounts that actually
+      # enable this feature get it.
+      t3code-server = {
+        lib,
+        hostUsers ? {},
+        ...
+      }: {
+        users.users =
+          lib.genAttrs
+          (lib.filter (u: builtins.elem "t3code-server" hostUsers.${u}) (builtins.attrNames hostUsers))
+          (_: {linger = true;});
       };
     };
-  in {
-    environment.systemPackages = [t3code];
+
+    # The server: `t3 serve`, published on the tailnet, per account.
+    homeManager.t3code-server = {
+      pkgs,
+      lib,
+      ...
+    }: let
+      t3code = t3codeFor pkgs;
+    in {
+      # Self-sufficient by design (ADR 0002): this feature does not `requires`
+      # t3code, because a headless host runs the server without any GUI. On a
+      # host that enables both, this is the same store path twice.
+      home.packages = [t3code];
+
+      systemd.user.services.t3code = {
+        Unit.Description = "T3 Code server, published on the tailnet over Tailscale Serve";
+
+        Service = {
+          # `serve` = start headless and print the pairing token, URL and QR code
+          # (they land in the journal; `t3 pair` mints a fresh one on demand).
+          # `--tailscale-serve` makes Tailscale Serve terminate HTTPS on the
+          # MagicDNS name and proxy to this backend, which is why the listener
+          # stays on loopback and no firewall port is opened. HTTPS is what lets
+          # the phone use https://app.t3.codes — browsers block an HTTPS page
+          # from opening a plain ws:// backend.
+          ExecStart = "${lib.getExe' t3code "t3"} serve --host 127.0.0.1 --port 3773 --no-browser --tailscale-serve";
+          WorkingDirectory = "%h";
+          # tailscaled is a *system* unit, so a user unit cannot order against it.
+          # `tailscale serve` fails until the tailnet is up, so retry instead.
+          Restart = "on-failure";
+          RestartSec = 10;
+        };
+
+        Install.WantedBy = ["default.target"];
+      };
+    };
   };
 
   flake.featureMeta.t3code = {
     requires = ["desktop"];
     kind = "gui";
     provides = {
-      systemBins = ["t3code"];
+      # nixpkgs' mainProgram is t3code-desktop; `t3` is the server/CLI entrypoint.
+      systemBins = ["t3code-desktop" "t3"];
       files = ["/run/current-system/sw/share/applications/t3code.desktop"];
     };
   };
 
-  # feature test: GUI app — per ADR 0002 assert the binary lands on PATH and the
+  # feature test: GUI app — per ADR 0002 assert the binaries land on PATH and the
   # desktop entry is installed (via `provides`), rather than launching a window.
   flake.featureTests.t3code = {};
+
+  flake.featureMeta.t3code-server = {
+    requires = ["tailscale"];
+    kind = "service";
+    # The unit's whole job is to publish itself on a tailnet. A VM has no tailnet
+    # to join, so `tailscale serve` — and with it the service — cannot come up;
+    # the feature test guards eval, the unit being installed, and the CLI.
+    runtimeUntestable = true;
+    provides = {
+      userBins = ["t3"];
+      userFiles = [".config/systemd/user/t3code.service"];
+    };
+  };
+
+  # feature test: fully covered by `provides` — no extra script needed.
+  flake.featureTests.t3code-server = {};
 }
