@@ -1,13 +1,16 @@
 # t3code — feature notes
 
 [pingdotgg/t3code](https://github.com/pingdotgg/t3code) — a minimal web GUI for
-coding agents. One package, two halves:
+coding agents. The nixpkgs package ships two binaries; we use one:
 
-- **`t3code-desktop`** — the Electron client (feature `t3code`).
 - **`t3`** — the Node server + CLI (`serve`, `pair`, `auth`, `project`). The
-  server is what actually owns the projects, files, git state, terminals and
-  agent sessions; every client (desktop, browser, phone) is just a WebSocket
-  client of it. Feature `t3code-server` runs it as a user service.
+  server owns the projects, files, git state, terminals and agent sessions;
+  every client (browser, phone) is just a WebSocket client of it. Feature
+  `t3code-server` runs it as a user service.
+- **`t3code-desktop`** — the Electron client. **Deliberately not installed**; see
+  "The desktop app is not a client of this server" below. Feature `t3code` is
+  the client instead: a launcher entry that opens the server in a chromeless
+  browser window.
 
 The canonical docs are `docs/user/*.md` **in the upstream repo**, not the
 mintlify site — the site is stale (it still documents a `--auth-token` flag that
@@ -130,9 +133,66 @@ so the two views drift apart. Upstream assumes one server per user.
 
 So on a host that runs `t3code-server`, **the browser is the desktop client**:
 `http://localhost:3773` locally, the MagicDNS URL from the phone — one server,
-one database, the same threads everywhere. Opening the Electron app forks a
-second backend onto the same database, which is why `t3code` and `t3code-server`
-are separate features rather than one.
+one database, the same threads everywhere.
+
+Which is why the Electron binary never reaches a profile. `t3CliFor` links
+`bin/t3` and keeps the package's icons and completions, but drops
+`share/applications`, so `t3code-desktop` is neither on PATH nor in the
+launcher. Nothing enforces this beyond the derivation — putting plain
+`pkgs.t3code` in `home.packages` would quietly put the trap back.
+
+## The client: a chromeless browser window
+
+Feature `t3code` is a launcher entry, not an app. `t3code-web` runs the
+canonical chromium browser (`meta.programs.chromium-browser`) as:
+
+```bash
+brave --app=http://localhost:3773 --user-data-dir="$XDG_DATA_HOME/t3code-web"
+```
+
+- `--app=` is what removes the tab strip and address bar. Firefox has no
+  equivalent since `--ssb` was dropped, which is why this uses the chromium
+  browser and not `meta.programs.browser`.
+- The dedicated `--user-data-dir` gives the window its own cookie jar (so it
+  stays paired independently of the browsing profile) and its own process (so it
+  launches and closes on its own instead of as a window of a running browser).
+- **`--class` does nothing here.** Chromium ignores it for `--app` windows on
+  Wayland and derives the app_id from the URL plus the profile directory.
+  Measured on 2026-08-29:
+
+  ```console
+  $ niri msg -j windows      # after launching t3code-web
+  'brave-localhost__-Default' | T3 Code (Alpha)
+  ```
+
+  So `StartupWMClass` in the desktop entry has to be that string, not a name of
+  our choosing. Re-measure with the same command if the URL changes.
+- **Pair it on the same origin it opens.** The session is a cookie, and cookies
+  are scoped per host, so `127.0.0.1` and `localhost` are two different logins.
+  `t3 pair` prints `http://127.0.0.1:3773/pair#token=…` while the launcher opens
+  `http://localhost:3773` — rewrite the host before feeding it to this profile:
+
+  ```bash
+  brave --user-data-dir="$XDG_DATA_HOME/t3code-web" \
+        "http://localhost:3773/pair#token=$(t3 pair --label t3code-web | \
+          grep -oE 'token=[A-Z0-9]+' | cut -d= -f2)"
+  ```
+
+  A chromeless window has no address bar, so the token has to arrive this way —
+  through a normal window on the *same* `--user-data-dir`. Once paired the
+  cookie lives in the profile and `t3code-web` opens straight into the app.
+- `t3 auth session list` is a poor liveness check: `last connected` does not
+  refresh on every websocket reconnect. To see whether a client is really
+  attached, look at the sockets instead — `ss -tnp state established | grep
+  :3773` names the browser process holding them.
+- The entry lives in home-manager (`xdg.desktopEntries`), so `t3code` may not
+  sit in a host's `system` list — the loader hard-fails on that.
+- `xdg.desktopEntries` is installed as a home-manager **package**
+  (`home.packages`, upstream `modules/misc/xdg/desktop-entries.nix`), so under
+  `useUserPackages` the file is
+  `/etc/profiles/per-user/<login>/share/applications/t3code.desktop` — *not*
+  `~/.local/share/applications/`. That path carries the login, so it can't be a
+  static `provides.files` line; the feature test asserts it by hand.
 
 `T3CODE_DESKTOP_WS_URL` looks like it would point the app at an existing server,
 but in `dist-electron` it is only a member of `DESKTOP_BACKEND_ENV_NAMES` — the
