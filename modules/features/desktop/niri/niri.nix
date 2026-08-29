@@ -57,7 +57,19 @@ in {
       v2-settings = true;
       settings = {
         spawn-at-startup = [
-          (lib.getExe self'.packages.myNoctalia)
+          (lib.getExe self'.packages.quickshell-ui)
+          # Wallpaper: static file shipped by the `wallpapers` feature into the
+          # user's home (each account gets its own copy).
+          "${pkgs.writeShellScript "wallpaper" "exec ${lib.getExe pkgs.swaybg} -m fill -i \"$HOME/Pictures/Wallpapers/wallhaven_p92g1m.jpg\""}"
+          # Idle chain (same timings the old noctalia idle config used):
+          # screens off at 10min, lock at 11min, lock before suspend.
+          "${pkgs.writeShellScript "idle" ''
+            exec ${lib.getExe pkgs.swayidle} -w \
+              timeout 600 'niri msg action power-off-monitors' \
+              resume 'niri msg action power-on-monitors' \
+              timeout 660 '${lib.getExe pkgs.swaylock} -f' \
+              before-sleep '${lib.getExe pkgs.swaylock} -f'
+          ''}"
           "${pkgs.writeShellScript "ghostty-server" "exec ${lib.getExe pkgs.${terminal}} --gtk-single-instance=true --initial-window=false"}"
         ];
         prefer-no-csd = _: {};
@@ -105,7 +117,8 @@ in {
 
         layer-rules = [
           {
-            matches = [{namespace = "^noctalia-wallpaper";}];
+            # swaybg's layer surface, shown in the overview backdrop too.
+            matches = [{namespace = "^wallpaper$";}];
             place-within-backdrop = true;
           }
         ];
@@ -122,11 +135,11 @@ in {
               };
             };
 
-            # noctalia IPC goes through noctalia-ipc (see noctalia.nix): it
-            # resolves the running instance's client at invocation time, so the
-            # bind keeps working when this config and the running noctalia come
+            # Shell IPC goes through quickshell-ui-ipc (see quickshell.nix): it
+            # resolves the running instance's config path at invocation time, so
+            # the bind keeps working when this config and the running shell come
             # from different generations.
-            "Mod+Space".spawn-sh = "${lib.getExe self'.packages.noctalia-ipc} call launcher toggle";
+            "Mod+Space".spawn-sh = "${lib.getExe self'.packages.quickshell-ui-ipc} call launcher toggle";
 
             "Mod+F".maximize-column = _: {};
 
@@ -139,7 +152,7 @@ in {
               };
             };
 
-            "Mod+P".spawn-sh = "${lib.getExe self'.packages.noctalia-ipc} call sessionMenu toggle";
+            "Mod+P".spawn-sh = "${lib.getExe self'.packages.quickshell-ui-ipc} call sessionMenu toggle";
 
             "Mod+Shift+Slash".show-hotkey-overlay = _: {};
 
@@ -235,10 +248,11 @@ in {
     kind = "gui";
     # Screenshot-to-clipboard is only half a flow: non-Wayland consumers (Claude
     # Code, and anything else shelling out) need wl-paste to read the image
-    # back. Guard both halves of wl-clipboard. noctalia-shell/noctalia-ipc are
-    # the stable PATH names the niri config's noctalia wiring relies on
-    # (noctalia.nix contributes them to this module).
-    provides.systemBins = ["niri" "wl-paste" "wl-copy" "noctalia-shell" "noctalia-ipc"];
+    # back. Guard both halves of wl-clipboard. quickshell-ui/quickshell-ui-ipc
+    # are the stable PATH names the niri config's shell wiring relies on
+    # (quickshell.nix contributes them to this module), swaylock is the lock
+    # half of the swayidle chain spawned at startup.
+    provides.systemBins = ["niri" "wl-paste" "wl-copy" "quickshell-ui" "quickshell-ui-ipc" "swaylock"];
   };
 
   # feature test: we don't launch the compositor (headless VM has no GPU), so

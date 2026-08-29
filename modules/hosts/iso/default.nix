@@ -26,8 +26,8 @@
       "vscode"
       "firefox"
       "localsend"
-      # Same reason as the vm host: noctalia's startup hook sets a wallpaper
-      # path that only this feature puts in the home.
+      # Same reason as the vm host: swaybg (spawned by niri) points at a
+      # wallpaper path that only this feature puts in the home.
       "wallpapers"
     ];
   };
