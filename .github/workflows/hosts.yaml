@@ -19,12 +19,6 @@ on:
     branches: [main]
     paths-ignore:
       - '**.md'
-  # TEMPORARY (remove before merge): this workflow does not exist on the default
-  # branch yet, and GitHub only registers workflow_dispatch for workflows that
-  # do -- so this is the only way to get one real run before merging.
-  pull_request:
-    paths-ignore:
-      - '**.md'
   workflow_dispatch:
 
 concurrency:
