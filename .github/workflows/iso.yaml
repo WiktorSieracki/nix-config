@@ -98,6 +98,28 @@ jobs:
           fi
           sha256sum nixos.iso > checksums.txt
 
+      # softprops/action-gh-release adds and overwrites the files it is handed,
+      # but never removes assets an earlier run left behind. After the switch
+      # from `split` parts to a single file, `latest` carried both at once --
+      # and the stale `nixos.iso.part-*` still matched the old `cat` instructions
+      # while checksums.txt no longer covered them. Prune whatever we are not
+      # about to upload.
+      - name: Prune stale release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          keep="nixos.iso checksums.txt"
+          existing=$(gh release view latest --json assets -q '.assets[].name' 2>/dev/null || true)
+          for asset in $existing; do
+            case " $keep " in
+              *" $asset "*) ;;
+              *)
+                echo "deleting stale asset: $asset"
+                gh release delete-asset latest "$asset" --yes
+                ;;
+            esac
+          done
+
       - name: Publish rolling release
         uses: softprops/action-gh-release@v2
         with:
