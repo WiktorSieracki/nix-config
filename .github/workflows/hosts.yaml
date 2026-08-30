@@ -32,9 +32,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Two full desktop closures do not fit in the ~14 GB a runner ships with.
+      # Two full desktop closures do not fit in the ~14 GB a runner ships with,
+      # and the default protocol was not enough for the feature-test job either.
       - name: Free disk space
         uses: wimpysworld/nothing-but-nix@main
+        with:
+          hatchet-protocol: rampage
 
       - name: Install Nix
         uses: cachix/install-nix-action@v30

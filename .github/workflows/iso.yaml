@@ -28,8 +28,15 @@ jobs:
     permissions:
       contents: write # create/overwrite the release
     steps:
+      # fetch-depth: 0 is load-bearing. The build below addresses the flake as
+      # `git+file:.`, and nix-eval-jobs (inside nix-fast-build) asks that ref
+      # for `revCount`, which a shallow clone cannot answer:
+      #   error: '...' is a shallow Git repository, so 'revCount' is not available
+      # checkout@v4 clones shallow by default, so every run failed on this.
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # ubuntu-latest has ~14 GB free; the ISO build doesn't fit in that.
       # root-safe-haven: Stage artifacts copies the finished ISO to the workspace
