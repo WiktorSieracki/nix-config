@@ -31,7 +31,6 @@ niri validate
 nix flake check
 ```
 
-To boot the `vm` host or the live ISO in QEMU, see [`docs/running-the-vm.md`](docs/running-the-vm.md).
 To build/drive a single feature's feature test, use the `/nix-loop` skill (`nix build .#checks.<system>.feature-<name>`).
 
 ## Architecture
@@ -64,9 +63,8 @@ When a host enables `"git"` in its modules list, `loadNixosAndHmModuleForUser` i
 
 ### AI-first testable features (feature-test harness)
 
-Each feature is a *self-sufficient, self-testing* unit. See `CONTEXT.md` (glossary)
-and `docs/adr/0002-ai-first-testable-features.md` for the full model; the harness
-lives in `modules/feature-tests.nix`. Key pieces:
+Each feature is a *self-sufficient, self-testing* unit. See `CONTEXT.md` for the
+glossary; the harness lives in `modules/feature-tests.nix`. Key pieces:
 
 - **`featureMeta.<name> = { requires; kind; provides; }`** — a machine-readable
   dependency graph. `requires` lists the feature's deps; the loader in
@@ -105,16 +103,18 @@ lives in `modules/feature-tests.nix`. Key pieces:
 | `desktopNixos` | NVIDIA GPU, Wacom tablet, mouse, zeditor/cursor-ide, agent-of-empires, chromium, Handy, Affine |
 | `laptopNixos`  | Eduroam WiFi; omits nvidia/wacom/mouse/zeditor/cursor-ide/chromium/handy/affine |
 
-There are also two image-only hosts in `modules/hosts/{iso,vm}/`. Both ship the same
-curated feature subset (niri + a few apps), excluding hardware-specific modules
+There are also two image-only hosts in `modules/hosts/{iso,vm}/`, and they are no
+longer the same thing. `iso` is a **minimal installer**: the stock
+`installation-cd-minimal.nix` + the `core` floor + `nix`, `fish`,
+`nixos-bootstrap` and plain `pkgs.git` — no graphical session at all. `vm` still
+ships the curated desktop subset (niri + a few apps) and builds a normal
+installed disk image for testing. Both exclude hardware-specific modules
 (nvidia/wacom/mouse) and secret-dependent ones (sops/git/eduroam/...) that can't
-activate without the real machine's SOPS key. `iso` builds a live CD; `vm` builds a
-normal installed disk image.
+activate without the real machine's SOPS key.
 
-## Running the vm host
-
-Booting the `vm` host or the live ISO in QEMU (SDL grab, sound, headless serial,
-gotchas) is documented in [`docs/running-the-vm.md`](docs/running-the-vm.md).
+`sudo nixos-bootstrap <host>` on the ISO does the whole install: `nixos-install`,
+then the SOPS key out of Bitwarden into the account's `~/.ssh`, then the repo
+into `~/.config/nix-config` so `nh os switch` works on the first boot.
 
 ## Secrets (SOPS)
 
@@ -138,20 +138,11 @@ When writing scripts or modules that need a default editor, terminal, browser, o
 
 - `README.md` documents a legacy Home Manager/WSL flow — ignore it for day-to-day work.
 - `CONTEXT.md` is the canonical glossary for this repo's language (Feature, Host, feature test, Kind, Core, feature notes, …) — consult it before introducing terminology.
-- `docs/adr/` holds architecture decision records (`0001-iso-release-pipeline`, `0002-ai-first-testable-features`) — the authoritative rationale for the architecture.
 - `AGENTS.md` is a thin pointer to this file — this is the canonical agent doc.
 - New `.nix` files must be `git add`ed before building — Nix flakes only evaluate git-tracked files, so `nix build` will fail to see untracked files.
 
-## Agent skills
+## Issue tracker
 
-### Issue tracker
-
-Issues tracked as GitHub issues (`gh` CLI) in `WiktorSieracki/nix-config`. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Canonical five-role labels, used as-is. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Issues are GitHub issues (`gh` CLI) in `WiktorSieracki/nix-config`, triaged with
+five role labels — `wayfinder:{map,grilling,research,prototype,task}` — used as-is
+(`gh label list` is the source of truth).
