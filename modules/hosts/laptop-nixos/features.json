@@ -35,7 +35,9 @@
       "spotify",
       "discord",
       "localsend",
-      "wallpapers"
+      "wallpapers",
+      "bitwarden",
+      "nix-config-checkout"
     ]
   }
 }

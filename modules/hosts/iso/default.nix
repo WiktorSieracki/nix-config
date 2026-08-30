@@ -13,15 +13,18 @@
   # partition a disk, get networking up and run `nixos-install`.
   #
   # What stays and why:
-  #   - `nix`  -- enables `experimental-features = nix-command flakes`, without
-  #               which `nixos-install --flake` refuses to run. Brings `nh` too.
-  #   - `fish` -- the shell actually typed into on the installer console.
+  #   - `nix`              -- enables `experimental-features = nix-command
+  #                           flakes`, without which `nixos-install --flake`
+  #                           refuses to run. Brings `nh` too.
+  #   - `nixos-bootstrap`  -- the one command this image exists for: install a
+  #                           host, place the SOPS key, clone the config.
+  #   - `fish`             -- the shell actually typed into on the console.
   #
   # Plain `pkgs.git` is added below instead of the `git` feature: that feature
   # has `requires = ["sops"]` (user.email comes from a SOPS template) and the
   # live image has no key.
   isoSpec = {
-    system = ["nix"];
+    system = ["nix" "nixos-bootstrap"];
     users.wiktor = ["fish"];
   };
 in {

@@ -1,5 +1,25 @@
 {
   flake.meta = {
+    # This repository, as the machines need to refer to it: the installer clones
+    # it onto a fresh disk and `nix-config-checkout` clones it for a new account.
+    # Cloned over HTTPS (public, needs no key at a point where the key may not be
+    # in place yet); `push` is switched to SSH afterwards.
+    repo = {
+      https = "https://github.com/WiktorSieracki/nix-config";
+      ssh = "git@github.com:WiktorSieracki/nix-config.git";
+      flake = "github:WiktorSieracki/nix-config";
+    };
+
+    # Name of the Bitwarden item (type 5 / SSH key) holding the SOPS key. Not a
+    # secret — it is useless without the vault — and hardcoding it turns the
+    # bootstrap into one command instead of a dialogue.
+    bitwarden.sshKeyItem = "nixos";
+
+    # The account a from-scratch install sets up. Features never hardcode a
+    # login (ADR 0004); `nixos-bootstrap` is a host-level installer script, so it
+    # reads the default from here and still takes `--user` to override.
+    primaryUser = "wiktor";
+
     programs = {
       editor = "code";
       terminal = "ghostty";

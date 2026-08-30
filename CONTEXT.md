@@ -37,6 +37,14 @@ feature works without it.
 _Avoid_: module (too general — a `feature` is specifically this pattern),
 package (confusing with an nixpkgs package — here the unit is a `feature`).
 
+**Primary user** (`meta.primaryUser`):
+The account a from-scratch install sets up, and the only place a real login may
+be named outside `meta.users`. **Features** never hardcode a login (their
+identity is injected); **Bootstrap** is not a feature's content but a host-level
+installer acting on an account that does not exist yet, so it reads the default
+from here and still takes `--user` to override.
+_Avoid_: main user, owner, default account.
+
 **Identity** (`meta.users`):
 The canonical registry of accounts in `flake.meta.users.<login>`: full name,
 groups, shell, addresses. An account exists on a **Host** ⇔ its login is a key
@@ -154,9 +162,22 @@ the `nix` and `fish` **features** + plain `pkgs.git`. It carries no graphical
 session, no **host**-specific hardware features (`nvidia/wacom/mouse`) and no
 secret-dependent ones (`sops/git/eduroam/...`) — the latter can't activate
 without the machine's key anyway. The target **host** is chosen only at install
-time (`nixos-install --flake github:...#desktopNixos | #laptopNixos`), and
-everything that host runs is fetched then, out of the **host closure cache**.
+time, and everything that host runs is fetched then, out of the **host closure
+cache**. In practice the whole install is one command -- see **Bootstrap**.
 _Avoid_: live image, live ISO, per-machine image, per-host installer.
+
+**Bootstrap** (`nixos-bootstrap`):
+The installer image's single command, and the definition of a *finished*
+install. `nixos-install` alone leaves two things missing that only show up
+later: the SOPS key is not in the account's `~/.ssh`, so every secret-backed
+**feature** fails to activate on the first boot, and `~/.config/nix-config` does
+not exist, so `nh os switch` (which follows `NH_FLAKE`) has nothing to build
+from. Bootstrap does all three in order -- install, key, checkout -- and the
+order is forced: the account's uid does not exist until the install has run.
+The key comes out of Bitwarden (item name in `flake.meta.bitwarden`); the CLI is
+fetched with `nix run` rather than baked into the **ISO**, whose release
+headroom is smaller than that closure.
+_Avoid_: installer script, provisioning, post-install.
 
 **Host closure cache**:
 The `wiktor-nixos` Cachix cache, filled on every push to `main` by
