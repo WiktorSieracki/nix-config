@@ -76,6 +76,24 @@ in {
           # The installer profile autologins its own `nixos` account on tty1;
           # land in wiktor's fish instead.
           services.getty.autologinUser = lib.mkForce "wiktor";
+
+          # `modules/features/desktop/cursor.nix` writes to the *always-on* HM
+          # floor (`flake.modules.homeManager.homeManager`), not to a
+          # desktop-scoped module -- so every account on every host gets
+          # `gtk.enable` and `home.pointerCursor`, this image included. That
+          # makes home-manager emit a `dconfSettings` activation step, which on
+          # an image with no graphical session dies with
+          #
+          #   GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown:
+          #   The name ca.desrt.dconf was not provided by any .service files
+          #
+          # taking `home-manager-wiktor.service` (and `systemctl
+          # is-system-running`) down with it. Turning the step off is the right
+          # call for a console installer: there is no session for those
+          # settings to affect. The underlying misplacement of cursor.nix is a
+          # separate problem -- it is also why the GTK stack is in this image's
+          # closure at all.
+          home-manager.users.wiktor.dconf.enable = false;
         })
       ]
       ++ config.flake.lib.loadHost config isoSpec;
