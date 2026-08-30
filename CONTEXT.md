@@ -145,18 +145,34 @@ diff as confirmation, finishing through `nh os test`/`switch`; globally it also
 bumps `flake.lock`. It edits host data files — it never touches `.nix`.
 _Avoid_: features-cli, manager, panel.
 
-**ISO** (live image):
-A single **generic** live image (host `iso`), bootable on any machine. It is not
-a "laptop image" or a "desktop image" — it is a live/install environment. The
-target **host** is chosen only at install time from the ISO
-(`nixos-install --flake .#desktopNixos | .#laptopNixos`). It deliberately omits
-hardware features (`nvidia/wacom/mouse`) and secret-dependent ones
-(`sops/git/eduroam/...`), since they can't activate without the machine's key.
-_Avoid_: per-machine image, per-host installer.
+**ISO** (minimal installer):
+A single **generic** installer image (host `iso`), bootable on any machine. It
+is not a "laptop image", a "desktop image", or a live desktop — it is the
+smallest thing that can partition a disk, get networking up (`nmtui`) and run
+`nixos-install`. Contents: the stock minimal installer + the **core** floor +
+the `nix` and `fish` **features** + plain `pkgs.git`. It carries no graphical
+session, no **host**-specific hardware features (`nvidia/wacom/mouse`) and no
+secret-dependent ones (`sops/git/eduroam/...`) — the latter can't activate
+without the machine's key anyway. The target **host** is chosen only at install
+time (`nixos-install --flake github:...#desktopNixos | #laptopNixos`), and
+everything that host runs is fetched then, out of the **host closure cache**.
+_Avoid_: live image, live ISO, per-machine image, per-host installer.
+
+**Host closure cache**:
+The `wiktor-nixos` Cachix cache, filled on every push to `main` by
+`.github/workflows/hosts.yaml`, which builds `system.build.toplevel` for
+`desktopNixos` and `laptopNixos` (exposed as
+`packages.x86_64-linux.<host>-system`). It is what makes the thin **ISO**
+workable: a fresh install substitutes this repo's own packages instead of
+building them. Also the only check that both real hosts still build.
+_Avoid_: binary cache (ambiguous — `cache.nixos.org` is one too), CI artifact.
 
 **Release** (rolling `latest`):
 A single, overwritten GitHub release under the tag `latest`, carrying the latest
-**ISO** + `checksums.txt`. A stable download URL instead of dated history.
+**ISO** + `checksums.txt` as one file each. Cut **manually**
+(`workflow_dispatch`), not on every push — the installer image barely changes,
+while the **host closure cache** is what has to track `main`. A stable download
+URL instead of dated history.
 _Avoid_: snapshot, versioned release.
 
 ### Flagged ambiguities
@@ -164,16 +180,22 @@ _Avoid_: snapshot, versioned release.
 - **"image"** is sometimes confused with "an image of a specific machine". In
   this repo we ship **one generic ISO**; per-machine images were rejected because
   after filtering out hardware and secrets, `iso-desktop` and `iso-laptop` would
-  be nearly identical.
+  be nearly identical — and once the ISO became a minimal installer the question
+  stopped being meaningful at all.
+- **"the ISO has my setup on it"** — it does not, and deliberately so. The
+  **ISO** installs a **host**; the setup comes down from the **host closure
+  cache** during `nixos-install`.
 
 ### Example dialogue
 
 > — Let's cut a new **release**.
-> — OK, a push to `main` builds the **ISO** from the `iso` host and overwrites
->   the `latest` tag.
+> — OK — that's a manual run of the ISO workflow; it builds the **ISO** from the
+>   `iso` host and overwrites the `latest` tag. A push to `main` doesn't do it,
+>   a push only refreshes the **host closure cache**.
 > — And how do I install a laptop from it?
 > — You boot the same **ISO** and run `nixos-install --flake .#laptopNixos` — the
->   **host** choice happens at install time, not at download time.
+>   **host** choice happens at install time, not at download time, and the
+>   closure comes out of the cache rather than being built on the spot.
 >
 > — I want slack on the work account.
 > — `slack` is a **user feature** — with Switchboard you add it to `users.work`
