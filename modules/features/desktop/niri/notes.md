@@ -1,6 +1,6 @@
 # feature notes: niri
 
-*Last updated: 2026-08-22*
+*Last updated: 2026-08-29*
 
 ## Gotcha: noctalia IPC binds must not bake a store path (2026-08-22)
 
@@ -66,3 +66,18 @@ Screenshot stays on `wlr` deliberately — it grabs without an interactive picke
 which the gnome backend would force.
 Full context, including the Electron/XWayland half of the same bug, is in
 `modules/features/apps/discord/notes.md`.
+
+## Gotcha: keep-awake is runtime-only state, re-armed by the startup hook (2026-08-29)
+
+**Symptom**: the machine dims the screens after 10 min and locks after 11 min
+(`idle.screenOffTimeout` / `lockTimeout`), and the KeepAwake toggle that stops it
+has to be clicked again after every login.
+**Cause**: noctalia's manual idle inhibitor lives in `IdleInhibitorService`'s
+`activeInhibitors` list only — there is no `settings.json` key for it, so a
+declarative wrapper-modules setting cannot express "start inhibited". While
+active, the shell binds a native Wayland `IdleInhibitor` per screen, which stops
+niri's `ext-idle-notify-v1` clock and therefore `IdleService` entirely.
+**Fix**: `hooks.startup` (noctalia.nix) calls `noctalia-ipc call idleInhibitor
+enable` after pinning the wallpaper, so every session starts inhibited; the bar /
+control-center toggle still turns it off for the rest of the session. The idle
+timeouts are deliberately left enabled so that toggle has something to re-arm.

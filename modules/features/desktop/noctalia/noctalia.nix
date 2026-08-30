@@ -22,6 +22,8 @@
   }: let
     # The wallpaper installed by wallpapers/wallpaper.nix into ~/Pictures/Wallpapers.
     wallpaper = "/home/wiktor/Pictures/Wallpapers/wallhaven_p92g1m.jpg";
+    # Drift-proof IPC client (see packages.noctalia-ipc below).
+    ipc = lib.getExe self'.packages.noctalia-ipc;
   in {
     # noctalia's IPC interface for niri binds and hooks. quickshell matches the
     # running instance by its `-p <pkg>/share/noctalia-shell` config path, so an
@@ -764,13 +766,18 @@
           screenUnlock = "";
           performanceModeEnabled = "";
           performanceModeDisabled = "";
-          # Pin our wallpaper on every startup. Noctalia stores the active
-          # wallpaper only in the writable cache (~/.cache/noctalia/wallpapers.json),
-          # not in the read-only store settings.json, so without this a fresh
-          # cache (new machine / VM / cleared cache) falls back to the bundled
-          # default instead of ours. noctalia-ipc resolves the client from the
-          # running instance, so the pair can't drift across generations.
-          startup = "${lib.getExe self'.packages.noctalia-ipc} call wallpaper set ${wallpaper} all";
+          # Two pins on every startup, chained in the `sh -lc` noctalia runs the
+          # hook through. Both re-apply state that lives outside settings.json:
+          #   1. the wallpaper — noctalia keeps the active one only in the
+          #      writable cache (~/.cache/noctalia/wallpapers.json), so a fresh
+          #      cache (new machine / VM / cleared cache) would fall back to the
+          #      bundled default instead of ours;
+          #   2. keep-awake — the manual idle inhibitor is runtime-only state
+          #      with no settings key, so this machine defaults to inhibited
+          #      (no screen-off, no idle lock) until the bar toggle turns it off.
+          # noctalia-ipc resolves the client from the running instance, so the
+          # pair can't drift across generations.
+          startup = "${ipc} call wallpaper set ${wallpaper} all; ${ipc} call idleInhibitor enable";
           session = "";
           colorGeneration = "";
           enabled = true;
