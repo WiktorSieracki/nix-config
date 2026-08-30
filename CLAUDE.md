@@ -116,6 +116,35 @@ activate without the real machine's SOPS key.
 then the SOPS key out of Bitwarden into the account's `~/.ssh`, then the repo
 into `~/.config/nix-config` so `nh os switch` works on the first boot.
 
+## Running an image in QEMU
+
+```bash
+nix build .#nixosConfigurations.iso.config.system.build.isoImage
+nix shell nixpkgs#qemu -c qemu-system-x86_64 \
+  -enable-kvm -m 4096 -smp 4 -cdrom result/iso/*.iso -boot d
+```
+
+The installer autologins `wiktor` on the console into fish; `nixos` is the sudo
+password. To drive it from a script instead, add `-display none` plus
+`-netdev user,id=n0,hostfwd=tcp::2222-:22 -device virtio-net-pci,netdev=n0` and
+`ssh -p 2222 wiktor@localhost` — the account's authorized key is on the image,
+so no password is needed over SSH.
+
+Three things that cost time to rediscover:
+
+- **A headless run cannot confirm the `pl2` keymap.** With no virtual console
+  `systemd-vconsole-setup` logs *"Configuration of first virtual console was
+  skipped"* and `localectl` reports `VC Keymap: (unset)`, while
+  `/etc/vconsole.conf` is correct. Only a windowed run answers that question.
+- **To watch the boot itself**, boot `-kernel`/`-initrd` out of the closure
+  (`config.system.build.{kernel,initialRamdisk}`) with `console=ttyS0` in
+  `-append`. The bootloader menu does not render on the serial console, so
+  there is nothing to select there otherwise.
+- **The `vm` host is a different case** — it has a niri session. Run it with
+  `SDL_VIDEODRIVER=wayland` and `-display sdl,gl=on`: QEMU's GTK backend does
+  not request the Wayland shortcut inhibitor on niri, so `Ctrl+Alt+G` never
+  grabs `Super` and the mouse stops working.
+
 ## Secrets (SOPS)
 
 Secrets live in `secrets.yaml` (SOPS-encrypted). Decryption key is `/home/wiktor/.ssh/id_ed25519` (configured in `.sops.yaml`). Modules access secrets via `sops.secrets.<name>` and `sops.templates.*`. Eval or activation failures related to sops are typically key/setup issues, not module syntax errors.
