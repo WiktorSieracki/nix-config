@@ -1,5 +1,8 @@
 {inputs, ...}: {
-  flake.niriBinds.firefox = {pkgs, lib}: {
+  flake.niriBinds.firefox = {
+    pkgs,
+    lib,
+  }: {
     "Mod+B" = _: {
       props."hotkey-overlay-title" = "Open a Browser: Firefox";
       content."spawn" = "${lib.getExe pkgs.firefox}";
@@ -62,6 +65,10 @@
                 {
                   name = "Personal Page";
                   url = "https://wiktorsieracki.com";
+                }
+                {
+                  name = "Usage";
+                  url = "https://claude.ai/new#settings/usage";
                 }
                 # {
                 #   name = "folder";

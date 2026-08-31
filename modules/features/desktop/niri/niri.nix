@@ -51,15 +51,20 @@ in {
     extraWindowRules =
       map (fn: fn {inherit pkgs lib;})
       (builtins.attrValues config.flake.niriWindowRules);
+    extraSpawnAtStartup =
+      map (fn: fn {inherit pkgs lib;})
+      (builtins.attrValues config.flake.niriSpawnAtStartup);
   in {
     packages.myNiri = inputs.wrapper-modules.wrappers.niri.wrap {
       inherit pkgs;
       v2-settings = true;
       settings = {
-        spawn-at-startup = [
-          (lib.getExe self'.packages.myNoctalia)
-          "${pkgs.writeShellScript "ghostty-server" "exec ${lib.getExe pkgs.${terminal}} --gtk-single-instance=true --initial-window=false"}"
-        ];
+        spawn-at-startup =
+          [
+            (lib.getExe self'.packages.myNoctalia)
+            "${pkgs.writeShellScript "ghostty-server" "exec ${lib.getExe pkgs.${terminal}} --gtk-single-instance=true --initial-window=false"}"
+          ]
+          ++ extraSpawnAtStartup;
         prefer-no-csd = _: {};
         xwayland-satellite.path = lib.getExe pkgs.xwayland-satellite;
         input = {

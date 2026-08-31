@@ -5,6 +5,12 @@
     description = "Niri keybindings contributed by feature modules, as functions {pkgs, lib} -> binds attrset";
   };
 
+  options.flake.niriSpawnAtStartup = lib.mkOption {
+    type = lib.types.attrsOf lib.types.anything;
+    default = {};
+    description = "Commands niri spawns at session start, contributed by feature modules as functions {pkgs, lib} -> string (a single executable path; wrap in writeShellScript when arguments are needed). Appended to settings.spawn-at-startup.";
+  };
+
   options.flake.niriWindowRules = lib.mkOption {
     type = lib.types.attrsOf lib.types.anything;
     default = {};
