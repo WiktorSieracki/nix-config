@@ -10,6 +10,12 @@
         version = "0.2.0";
         src = ./.;
         vendorHash = "sha256-4rK69s1uTFBV20endymLw6JEUfrh51bznZEgbujUQls=";
+
+        # `sb` shorthand. A symlink in the derivation rather than a shell
+        # alias: it works from any shell (and from scripts/exec), and the
+        # feature test asserts it via `provides.systemBins`.
+        postInstall = "ln -s switchboard $out/bin/sb";
+
         meta.mainProgram = "switchboard";
       })
     ];
@@ -20,7 +26,7 @@
   flake.featureMeta.switchboard = {
     requires = ["nix"];
     kind = "cli";
-    provides.systemBins = ["switchboard"];
+    provides.systemBins = ["switchboard" "sb"];
   };
 
   # feature test (kind cli): the binary is on PATH and handles --version/--help
@@ -35,6 +41,8 @@
     testScript = ''
       machine.succeed("switchboard --version")
       machine.succeed("switchboard --help")
+      # the `sb` shorthand resolves to the same program
+      machine.succeed("sb --version")
     '';
   };
 }
