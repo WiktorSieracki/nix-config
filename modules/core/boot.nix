@@ -8,7 +8,7 @@
         efiSupport = true;
         useOSProber = true;
       };
-      timeout = 99999; # wait forever
+      timeout = 10;
     };
   };
 }

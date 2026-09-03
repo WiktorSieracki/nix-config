@@ -24,7 +24,7 @@
         # Both accounts belong to the same person, so a bare fullName made the
         # greeter show two identical entries. displayName disambiguates them
         # there without touching the git identity (fullName).
-        displayName = "Wiktor Sieracki (Personal)";
+        displayName = "Personal";
         groups = ["networkmanager" "wheel"];
         shell = "fish";
         emailSecret = "studentEmail";
@@ -37,7 +37,7 @@
       # homeMode 700 from the NixOS default). Managed by wiktor.
       work = {
         fullName = "Wiktor Sieracki";
-        displayName = "Wiktor Sieracki (Work)";
+        displayName = "Work";
         groups = [];
         shell = "fish";
         emailSecret = "workEmail";
