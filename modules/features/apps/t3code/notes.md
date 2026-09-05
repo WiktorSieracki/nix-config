@@ -266,16 +266,11 @@ none of them applied yet:
    this host; an agent has to fall back to another browser tool. Zero risk.
 2. **Add an Electron client next to the server** and pair it to the running unit
    as a *saved environment*. `PreviewAutomationHosts` registers one host per
-   connected environment, and the broker routes by `environmentId`, so an
+   connected environment and the broker routes by `environmentId`, so an
    Electron client attached to the unit's environment hosts previews for
    sessions that run there — the upstream `docs/user/remote-access.md` model
-   ("Every saved environment is offered, not only the local one"). Two
-   constraints: `pkgs.t3code` ships `bin/t3code-desktop` but `t3CliFor` links
-   only `bin/t3`, and the app *always* spawns its own backend — so it needs
-   `T3CODE_HOME` pointing at a separate data dir (`DesktopConfig` reads it),
-   or it reopens the shared-`state.sqlite` drift documented above.
-   **Unverified:** the pairing step is GUI-only, so this path has not been
-   measured here.
+   ("Every saved environment is offered, not only the local one"). **Measured
+   end to end on 2026-09-05 — recipe and its four surprises below.**
 3. **Preview from another machine's desktop app** over the tailnet. Works the
    same way, with one extra catch: for a *remote* environment,
    `apps/web/src/browser/browserTargetResolver.ts` rewrites a loopback preview
@@ -283,6 +278,71 @@ none of them applied yet:
    `http://desktopnixos.tail87a44c.ts.net:5173` (`direct-private-network`), so
    the dev server must bind a non-loopback address and be reachable on the
    tailnet. Tailscale Serve only proxies 443, so it does not cover this.
+
+### Measured: an Electron client paired to the unit does host previews
+
+**2026-09-05.** Option 2 was run end to end on `desktopNixos` against the live
+`t3code` unit, and it works: `preview_status` went from
+`PreviewAutomationNoAvailableHostError` to `available: true`, and
+`preview_open` / `preview_click` / `preview_snapshot` drove a real page from an
+agent session on the unit's environment. What it took:
+
+```bash
+# 1. the app, with its own backend on its own data dir, so the unit's
+#    ~/.t3/userdata/state.sqlite is never opened twice (see the drift above)
+T3CODE_HOME=/tmp/t3-preview-probe T3CODE_PORT=3799 \
+  t3code-desktop --ozone-platform=wayland
+
+# 2. a pairing token for the *unit*, not for the app's own backend
+t3 pair --label preview-host --ttl 30m
+#   → Pairing URL: http://127.0.0.1:3773/pair#token=…
+```
+
+Then in the app: **Settings → Connections → Remote environments → Add
+environment**, paste the whole pairing URL into **Host** — `parsePairingUrlFields`
+splits it into host + code by itself — and submit. The unit is saved as an
+environment named `desktopNixos`, its threads appear in the app's sidebar, and
+`t3 auth session list` gains a
+`preview-host | desktop | Linux x86_64 | Electron | 127.0.0.1` row.
+
+Four things this measured that reading the code did not say:
+
+- **`--ozone-platform=wayland` is required.** `--ozone-platform-hint=auto` picks
+  X11 on this niri session and the app dies on the spot with
+  `Missing X server or $DISPLAY`.
+- **Isolating `T3CODE_HOME` also fixes `t3 pair`.** The trap noted above (with
+  the app open, `t3 pair` reports the app's backend) does not apply here: the
+  app's backend lives in the other data dir, so `t3 pair` still finds the unit.
+- **The client is not a headless preview daemon — the thread has to be open in
+  it.** With the environment paired but the thread not loaded in the app,
+  `preview_status` already answers `available: true` while `preview_snapshot`
+  fails with *"Preview snapshot failed"* (`UnknownVizError` in the returned
+  `actionTimeline`): `ElectronBrowserHost` mounts a `webview[data-preview-tab]`
+  only for preview sessions of threads the client has loaded, and
+  `waitForDesktopOverlay` waits for exactly that element. Opening the thread in
+  the app mounted the webview and the identical call returned the screenshot,
+  DOM text and accessibility tree.
+- **Opening a *running* thread in a second client moves the git checkout.**
+  Measured the hard way: opening this thread in the app while an agent was
+  working on a feature branch ran `git checkout main` in the repo
+  (`git reflog`: `checkout: moving from docs/t3code-preview-desktop-only to
+  main`) — the client restores the thread's recorded checkout, and the running
+  agent's working tree goes with it. Commits already made survive on their
+  branch; uncommitted work would not. Commit before attaching a second client
+  to a live thread.
+
+One more upstream quirk: **`preview_click` returns a result some MCP clients
+reject**. The click itself landed (the tab navigated), but the tool answered
+with `structuredContent: null`, which claude-code's MCP client refused as a
+malformed result. Read a schema error from `preview_click` as "probably
+clicked" and confirm with `preview_status`.
+
+The probe was torn down afterwards: app killed, pairing session revoked with
+`t3 auth session revoke <id>`, `/tmp/t3-preview-probe` removed. Nothing in this
+repo enables such a client — turning the recipe into a feature (a
+`t3code-desktop` entry carrying `T3CODE_HOME`, `T3CODE_PORT` and the ozone flag)
+is still an open decision, and it re-adds the second backend this feature set
+out to avoid.
 
 Scope of the check: browser clients and the Electron app. The native mobile app
 is a separate client and was not examined.
