@@ -50,7 +50,9 @@
       "wallpapers",
       "vm-launcher",
       "claude-code",
-      "claude-skills"
+      "claude-skills",
+      "bitwarden",
+      "nix-config-checkout"
     ],
     "work": [
       "fish",
@@ -61,7 +63,8 @@
       "chrome",
       "wallpapers",
       "agent-of-empires",
-      "claude-agent-acp"
+      "claude-agent-acp",
+      "nix-config-checkout"
     ]
   }
 }

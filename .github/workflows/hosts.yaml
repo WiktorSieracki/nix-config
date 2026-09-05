@@ -1,0 +1,71 @@
+name: Host closures
+
+# Builds the two real machines' system closures (`desktopNixos`, `laptopNixos`)
+# and pushes them to the personal Cachix cache `wiktor-nixos`.
+#
+# Why this exists: the ISO is a *minimal installer* (see modules/hosts/iso), so
+# everything a machine actually runs is downloaded at install time by
+# `nixos-install --flake github:...#desktopNixos`. The valuable CI artifact is
+# therefore the host closure in the cache, not an image -- with it, a fresh
+# install substitutes this repo's own packages instead of building them on a
+# machine that has nothing on it yet.
+#
+# It is also the only thing that checks the two real hosts still build at all;
+# a stale fixed-output hash (see modules/features/programming/editors/
+# vscode-insiders/notes.md) used to surface only during an install.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+concurrency:
+  group: host-closures
+  cancel-in-progress: true
+
+jobs:
+  hosts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Two full desktop closures do not fit in the ~14 GB a runner ships with,
+      # and the default protocol was not enough for the feature-test job either.
+      - name: Free disk space
+        uses: wimpysworld/nothing-but-nix@main
+        with:
+          hatchet-protocol: rampage
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+            build-dir = /nix/build
+
+      # The post step of this action uploads every store path the job created,
+      # so the plain `nix build` below is all the "push" that is needed.
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v15
+        with:
+          name: wiktor-nixos
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build host closures
+        run: |
+          nix run nixpkgs#nix-fast-build -- \
+            --no-nom \
+            --skip-cached \
+            --retries 3 \
+            --cachix-cache wiktor-nixos \
+            --flake '.#packages.x86_64-linux.desktopNixos-system'
+          nix run nixpkgs#nix-fast-build -- \
+            --no-nom \
+            --skip-cached \
+            --retries 3 \
+            --cachix-cache wiktor-nixos \
+            --flake '.#packages.x86_64-linux.laptopNixos-system'
