@@ -1,13 +1,8 @@
-{
-  config,
-  inputs,
-  ...
-}: let
-  programs = config.flake.meta.programs;
-
+{inputs, ...}: let
   # nixpkgs ships the whole of upstream in one derivation: `bin/t3` (the Node
-  # server + CLI) and `bin/t3code-desktop` (the Electron client). Only the
-  # server half survives into either feature — see `t3CliFor` below.
+  # server + CLI) and `bin/t3code-desktop` (the Electron client). Each feature
+  # takes one half — `t3CliFor` for the server, `t3codeAppFor` for the client —
+  # and neither takes the package as-is.
   #
   # nixpkgs wraps every t3code binary with a PATH prefix of the agents it should
   # drive. We swap nixpkgs' claude-code for the llm-agents one so t3code runs the
@@ -22,11 +17,13 @@
       enableCodex = false;
     };
 
-  # `t3` on its own. On a host that runs the server, the bundled Electron client
-  # is a trap: it never attaches to the running server, it forks a *second*
-  # backend onto the same `~/.t3` database (notes.md). Dropping
-  # `share/applications` is what keeps it out of the launcher; everything else
-  # the package ships (icons, shell completions) is kept.
+  # `t3` on its own. Upstream's own desktop entry is the trap: it runs
+  # `t3code-desktop` bare, and a bare app forks a second backend onto the unit's
+  # own `~/.t3` database, where the two servers' projections drift (notes.md).
+  # Dropping `share/applications` is what keeps that entry out of the launcher,
+  # leaving `t3codeAppFor`'s wrapper — which isolates the app's backend — as the
+  # only way in. Everything else the package ships (icons, shell completions) is
+  # kept; the launcher entry below takes its icon from here.
   t3CliFor = pkgs: let
     full = t3codeFor pkgs;
   in
@@ -43,35 +40,40 @@
       done
     '';
 
-  # A chromeless window onto the local server, so t3code opens from the launcher
-  # like an app rather than a browser tab. `--app` drops the tab strip and the
-  # address bar. The dedicated `--user-data-dir` gives the window its own cookie
-  # jar — so it stays paired with the server independently of the browsing
-  # profile — and its own process, so it launches and closes on its own rather
-  # than as a window of a running browser.
+  # The client: the Electron app, kept off the unit's data by construction.
+  # The app *always* spawns its own backend — `DesktopConfig` has no "attach to
+  # a running server" option (checked upstream) — so `T3CODE_HOME` gives that
+  # backend a data directory of its own and `T3CODE_PORT` a port of its own,
+  # and the unit's `~/.t3/userdata/state.sqlite` is never opened twice. That
+  # second backend does nothing but serve the app's UI; the real server is
+  # reached by pairing the unit as a saved environment, once, in
+  # Settings → Connections. See notes.md for the recipe and what it buys
+  # (the preview panel and the agent's `preview_*` tools, which no browser
+  # client can have).
   #
-  # `--class` is NOT set: chromium ignores it for `--app` windows on Wayland and
-  # derives the app_id from the URL and the profile directory instead. Measured
-  # with `niri msg -j windows`, this one comes up as `brave-localhost__-Default`,
-  # which is what StartupWMClass below has to say. Re-check it with the same
-  # command if the URL ever changes.
-  t3codeWebFor = pkgs:
+  # `--ozone-platform=wayland` is passed explicitly instead of the NIXOS_OZONE_WL
+  # dance in `discord.nix`: nixpkgs' t3code wrapper only prefixes PATH, so it acts
+  # on no such variable. Electron's own `--ozone-platform-hint=auto` reads the
+  # session environment and was measured falling back to X11 (dying on
+  # `Missing X server or $DISPLAY`) when `XDG_SESSION_TYPE` was unset, which a
+  # launcher entry cannot guarantee. The explicit flag needs no session state.
+  t3codeAppFor = pkgs: let
+    full = t3codeFor pkgs;
+  in
     pkgs.writeShellApplication {
-      name = "t3code-web";
-      runtimeInputs = [pkgs.${programs.chromium-browser}];
+      name = "t3code-desktop";
       text = ''
-        exec ${programs.chromium-browser} \
-          --app=http://localhost:3773 \
-          --user-data-dir="''${XDG_DATA_HOME:-$HOME/.local/share}/t3code-web" \
-          "$@"
+        export T3CODE_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/t3code-desktop"
+        export T3CODE_PORT=3799
+        exec ${full}/bin/t3code-desktop --ozone-platform=wayland "$@"
       '';
     };
 in {
   flake.modules = {
     nixos = {
-      # The client: a launcher entry, not an app. See notes.md.
+      # The client. See notes.md.
       t3code = {pkgs, ...}: {
-        environment.systemPackages = [(t3codeWebFor pkgs)];
+        environment.systemPackages = [(t3codeAppFor pkgs)];
       };
 
       # Without lingering, a user service only exists between login and logout —
@@ -94,12 +96,14 @@ in {
       t3code = {...}: {
         xdg.desktopEntries.t3code = {
           name = "T3 Code";
-          exec = "t3code-web";
+          exec = "t3code-desktop";
           icon = "t3code"; # from the CLI package's share/icons, kept above
           terminal = false;
           categories = ["Development"];
-          # The app_id chromium actually reports — see t3codeWebFor above.
-          settings.StartupWMClass = "brave-localhost__-Default";
+          # The app_id the Electron app reports, measured on 2026-09-05 with
+          # `niri msg -j windows`. Re-measure with the same command after a
+          # major t3code bump.
+          settings.StartupWMClass = "t3code";
         };
       };
 
@@ -139,16 +143,18 @@ in {
   };
 
   flake.featureMeta.t3code = {
-    # The entry points at http://localhost:3773, so the server has to be on this
-    # host. A machine that only wants to *reach* another host's t3code needs no
-    # feature at all — it opens the tailnet URL in a browser.
+    # The app is paired to *this* host's unit, and takes its icon from the CLI
+    # package `t3code-server` installs, so the server belongs on the same host.
+    # A machine that only wants to *reach* another host's t3code needs no
+    # feature at all — it opens the tailnet URL in a browser (and gets no
+    # preview there; notes.md).
     requires = ["desktop" "t3code-server"];
     kind = "gui";
-    provides.systemBins = ["t3code-web"];
+    provides.systemBins = ["t3code-desktop"];
   };
 
-  # feature test: the chromeless window needs a live niri session and a paired
-  # browser profile, so the launcher and its entry are as far as a headless VM
+  # feature test: the app needs a live niri session and a paired environment, so
+  # the launcher entry and the wrapper's contract are as far as a headless VM
   # reaches. The entry can't be a `provides.userFiles` line: home-manager
   # installs `xdg.desktopEntries` as a *package* (home.packages), so under
   # `useUserPackages` it lands in the account's profile — a path that carries the
@@ -157,8 +163,16 @@ in {
     testScript = ''
       entry = "/etc/profiles/per-user/tester/share/applications/t3code.desktop"
       machine.succeed(f"test -e {entry}")
-      machine.succeed(f"grep -qx 'Exec=t3code-web' {entry}")
-      machine.succeed(f"grep -qx 'StartupWMClass=brave-localhost__-Default' {entry}")
+      machine.succeed(f"grep -qx 'Exec=t3code-desktop' {entry}")
+      machine.succeed(f"grep -qx 'StartupWMClass=t3code' {entry}")
+
+      # The two variables that keep the app's own backend off the unit's
+      # database and port, and the flag without which it dies on a Wayland-only
+      # session. Losing any of them is silent at eval time.
+      wrapper = machine.succeed("command -v t3code-desktop").strip()
+      machine.succeed(f"grep -q 'T3CODE_HOME=' {wrapper}")
+      machine.succeed(f"grep -q 'T3CODE_PORT=3799' {wrapper}")
+      machine.succeed(f"grep -q -- '--ozone-platform=wayland' {wrapper}")
     '';
   };
 

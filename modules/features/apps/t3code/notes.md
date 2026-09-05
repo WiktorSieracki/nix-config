@@ -109,9 +109,22 @@ enables the feature (via the loader's `hostUsers`). Without it the user manager
 — and the server — would only exist between login and logout, which defeats the
 point of reaching this machine from a phone.
 
-### The desktop app is not a client of this server — use a browser
+### Activating a rebuild restarts the server — and kills its agent sessions
 
-**2026-08-29, measured.** The Electron app always spawns *its own* backend; it
+**2026-09-05, measured.** This home-manager generation activates user units with
+**sd-switch** (`grep sd-switch $(readlink -f ~/.local/state/home-manager/gcroots/current-home)/activate`),
+so any change to `t3code.service` — a new `t3` store path from a nixpkgs bump is
+enough — restarts it on `nh os switch`/`test`. The server owns its provider
+sessions: every agent running inside it dies with it, mid-task, including an
+agent that is itself doing the rebuild. Rebuild when nothing is mid-flight, and
+never let an agent activate a generation that bumps its own t3code.
+
+### The desktop app spawns its own backend
+
+**2026-08-29, measured.** *(This section's verdict — "use a browser" — was
+reversed on 2026-09-05: the app is the client now, run with an isolated
+`T3CODE_HOME` so the collision below cannot happen, because preview needs
+Electron. The measurements themselves still hold.)* The Electron app always spawns *its own* backend; it
 never attaches to a running one. Both orders were observed:
 
 - app first → it holds `127.0.0.1:3773` and the unit crash-loops on
@@ -141,50 +154,78 @@ Which is why the Electron binary never reaches a profile. `t3CliFor` links
 launcher. Nothing enforces this beyond the derivation — putting plain
 `pkgs.t3code` in `home.packages` would quietly put the trap back.
 
-## The client: a chromeless browser window
+## The client: the Electron app, pointed at its own backend
 
-Feature `t3code` is a launcher entry, not an app. `t3code-web` runs the
-canonical chromium browser (`meta.programs.chromium-browser`) as:
+**2026-09-05 — replaced the chromeless browser window.** Feature `t3code` used
+to be `t3code-web`, a `brave --app=http://localhost:3773` window. It was
+dropped, with its launcher entry, when preview turned out to be Electron-only
+(see *Browser preview is Electron-only* below): a browser client can never show
+the preview panel or host an agent's `preview_*` calls, and that was judged
+worth a second, idle backend. Any browser still reaches the server at
+`http://localhost:3773` if you want a tab — it just has no preview.
+
+`t3codeAppFor` installs one wrapper, `t3code-desktop`:
 
 ```bash
-brave --app=http://localhost:3773 --user-data-dir="$XDG_DATA_HOME/t3code-web"
+export T3CODE_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/t3code-desktop"
+export T3CODE_PORT=3799
+exec <t3code>/bin/t3code-desktop --ozone-platform=wayland "$@"
 ```
 
-- `--app=` is what removes the tab strip and address bar. Firefox has no
-  equivalent since `--ssb` was dropped, which is why this uses the chromium
-  browser and not `meta.programs.browser`.
-- The dedicated `--user-data-dir` gives the window its own cookie jar (so it
-  stays paired independently of the browsing profile) and its own process (so it
-  launches and closes on its own instead of as a window of a running browser).
-- **`--class` does nothing here.** Chromium ignores it for `--app` windows on
-  Wayland and derives the app_id from the URL plus the profile directory.
-  Measured on 2026-08-29:
+Every line of it is load-bearing:
+
+- **`T3CODE_HOME` is the whole safety story.** The app always forks its own
+  backend and cannot be told not to (`DesktopConfig` has no attach-to-server
+  option; `T3CODE_DESKTOP_WS_URL` is not one either — see below). Pointed at a
+  data directory of its own, that backend never opens the unit's
+  `~/.t3/userdata/state.sqlite`, which is what made the app a trap before.
+- **`T3CODE_PORT=3799`** keeps it off 3773, so the unit does not lose its
+  listener and the app does not silently land on the next free port.
+- **`--ozone-platform=wayland`** — nixpkgs' t3code wrapper only prefixes PATH, so
+  the `NIXOS_OZONE_WL` idiom used by `discord.nix` does nothing here. Electron's
+  `--ozone-platform-hint=auto` reads the session environment: measured
+  2026-09-05, with `WAYLAND_DISPLAY` set but `XDG_SESSION_TYPE` unset it chose
+  X11 and the app died instantly on `Missing X server or $DISPLAY`. The explicit
+  flag depends on no session state.
+- **`StartupWMClass = "t3code"`** — measured, like the old one:
 
   ```console
-  $ niri msg -j windows      # after launching t3code-web
-  'brave-localhost__-Default' | T3 Code (Alpha)
+  $ niri msg -j windows      # after launching t3code-desktop
+  't3code' | T3 Code (Alpha)
   ```
 
-  So `StartupWMClass` in the desktop entry has to be that string, not a name of
-  our choosing. Re-measure with the same command if the URL changes.
-- **Pair it on the same origin it opens.** The session is a cookie, and cookies
-  are scoped per host, so `127.0.0.1` and `localhost` are two different logins.
-  `t3 pair` prints `http://127.0.0.1:3773/pair#token=…` while the launcher opens
-  `http://localhost:3773` — rewrite the host before feeding it to this profile:
+The app's own backend is not idle, it is just useless to you: the window loads
+`t3code://app/`, and `ElectronProtocol.ts` proxies that scheme to
+`targetOrigin`, i.e. to the app's own `http://127.0.0.1:3799`. So it serves the
+UI, it appears in the environment list as "this environment", and it holds an
+empty database. **Nothing of yours should live there** — a thread or project
+created on the app's local environment lands in that database and is invisible
+from the phone. Always pick `desktopNixos`.
 
-  ```bash
-  brave --user-data-dir="$XDG_DATA_HOME/t3code-web" \
-        "http://localhost:3773/pair#token=$(t3 pair --label t3code-web | \
-          grep -oE 'token=[A-Z0-9]+' | cut -d= -f2)"
-  ```
+### Pairing the app to the unit (one-time)
 
-  A chromeless window has no address bar, so the token has to arrive this way —
-  through a normal window on the *same* `--user-data-dir`. Once paired the
-  cookie lives in the profile and `t3code-web` opens straight into the app.
+```bash
+t3 pair --label t3code-desktop --ttl 30m
+#   → Pairing URL: http://127.0.0.1:3773/pair#token=…
+```
+
+In the app: **Settings → Connections → Remote environments → Add environment**,
+paste the whole pairing URL into **Host** — `parsePairingUrlFields` splits it
+into host + code by itself — and submit. The toast says *"The environment is
+saved and will reconnect on app startup"*, and it does; the credential lives in
+`T3CODE_HOME`, so it survives rebuilds and only has to be redone if that
+directory is wiped.
+
+With the app's data directory isolated, `t3 pair` also stops picking the wrong
+server: the trap noted above (with the app open, `t3 pair` reports the app's
+backend) needed both servers to share `~/.t3`.
+
+### Still true from the browser-window era
+
 - `t3 auth session list` is a poor liveness check: `last connected` does not
   refresh on every websocket reconnect. To see whether a client is really
   attached, look at the sockets instead — `ss -tnp state established | grep
-  :3773` names the browser process holding them.
+  :3773` names the process holding them.
 - The entry lives in home-manager (`xdg.desktopEntries`), so `t3code` may not
   sit in a host's `system` list — the loader hard-fails on that.
 - `xdg.desktopEntries` is installed as a home-manager **package**
@@ -257,22 +298,25 @@ build.
 
 ### What this costs here, and the ways out
 
-The `t3code` feature deliberately makes a browser the client and drops
-`t3code-desktop` (see *The desktop app is not a client of this server* above).
-Preview is the price of that trade, and it was previously undocumented. Options,
-none of them applied yet:
+Until 2026-09-05 the `t3code` feature made a browser the client and dropped
+`t3code-desktop` (see *The desktop app spawns its own backend* above). Preview
+was the undocumented price of that trade. The three ways out, and what was
+chosen:
 
 1. **Leave it.** No preview panel for the human, no `preview_*` for agents on
    this host; an agent has to fall back to another browser tool. Zero risk.
+   *Rejected* — preview was worth more than an idle second backend.
 2. **Add an Electron client next to the server** and pair it to the running unit
    as a *saved environment*. `PreviewAutomationHosts` registers one host per
    connected environment and the broker routes by `environmentId`, so an
    Electron client attached to the unit's environment hosts previews for
    sessions that run there — the upstream `docs/user/remote-access.md` model
    ("Every saved environment is offered, not only the local one"). **Measured
-   end to end on 2026-09-05 — recipe and its four surprises below.**
-3. **Preview from another machine's desktop app** over the tailnet. Works the
-   same way, with one extra catch: for a *remote* environment,
+   end to end on 2026-09-05 (recipe and its four surprises below) and then
+   implemented: this is what feature `t3code` now installs.**
+3. **Preview from another machine's desktop app** over the tailnet — still
+   available, and the only option for the laptop. Same mechanism, one extra
+   catch: for a *remote* environment,
    `apps/web/src/browser/browserTargetResolver.ts` rewrites a loopback preview
    URL to the environment's host — `localhost:5173` becomes
    `http://desktopnixos.tail87a44c.ts.net:5173` (`direct-private-network`), so
@@ -337,12 +381,10 @@ with `structuredContent: null`, which claude-code's MCP client refused as a
 malformed result. Read a schema error from `preview_click` as "probably
 clicked" and confirm with `preview_status`.
 
-The probe was torn down afterwards: app killed, pairing session revoked with
-`t3 auth session revoke <id>`, `/tmp/t3-preview-probe` removed. Nothing in this
-repo enables such a client — turning the recipe into a feature (a
-`t3code-desktop` entry carrying `T3CODE_HOME`, `T3CODE_PORT` and the ozone flag)
-is still an open decision, and it re-adds the second backend this feature set
-out to avoid.
+That probe was torn down afterwards (app killed, pairing session revoked with
+`t3 auth session revoke <id>`, its data directory removed) and the recipe became
+the feature: `t3codeAppFor` is the wrapper, and *Pairing the app to the unit*
+above is the one step that stayed manual.
 
 Scope of the check: browser clients and the Electron app. The native mobile app
 is a separate client and was not examined.
