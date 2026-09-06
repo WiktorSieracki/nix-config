@@ -23,6 +23,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        # nix-eval-jobs (under nix-fast-build) forces `revCount` on the
+        # `git+file:.` input, which a shallow clone cannot provide:
+        # "is a shallow Git repository, so 'revCount' is not available".
+        # checkout defaults to fetch-depth 1, so the full history is required.
+        with:
+          fetch-depth: 0
 
       # ubuntu-latest has ~14 GB free; the ISO build doesn't fit in that.
       # root-safe-haven: Stage artifacts copies the ~4.2 GB ISO to the workspace on /,
