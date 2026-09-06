@@ -8,7 +8,7 @@
   This feature adds the machine side: pull (substituter) + push (`cache-push`).
 - `cache-push` pushes **only unsigned paths** of the binary cache — i.e. exactly
   what the machine built itself (unfree vscode/cursor repacks, overridden drvs).
-  Paths signed by cache.nixos.org / numtide / agent-of-empires.cachix.org can
+  Paths signed by cache.nixos.org / numtide can
   always be re-fetched, and pushing them would burn the free 5 GB.
 - Write token: `sops secrets.yaml` → key `cachixAuthToken` (owner wiktor, lands
   in `/run/secrets/cachixAuthToken`). The repo holds a `CHANGE_ME` placeholder

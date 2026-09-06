@@ -12,11 +12,10 @@ The version from `llm-agents` can lag the npm registry (0.61.0 vs 0.62.0 at the
 time of writing). That's fine — ACP negotiates `protocolVersion` in the
 handshake, so a slightly older adapter still talks to a current frontend.
 
-Why this exists as its own feature rather than living inside
-`agent-of-empires`: the adapter is a generic ACP server, not an aoe component.
-Any ACP client (Zed, aoe's Structured view, …) spawns the same binary by name
-off `$PATH`, which is the *only* wiring — there is no config file and no
-registration step. `agent-of-empires` therefore just `requires` it.
+This is its own feature because the adapter is a generic ACP server, not a
+component of any one client. Any ACP client (Zed, …) spawns the same binary by
+name off `$PATH`, which is the *only* wiring — there is no config file and no
+registration step.
 
 `claude-agent-acp` is a distinct binary from `claude` (the `claude-code`
 feature) and does not need it on `$PATH` to answer `initialize` — its feature
