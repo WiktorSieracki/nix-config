@@ -39,19 +39,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # root-safe-haven: the action carves an expansion disk out of / and the
+      # default 2 GB reserve is not enough for the runner's own diag logs —
+      # the 59 feature-test build log filled / and killed the worker itself
+      # with ENOSPC (while /nix still had ~95 GB free). Same fix as iso.yaml.
       - name: Free disk space
         uses: wimpysworld/nothing-but-nix@main
+        with:
+          root-safe-haven: '12288'
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      # build-dir MUST point at the /nix volume (nothing-but-nix creates
+      # /nix/build exactly for this): without it the daemon builds the VM
+      # images in /tmp on /, where little is left after the carve-out.
       - uses: cachix/install-nix-action@v30
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
             accept-flake-config = true
+            build-dir = /nix/build
       - uses: cachix/cachix-action@v15
         with:
           name: wiktor-nixos
