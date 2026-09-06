@@ -31,8 +31,9 @@ jobs:
           fetch-depth: 0
 
       # ubuntu-latest has ~14 GB free; the ISO build doesn't fit in that.
-      # root-safe-haven: Stage artifacts copies the ~4.2 GB ISO to the workspace on /,
-      # and the default 2 GB reserve killed this step (and the worker itself) with ENOSPC.
+      # root-safe-haven: Stage artifacts copies the finished ISO to the workspace
+      # on /, and the default 2 GB reserve killed this step (and the worker
+      # itself) with ENOSPC.
       - name: Free disk space
         uses: wimpysworld/nothing-but-nix@main
         with:
@@ -70,50 +71,73 @@ jobs:
       # nix-fast-build with --skip-cached does NOT create the result symlink when a
       # finished ISO is already in cachix — so we realise the out-link separately: a
       # no-op after a fresh build, a substitution from cache after a skip.
-      # split: GitHub rejects release files >= 2 GiB ("size must be less
-      # than 2147483648"), and the image is ~4.2 GB — we ship parts of 1990 MB
-      # reassembled with `cat` (see the release body).
+      #
+      # GitHub rejects release files >= 2 GiB ("size must be less than
+      # 2147483648"). The desktop live image was ~4.2 GB and had to be shipped
+      # as `split` parts; the minimal installer fits in one file, so guard the
+      # limit instead of pre-emptively splitting — if this ever trips, the image
+      # has grown something it should not carry.
       - name: Stage artifacts
         run: |
           nix build 'git+file:.#nixosConfigurations.iso.config.system.build.isoImage' --out-link result
-          split -b 1990M result/iso/*.iso nixos.iso.part-
-          sha256sum nixos.iso.part-* > checksums.txt
-          sha256sum result/iso/*.iso | awk '{print $1 "  nixos.iso"}' >> checksums.txt
-
-      # softprops/action-gh-release only ever *adds* assets, it never prunes.
-      # The release accumulated a `nixos.iso` from before the split-into-parts
-      # change and kept serving it for a week: checksums.txt describes the file
-      # reassembled from the parts, so that leftover matched nothing and was a
-      # trap for anyone downloading it directly. Clear the tag's assets first so
-      # `latest` always holds exactly what this run built.
-      - name: Drop stale release assets
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # The tag doesn't exist yet on the very first run — that's not an error.
-          if gh release view latest --json assets -q '.assets[].name' > stale.txt 2>/dev/null; then
-            xargs -r -I{} gh release delete-asset latest {} --yes < stale.txt
+          cp result/iso/*.iso nixos.iso
+          size=$(stat -c %s nixos.iso)
+          echo "ISO size: $size bytes"
+          if [ "$size" -ge 2147483648 ]; then
+            echo "ISO is >= 2 GiB — GitHub will reject the release asset." >&2
+            exit 1
           fi
+          sha256sum nixos.iso > checksums.txt
+
+      # softprops/action-gh-release adds and overwrites the files it is handed,
+      # but never removes assets an earlier run left behind. After the switch
+      # from `split` parts to a single file, `latest` would carry both at once —
+      # and the stale `nixos.iso.part-*` still matched the old `cat` instructions
+      # while checksums.txt no longer covered them. Prune whatever we are not
+      # about to upload, rather than clearing the release outright, so `latest`
+      # is never momentarily empty.
+      - name: Prune stale release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          keep="nixos.iso checksums.txt"
+          existing=$(gh release view latest --json assets -q '.assets[].name' 2>/dev/null || true)
+          for asset in $existing; do
+            case " $keep " in
+              *" $asset "*) ;;
+              *)
+                echo "deleting stale asset: $asset"
+                gh release delete-asset latest "$asset" --yes
+                ;;
+            esac
+          done
 
       - name: Publish rolling release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: Latest ISO
+          name: Latest installer ISO
           body: |
-            The latest live ISO (host `iso`), built automatically from `main`.
-            GitHub limits release files to 2 GiB, so the image is split —
-            after downloading all parts, reassemble and verify it:
+            Minimal NixOS installer (host `iso`), built automatically from `main`.
+            It carries the installer floor only — `git`, `fish`, `nmtui`,
+            partitioning tools and a Polish console keymap. The desktop is not
+            on the image; it is fetched at install time.
+
+            Verify the download:
             ```
-            cat nixos.iso.part-* > nixos.iso
             sha256sum -c checksums.txt
             ```
 
-            Boot it and install the host of your choice:
+            Boot it (console login: `wiktor` / `nixos`), get networking up with
+            `nmtui`, partition, mount under `/mnt`, then install the host you
+            want:
             ```
-            sudo nixos-install --flake github:${{ github.repository }}#desktopNixos
-            sudo nixos-install --flake github:${{ github.repository }}#laptopNixos
+            sudo nixos-install --flake github:${{ github.repository }}#desktopNixos --option accept-flake-config true
+            sudo nixos-install --flake github:${{ github.repository }}#laptopNixos --option accept-flake-config true
             ```
+            `accept-flake-config` opts into the substituters declared in
+            `flake.nix`, so the closure comes down from the `wiktor-nixos`
+            Cachix cache instead of being built on the fresh machine.
           files: |
-            nixos.iso.part-*
+            nixos.iso
             checksums.txt
