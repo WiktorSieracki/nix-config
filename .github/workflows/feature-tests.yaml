@@ -68,9 +68,17 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Build all feature tests
         run: |
+          # eval-workers/eval-max-memory-size: nix-fast-build defaults to 4 workers
+          # x 4096 MiB, which peaked at 13.6 GiB RSS evaluating the 61 checks --
+          # against 16 GB on a hosted runner. The agent got OOM-killed mid-eval
+          # and the job died with "The runner has received a shutdown signal",
+          # intermittently, since it sat right at the edge. 2 x 2048 peaks at
+          # 3.9 GiB for the same 61 attributes.
           nix run nixpkgs#nix-fast-build -- \
             --no-nom \
             --skip-cached \
             --retries 2 \
+            --eval-workers 2 \
+            --eval-max-memory-size 2048 \
             --cachix-cache wiktor-nixos \
             --flake '.#checks.x86_64-linux'
