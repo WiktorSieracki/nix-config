@@ -80,6 +80,21 @@ jobs:
           sha256sum nixos.iso.part-* > checksums.txt
           sha256sum result/iso/*.iso | awk '{print $1 "  nixos.iso"}' >> checksums.txt
 
+      # softprops/action-gh-release only ever *adds* assets, it never prunes.
+      # The release accumulated a `nixos.iso` from before the split-into-parts
+      # change and kept serving it for a week: checksums.txt describes the file
+      # reassembled from the parts, so that leftover matched nothing and was a
+      # trap for anyone downloading it directly. Clear the tag's assets first so
+      # `latest` always holds exactly what this run built.
+      - name: Drop stale release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The tag doesn't exist yet on the very first run — that's not an error.
+          if gh release view latest --json assets -q '.assets[].name' > stale.txt 2>/dev/null; then
+            xargs -r -I{} gh release delete-asset latest {} --yes < stale.txt
+          fi
+
       - name: Publish rolling release
         uses: softprops/action-gh-release@v2
         with:
