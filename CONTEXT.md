@@ -145,18 +145,23 @@ diff as confirmation, finishing through `nh os test`/`switch`; globally it also
 bumps `flake.lock`. It edits host data files — it never touches `.nix`.
 _Avoid_: features-cli, manager, panel.
 
-**ISO** (live image):
-A single **generic** live image (host `iso`), bootable on any machine. It is not
-a "laptop image" or a "desktop image" — it is a live/install environment. The
-target **host** is chosen only at install time from the ISO
-(`nixos-install --flake .#desktopNixos | .#laptopNixos`). It deliberately omits
-hardware features (`nvidia/wacom/mouse`) and secret-dependent ones
-(`sops/git/eduroam/...`), since they can't activate without the machine's key.
-_Avoid_: per-machine image, per-host installer.
+**ISO** (minimal installer):
+A single **generic** installer image (host `iso`), bootable on any machine. It is
+not a "laptop image", a "desktop image", or a live desktop — it is an install
+environment carrying only what is needed to partition a disk, get networking up
+and run `nixos-install`. The target **host** is chosen at install time
+(`nixos-install --flake .#desktopNixos | .#laptopNixos`), which fetches that
+host's closure; the image's own contents never affected an install. It therefore
+omits the graphical session entirely, along with hardware features
+(`nvidia/wacom/mouse`) and secret-dependent ones (`sops/git/eduroam/...`), which
+can't activate without the machine's key.
+_Avoid_: per-machine image, per-host installer, live image.
 
 **Release** (rolling `latest`):
 A single, overwritten GitHub release under the tag `latest`, carrying the latest
-**ISO** + `checksums.txt`. A stable download URL instead of dated history.
+**ISO** + `checksums.txt` as one file each. A stable download URL instead of
+dated history. GitHub rejects assets >= 2 GiB, so the image staying under that
+limit is what keeps the release a single download rather than `split` parts.
 _Avoid_: snapshot, versioned release.
 
 ### Flagged ambiguities

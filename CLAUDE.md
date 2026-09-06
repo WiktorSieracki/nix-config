@@ -105,11 +105,15 @@ lives in `modules/feature-tests.nix`. Key pieces:
 | `desktopNixos` | NVIDIA GPU, Wacom tablet, mouse, zeditor/cursor-ide, chromium, Handy, Affine |
 | `laptopNixos`  | Eduroam WiFi; omits nvidia/wacom/mouse/zeditor/cursor-ide/chromium/handy/affine |
 
-There are also two image-only hosts in `modules/hosts/{iso,vm}/`. Both ship the same
-curated feature subset (niri + a few apps), excluding hardware-specific modules
-(nvidia/wacom/mouse) and secret-dependent ones (sops/git/eduroam/...) that can't
-activate without the real machine's SOPS key. `iso` builds a live CD; `vm` builds a
-normal installed disk image.
+There are also two image-only hosts in `modules/hosts/{iso,vm}/`. `iso` builds a
+**minimal installer** — the `core` floor plus `nix` and `fish`, with `git` added
+directly — sized to stay under GitHub's 2 GiB release-asset limit so it ships as
+a single file. The desktop is not on the image; it is fetched at install time by
+`nixos-install --flake github:...#desktopNixos`. `vm` builds a normal installed
+disk image and still ships a curated desktop subset (niri + a few apps),
+excluding hardware-specific modules (nvidia/wacom/mouse) and secret-dependent
+ones (sops/git/eduroam/...) that can't activate without the real machine's SOPS
+key.
 
 ## Running the vm host
 
