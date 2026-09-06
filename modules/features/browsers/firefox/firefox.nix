@@ -91,6 +91,11 @@
           # "signon.rememberSignons" = false;
 
           "browser.toolbars.bookmarks.visibility" = "always";
+
+          # Reopen the previous windows and tabs on start. Without this the pref
+          # sits at its default (1 = homepage) and Firefox only *offers* to
+          # restore behind a button; see notes.md 2026-09-06.
+          "browser.startup.page" = 3;
         };
 
         userChrome = ''
@@ -114,7 +119,10 @@
   flake.featureMeta.firefox = {
     requires = ["desktop"];
     kind = "gui";
-    provides.userBins = ["firefox"];
+    provides = {
+      userBins = ["firefox"];
+      userFiles = ["~/.mozilla/firefox/wiktor/user.js"];
+    };
   };
 
   # firefox-addons extensions are fetched from addons.mozilla.org as
@@ -126,5 +134,15 @@
         programs.firefox.profiles.wiktor.extensions.packages = lib.mkForce [];
       })
     ];
+
+    # `provides.userFiles` only proves user.js exists; session restore hinges on
+    # one pref *inside* it, so assert the value too.
+    testScript = ''
+      prefs = machine.succeed("cat /home/tester/.mozilla/firefox/wiktor/user.js")
+      assert '"browser.startup.page", 3' in prefs, (
+          "browser.startup.page=3 missing from the generated profile, so Firefox "
+          "will open the homepage instead of restoring the session:\n" + prefs
+      )
+    '';
   };
 }
