@@ -14,7 +14,21 @@
       # the host loader (mkHostUser) applies it. This module only provides fish.
     };
 
-    homeManager.fish = {pkgs, ...}: {
+    homeManager.fish = {
+      pkgs,
+      lib,
+      ...
+    }: {
+      # fish-ssh-agent (below) starts the agent by redirecting into $SSH_ENV,
+      # which defaults to ~/.ssh/environment, then chmod-ing and sourcing it.
+      # On a home that has never had an ssh key -- the installer ISO, a fresh
+      # install, any new user -- ~/.ssh does not exist, so all three steps fail
+      # and every single login opens with four lines of error. Create the
+      # directory so the plugin has somewhere to write.
+      home.activation.ensureSshDir = lib.hm.dag.entryAfter ["writeBoundary"] ''
+        run mkdir -p -m 700 "$HOME/.ssh"
+      '';
+
       programs = {
         direnv = {
           enable = true;
