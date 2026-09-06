@@ -8,13 +8,11 @@
     extra-substituters = [
       "https://nix-community.cachix.org"
       "https://cache.numtide.com"
-      "https://agent-of-empires.cachix.org"
       "https://wiktor-nixos.cachix.org"
     ];
     extra-trusted-public-keys = [
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
-      "agent-of-empires.cachix.org-1:Z+VwTlT8GT7giWN9HhJ+Am0DPGfbFVlafcQioBqJ6wY="
       "wiktor-nixos.cachix.org-1:3DOZHbBhM0h+YZFUZ1zZikBSLC7cTbZglgQEhF7Gi2M="
     ];
   };
@@ -60,14 +58,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # llm-agents and agent-of-empires deliberately do NOT follow our nixpkgs:
-    # both upstreams push CI builds to their binary caches (cache.numtide.com,
-    # agent-of-empires.cachix.org) built against THEIR locked nixpkgs. A
-    # `follows` would change every hash and force local Rust/Go compiles on
-    # each nixpkgs bump. Costs a second nixpkgs eval; buys binary downloads.
+    # llm-agents deliberately does NOT follow our nixpkgs: upstream pushes CI
+    # builds to its binary cache (cache.numtide.com) built against THEIR locked
+    # nixpkgs. A `follows` would change every hash and force local Rust/Go
+    # compiles on each nixpkgs bump. Costs a second nixpkgs eval; buys binary
+    # downloads.
     llm-agents.url = "github:numtide/llm-agents.nix";
-
-    agent-of-empires.url = "github:agent-of-empires/agent-of-empires";
 
     # Claude Code skill sources, consumed as raw file trees (flake = false) by
     # the `claude-skills` feature, which links each skill folder into

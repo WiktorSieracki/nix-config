@@ -102,7 +102,7 @@ lives in `modules/feature-tests.nix`. Key pieces:
 
 | Host           | Key extras                                                                                  |
 | -------------- | ------------------------------------------------------------------------------------------- |
-| `desktopNixos` | NVIDIA GPU, Wacom tablet, mouse, zeditor/cursor-ide, agent-of-empires, chromium, Handy, Affine |
+| `desktopNixos` | NVIDIA GPU, Wacom tablet, mouse, zeditor/cursor-ide, chromium, Handy, Affine |
 | `laptopNixos`  | Eduroam WiFi; omits nvidia/wacom/mouse/zeditor/cursor-ide/chromium/handy/affine |
 
 There are also two image-only hosts in `modules/hosts/{iso,vm}/`. Both ship the same
