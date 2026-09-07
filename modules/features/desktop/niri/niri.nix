@@ -57,7 +57,6 @@ in {
   in {
     packages.myNiri = inputs.wrapper-modules.wrappers.niri.wrap {
       inherit pkgs;
-      v2-settings = true;
       settings = {
         spawn-at-startup =
           [
