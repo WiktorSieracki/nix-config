@@ -2,6 +2,7 @@
   "system": [
     "niri",
     "desktop",
+    "fonts",
     "nvidia",
     "nix",
     "sops",

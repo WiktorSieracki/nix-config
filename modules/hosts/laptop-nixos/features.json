@@ -2,6 +2,7 @@
   "system": [
     "niri",
     "desktop",
+    "fonts",
     "nix",
     "sops",
     "cachix",
