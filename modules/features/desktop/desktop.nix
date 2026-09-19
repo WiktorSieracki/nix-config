@@ -40,7 +40,7 @@
     environment.systemPackages = with pkgs; [
       bibata-cursors # greeter cursor (settings.Theme.CursorTheme above)
       nautilus
-      libreoffice-fresh
+      libreoffice-stable
       qalculate-gtk
       evince
       file-roller
