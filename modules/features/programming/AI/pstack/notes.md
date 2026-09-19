@@ -35,3 +35,27 @@ only, for the same reason: Codex and Gemini CLI have no subagent directory.
 Not wired up here: `/setup-pstack` is a per-repo, prompt-driven step (it asks for
 a reasoning budget and a model panel, and writes into the repo). Run it by hand
 in a repo once; nothing about it belongs in the system config.
+
+## 2026-09-19 — the skills never autocomplete, and that is upstream's intent
+
+**Symptom:** after activation, typing `/arch` or `/poteto-mode` in the t3code
+slash picker offers nothing from pstack. Only `/setup-pstack` autocompletes. The
+harness reports "no changes" on a skill reload, so it looks like the links did
+not land.
+
+**Cause:** 46 of the 47 skills carry `disable-model-invocation: true`, which
+Claude Code documents as "the model cannot invoke this via the Skill tool; only
+users can type the slash command". Skills carrying it are absent from both the
+model's skill list and the picker's autocomplete. `setup-pstack` is the one
+without the flag, which is why it is also the only one that autocompletes.
+
+**Fix:** none needed. Typing the full name resolves the skill normally, verified
+by invoking `/poteto-mode` this way. Do not strip the flag at link time: it would
+put 46 skills back into the model's auto-trigger pool, against the author's
+design, to fix an autocomplete gap that is not a malfunction.
+
+Two skills also carry a display-style `name:` (`Poteto Mode`, `Make Bot UI`)
+instead of their directory name, plus Cursor-only frontmatter keys (`mode`,
+`icon`, `color`, `reminder`) that Claude Code does not list among the keys it
+knows. Neither stopped `/poteto-mode` from resolving, so this is recorded as a
+curiosity, not a defect to patch.
