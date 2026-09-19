@@ -49,7 +49,10 @@
       "wallpapers",
       "vm-launcher",
       "claude-code",
-      "claude-skills"
+      "codex",
+      "local-skills",
+      "mattpocock-skills",
+      "vercel-skills"
     ],
     "work": [
       "fish",

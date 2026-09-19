@@ -65,9 +65,10 @@
     # downloads.
     llm-agents.url = "github:numtide/llm-agents.nix";
 
-    # Claude Code skill sources, consumed as raw file trees (flake = false) by
-    # the `claude-skills` feature, which links each skill folder into
-    # ~/.claude/skills/. Bump with `nix flake update mattpocock-skills`.
+    # Agent skill sources, consumed as raw file trees (flake = false) by the
+    # `mattpocock-skills` / `vercel-skills` features, which link each skill
+    # folder into every agent's skill root (~/.claude, ~/.agents, ~/.gemini).
+    # Bump with `nix flake update mattpocock-skills` / `... vercel-skills`.
     mattpocock-skills = {
       url = "github:mattpocock/skills";
       flake = false;

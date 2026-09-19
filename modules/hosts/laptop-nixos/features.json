@@ -19,12 +19,15 @@
     "switchboard",
     "claude-agent-acp",
     "claude-code",
+    "codex",
     "home-wifi"
   ],
   "users": {
     "wiktor": [
       "fish",
-      "claude-skills",
+      "local-skills",
+      "mattpocock-skills",
+      "vercel-skills",
       "git",
       "ssh",
       "ssh-personal-hosts",
