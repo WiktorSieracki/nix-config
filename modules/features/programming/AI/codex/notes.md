@@ -6,6 +6,6 @@ Rust build).
 
 2026-09-19: Added. Codex reads skills from `~/.agents/skills` (it also scans
 `$CWD/.agents/skills` and the repo root), which the skill features
-(`mattpocock-skills`, `vercel-skills`, `local-skills`) already link into — so
+(`mattpocock-skills`, `local-skills`) already link into — so
 enabling this feature is all that is needed for the skills to show up in a codex
 session.

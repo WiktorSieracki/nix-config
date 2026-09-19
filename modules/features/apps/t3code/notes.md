@@ -389,6 +389,55 @@ above is the one step that stayed manual.
 Scope of the check: browser clients and the Electron app. The native mobile app
 is a separate client and was not examined.
 
+## Antigravity's 502 is a missing CA bundle, not an outage
+
+**2026-09-18.** Every Antigravity turn (both `gemini-3.8-flash-*` and
+`gemini-3.7-flash-*`, across fresh logins) answered with:
+
+```
+Agent execution error: model unreachable: Error 502, Message: Bad Gateway:
+Failed to connect to backend API …
+```
+
+The message is a lie about where it comes from. `agy_acp_server.par` logs to
+`/tmp/agy_acp_server.par.<host>.<user>.log.ERROR.*`, and the traceback there is:
+
+```
+ccpa_client.py  urllib.request.urlopen(req, …)
+ssl.SSLCertVerificationError: [SSL: CERTIFICATE_VERIFY_FAILED]
+    unable to get local issuer certificate
+  → CCPAConnectionError: Network connection failed to CCPA API
+  → proxy_server.py do_POST → 502 Bad Gateway: Failed to connect to backend API
+```
+
+The 502 is minted **locally**, by the ACP server's own in-process proxy, after
+its TLS handshake to `aicode.googleapis.com` fails. The `.par` carries an
+embedded Python whose OpenSSL has no trust store on NixOS, and the process
+environment held exactly one variable: `PYTHONUNBUFFERED=1`.
+
+OAuth still succeeded throughout (`authenticate` → ok, `status: authenticated`),
+because the login half runs in Node with the system certs — only the model call
+goes through that Python. That split is what makes the failure read as a Google
+outage. Upstream reports the same thing, oauth-personal only:
+<https://discuss.ai.google.dev/t/antigravity-acp-502-bad-gateway-but-antigravity-ide-is-working-fine/179763>
+
+Proven by driving the ACP protocol against the same `.par`, same token, same
+shadow home, changing nothing but the variable:
+
+| `SSL_CERT_FILE` | `session/prompt` result |
+| --------------- | ----------------------- |
+| unset           | `model unreachable: Error 502 …` |
+| `/etc/ssl/certs/ca-certificates.crt` | the model's actual reply |
+
+Hence `caBundle` in `t3code.nix`, exported in both places a backend can start
+from: the `t3code` user unit (a unit inherits no shell profile, so a
+`sessionVariables` entry would never reach it) and the Electron wrapper (the app
+forks a backend of its own). Both are asserted in the feature tests.
+
+The same trap waits for any other foreign agent binary t3code spawns — read a
+provider-level "connection failed" against an endpoint that `curl` reaches fine
+as a missing trust store first.
+
 ## Updating
 
 Bump nixpkgs (`nix flake update nixpkgs`). There is nothing version-shaped left

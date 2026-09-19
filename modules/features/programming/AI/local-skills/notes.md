@@ -38,3 +38,13 @@ what remains there is installer-owned and untouched by nix (`higgsfield-*`,
 foreign file, so if `npx skills update` ever reinstalls a skill nix owns, HM
 activation fails with a clobber error on that path — remove the installer's copy
 (and its lock entry), don't disable the feature.
+
+## 2026-09-19 — vercel-labs/skills dropped
+
+The `vercel-skills` feature (and its flake input) shipped exactly one skill,
+`find-skills`, whose job is to search and install skills through `npx skills`.
+That installer is the thing this config replaced: skills arrive here as pinned
+flake inputs, so a skill that recommends a second, unpinned install path is a
+route back to the split-brain `~/.agents/skills` the migration above cleaned up.
+Removed rather than left switched off — bring it back as its own feature if
+upstream ever ships more than the one skill.

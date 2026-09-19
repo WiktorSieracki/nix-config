@@ -236,7 +236,6 @@
         "sops-nix": "sops-nix",
         "spicetify-nix": "spicetify-nix",
         "systems": "systems_4",
-        "vercel-skills": "vercel-skills",
         "wrapper-modules": "wrapper-modules"
       }
     },
@@ -360,22 +359,6 @@
       "original": {
         "owner": "numtide",
         "repo": "treefmt-nix",
-        "type": "github"
-      }
-    },
-    "vercel-skills": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1789167344,
-        "narHash": "sha256-zvzH1pMb3zTNE5CewisUohitzR6Nh/DLyjqR1cIQ0og=",
-        "owner": "vercel-labs",
-        "repo": "skills",
-        "rev": "d667282815248da03a08a18272b5d2eef9caf77c",
-        "type": "github"
-      },
-      "original": {
-        "owner": "vercel-labs",
-        "repo": "skills",
         "type": "github"
       }
     },

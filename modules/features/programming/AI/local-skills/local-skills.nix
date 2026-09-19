@@ -3,8 +3,8 @@
 in {
   # The skills written (or rescued) here rather than pulled from an upstream
   # input, linked into every agent's skill root. HM-only feature. Third-party
-  # skill sets live in their own features (`mattpocock-skills`, `vercel-skills`)
-  # so each source can be switched on and off on its own.
+  # skill sets live in their own features (`mattpocock-skills`) so each source
+  # can be switched on and off on its own.
   #
   # A name defined here and upstream at the same time is an eval-time conflict
   # (two features defining the same home.file) — loud, which is what we want:

@@ -10,6 +10,19 @@
   # (nixpkgs enables it by default) — no account here is logged into it. t3code
   # finds a provider by binary name, so `claude` on PATH is the whole contract;
   # see notes.md.
+  # Every provider t3code spawns inherits this process's environment, and the
+  # Antigravity ACP server (`agy_acp_server.par`) is a foreign, non-patched
+  # binary carrying its own embedded Python. That Python's OpenSSL looks for a
+  # trust store where NixOS has none, so *every* model call died in
+  # `ccpa_client.stream_generate_content` with CERTIFICATE_VERIFY_FAILED — which
+  # its in-process proxy then reported to the agent as `502 Bad Gateway: Failed
+  # to connect to backend API`, a message that reads exactly like an upstream
+  # outage. Measured 2026-09-18: same binary, same token, the variable alone
+  # flips the turn from that 502 to a real answer. `/etc/ssl/certs` (not a
+  # `pkgs.cacert` store path) so the system trust store — including anything
+  # `security.pki` adds — is what the provider sees. See notes.md.
+  caBundle = "/etc/ssl/certs/ca-certificates.crt";
+
   t3codeFor = pkgs:
     pkgs.t3code.override {
       enableClaude = true;
@@ -65,6 +78,7 @@
       text = ''
         export T3CODE_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/t3code-desktop"
         export T3CODE_PORT=3799
+        export SSL_CERT_FILE=${caBundle}
         exec ${full}/bin/t3code-desktop --ozone-platform=wayland "$@"
       '';
     };
@@ -134,6 +148,10 @@ in {
             # `tailscale serve` fails until the tailnet is up, so retry instead.
             Restart = "on-failure";
             RestartSec = 10;
+            # A user unit inherits nothing from the login shell, so this is the
+            # only place the server (and the providers it spawns) can learn
+            # where the CA bundle is. See `caBundle` above.
+            Environment = ["SSL_CERT_FILE=${caBundle}"];
           };
 
           Install.WantedBy = ["default.target"];
@@ -173,6 +191,10 @@ in {
       machine.succeed(f"grep -q 'T3CODE_HOME=' {wrapper}")
       machine.succeed(f"grep -q 'T3CODE_PORT=3799' {wrapper}")
       machine.succeed(f"grep -q -- '--ozone-platform=wayland' {wrapper}")
+
+      # Without this the Antigravity provider's embedded Python has no trust
+      # store and every model call comes back as a bogus 502 (see notes.md).
+      machine.succeed(f"grep -q 'SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt' {wrapper}")
     '';
   };
 
@@ -189,6 +211,16 @@ in {
     };
   };
 
-  # feature test: fully covered by `provides` — no extra script needed.
-  flake.featureTests.t3code-server = {};
+  # feature test: `provides` covers the CLI and the unit file existing; the one
+  # thing a declaration cannot express is what the unit puts in the *environment*
+  # of the providers it spawns — and that single variable is the difference
+  # between Antigravity answering and every turn failing as a 502 (notes.md).
+  flake.featureTests.t3code-server = {
+    testScript = ''
+      unit = "/home/tester/.config/systemd/user/t3code.service"
+      machine.succeed(
+          f"grep -q 'Environment=SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt' {unit}"
+      )
+    '';
+  };
 }

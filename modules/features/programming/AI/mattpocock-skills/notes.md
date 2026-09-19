@@ -6,10 +6,11 @@ Links the `engineering/` and `productivity/` categories of
 `nix flake update mattpocock-skills`.
 
 2026-09-19: Split out of the old `claude-skills` feature, which linked three
-sources (mattpocock, vercel, vendored) at once and so could only be switched on
-or off as a block. One feature per source means switchboard can drop this set
-without losing the hand-written ones. The entries below predate the split and
-were moved here from that feature's notes.
+sources (mattpocock, vercel-labs, vendored) at once and so could only be
+switched on or off as a block. (The vercel-labs set was dropped the same day —
+see local-skills/notes.md.) One feature per source means switchboard can drop
+this set without losing the hand-written ones. The entries below predate the
+split and were moved here from that feature's notes.
 
 2026-08-05: The original implementation hardcoded a skill name → category map,
 with a comment claiming a moved skill would "fail loudly at build". It does not:
