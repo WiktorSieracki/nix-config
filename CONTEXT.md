@@ -103,6 +103,30 @@ not on a real login — hardcoding someone's login in a feature breaks its featu
 test.
 _Avoid_: smoke test, unit test.
 
+**Sandbox** (Tier 1-live):
+A *running*, watchable VM for one **Feature** — the same minimal closure the
+**feature test** builds, but booted with a real niri session on the right
+monitor and driven by the agent (`niri msg`, `grim`, `wtype`, `ydotool` over
+ssh; QMP `send-key`/`screendump` for what happens before login). It starts in a
+**red state** (`sandbox-base`: core + desktop + sshd + the `tester` account, the
+feature absent), and the feature is installed into the *running* machine with
+`nixos-rebuild --target-host` — so "it works" is a state the agent watched
+appear. Its purpose is *discovery* of what a headless assertion cannot see (a
+window that never maps, a keybind pointing at a stale store path); `nix flake
+check` remains the only automated gate. Whatever it discovers is **hardened**
+afterwards: expressible headlessly → into the feature test, otherwise → into
+**feature notes**. Driven by the `/nix-sandbox` skill, run by `nix run
+.#sandbox`.
+_Avoid_: dev VM, staging, manual test.
+
+**Check script** (`check.sh`):
+A feature's *live-runtime* assertions — plain `sh`, run inside the **Sandbox**
+guest, one `ok:`/`fail:` line per claim. Written *before* the implementation and
+proven to fail on `sandbox-base` first (`sandbox red <feature>` refuses a check
+that passes without the feature). Sits next to the feature's `.nix` and
+`notes.md` as `<feature>/check.sh`.
+_Avoid_: smoke script, e2e script.
+
 **Host test** (Tier 2, e2e):
 A headless test that boots a whole **Host** (or a curated group of features) and
 checks assertions *between* features (e.g. "the user is in the docker group AND

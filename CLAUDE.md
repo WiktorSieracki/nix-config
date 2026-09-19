@@ -29,6 +29,15 @@ niri validate
 
 # Run all checks (every feature test + the feature-coverage audit)
 nix flake check
+
+# Live sandbox: boot one feature in a real, watchable VM and verify it works
+# at runtime (see the /nix-sandbox skill for the full TDD loop)
+nix run .#sandbox -- up <feature>      # red state: base VM, feature absent
+nix run .#sandbox -- red <feature>     # the check MUST fail here
+nix run .#sandbox -- deploy <feature>  # install into the running VM, no reboot
+nix run .#sandbox -- check <feature>   # green
+nix run .#sandbox -- shot <label>      # screenshot from inside the guest
+nix run .#sandbox -- down
 ```
 
 To boot the `vm` host or the live ISO in QEMU, see [`docs/running-the-vm.md`](docs/running-the-vm.md).
@@ -93,6 +102,14 @@ lives in `modules/feature-tests.nix`. Key pieces:
   floor (boot, nix, network, locale) present in every feature test and host. The graphical
   session is a separate `desktop` feature that `gui` features must `requires`, so a
   `cli` feature's feature test boots without niri and catches hidden desktop deps.
+- **live sandbox (Tier-1-live)** — the same minimal VM, but *booted* and driven
+  by the agent instead of asserted headlessly: `modules/hosts/sandbox/`
+  generates `sandbox-base` (feature absent — the red state) plus one
+  `sandbox-<feature>` per feature, and `nix run .#sandbox` boots it on the right
+  monitor and installs the feature into the running machine. Its assertions live
+  in the feature's `check.sh`. It is a *discovery* tool — `nix flake check` stays
+  the only automated gate, so anything found there gets hardened back into the
+  feature test or `notes.md`.
 - **feature notes (`notes.md`)** — a dated log of *non-executable* feature knowledge
   (upstream quirks, workarounds), sitting next to each feature's `.nix`.
   Reproducible bugs belong in the feature test as assertions; `notes.md` holds only what
