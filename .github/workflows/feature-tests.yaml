@@ -24,11 +24,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The caches are listed here rather than in flake.nix's nixConfig (which
+      # this repo deliberately does not have -- see the comment there). The same
+      # two lines appear in every install-nix-action step across the workflows;
+      # keep them identical. wiktor-nixos is named even where cachix-action
+      # would also add it, so the block does not differ per job.
       - uses: cachix/install-nix-action@v30
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
-            accept-flake-config = true
+            extra-substituters = https://nix-community.cachix.org https://cache.numtide.com https://wiktor-nixos.cachix.org
+            extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g= wiktor-nixos.cachix.org-1:3DOZHbBhM0h+YZFUZ1zZikBSLC7cTbZglgQEhF7Gi2M=
       - name: feature-coverage
         run: nix build -L '.#checks.x86_64-linux.feature-coverage'
 
@@ -60,7 +66,8 @@ jobs:
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
-            accept-flake-config = true
+            extra-substituters = https://nix-community.cachix.org https://cache.numtide.com https://wiktor-nixos.cachix.org
+            extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g= wiktor-nixos.cachix.org-1:3DOZHbBhM0h+YZFUZ1zZikBSLC7cTbZglgQEhF7Gi2M=
             build-dir = /nix/build
       - uses: cachix/cachix-action@v15
         with:

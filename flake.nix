@@ -1,21 +1,18 @@
 {
   description = "Nix configuration for my machines";
 
-  # Honored by CI (accept-flake-config = true in the workflows) and by any
-  # trusted-user nix invocation; NixOS hosts get the same list via
-  # nix.settings in the `nix` and `cachix` features.
-  nixConfig = {
-    extra-substituters = [
-      "https://nix-community.cachix.org"
-      "https://cache.numtide.com"
-      "https://wiktor-nixos.cachix.org"
-    ];
-    extra-trusted-public-keys = [
-      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-      "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
-      "wiktor-nixos.cachix.org-1:3DOZHbBhM0h+YZFUZ1zZikBSLC7cTbZglgQEhF7Gi2M="
-    ];
-  };
+  # Deliberately no `nixConfig` here. A flake's nixConfig is only honored when
+  # the caller passes `--accept-flake-config` (or has the exact value string
+  # already saved in ~/.local/share/nix/trusted-settings.json) -- being a
+  # trusted user is not enough, because non-interactively Nix has nobody to ask.
+  # So every local `nh os switch` printed two "ignoring untrusted flake
+  # configuration setting" warnings for a list the host already had anyway.
+  #
+  # The substituters live in exactly the places that can actually honor them:
+  #   - installed hosts + the ISO: nix.settings in the `nix` and `cachix`
+  #     features (the ISO enables `nix`, so its image carries all four caches --
+  #     `nix eval .#nixosConfigurations.iso.config.nix.settings.substituters`).
+  #   - CI: extra_nix_config in .github/workflows/*.yaml.
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";

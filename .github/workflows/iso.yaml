@@ -49,7 +49,8 @@ jobs:
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
-            accept-flake-config = true
+            extra-substituters = https://nix-community.cachix.org https://cache.numtide.com https://wiktor-nixos.cachix.org
+            extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g= wiktor-nixos.cachix.org-1:3DOZHbBhM0h+YZFUZ1zZikBSLC7cTbZglgQEhF7Gi2M=
             build-dir = /nix/build
 
       - name: Setup Cachix
@@ -132,12 +133,13 @@ jobs:
             `nmtui`, partition, mount under `/mnt`, then install the host you
             want:
             ```
-            sudo nixos-install --flake github:${{ github.repository }}#desktopNixos --option accept-flake-config true
-            sudo nixos-install --flake github:${{ github.repository }}#laptopNixos --option accept-flake-config true
+            sudo nixos-install --flake github:${{ github.repository }}#desktopNixos
+            sudo nixos-install --flake github:${{ github.repository }}#laptopNixos
             ```
-            `accept-flake-config` opts into the substituters declared in
-            `flake.nix`, so the closure comes down from the `wiktor-nixos`
-            Cachix cache instead of being built on the fresh machine.
+            No cache flags needed: the image itself carries the `wiktor-nixos`,
+            `nix-community` and `numtide` substituters in its own
+            `nix.settings`, so the closure comes down from cache instead of
+            being built on the fresh machine.
           files: |
             nixos.iso
             checksums.txt
