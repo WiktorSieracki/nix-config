@@ -240,6 +240,50 @@ but in `dist-electron` it is only a member of `DESKTOP_BACKEND_ENV_NAMES` — th
 list of variables the app forwards *to the backend it spawns itself*. It is
 undocumented; don't build on it.
 
+### The forked backend outlives the app and bricks the next launch (2026-09-19)
+
+Measured on 0.0.40. The app's backend is a child of the main Electron process,
+but nothing ties its lifetime to it: kill (or crash) the main process and the
+backend is re-parented to `systemd`, still holding `T3CODE_PORT`. `ps` right
+after the failure, with the main process already gone:
+
+```
+235299  ppid 1168  electron .../apps/server/dist/bin.mjs --bootstrap-fd 3
+```
+
+The next launch forks its own backend, which cannot bind the port and dies. The
+app has no fallback — `DesktopConfig` cannot attach to a server it did not
+start — so the renderer fails on the first IPC call it makes:
+
+```
+PrimaryEnvironmentRequestError
+Caused by: Error invoking remote method
+  'desktop:get-local-environment-bearer-token':
+  DesktopLocalEnvironmentAuthSessionBootstrapError:
+  Failed to create the local desktop bearer session.
+```
+
+The timestamps identify it with no ambiguity: the orphan's launch, the second
+launch and the error are ~60 s, then 1 s apart. The message names auth, but
+nothing about auth is wrong — a port is taken. Read it as "no local backend".
+
+To confirm rather than guess: `ss -tlnp | grep 3799`, then check whether that
+PID's parent is `systemd` (orphan) or an Electron main (healthy). Killing the
+orphan and relaunching is the manual recovery; it is safe as long as the PID's
+`T3CODE_HOME` is the app's `~/.local/share/t3code-desktop` and **not** the
+unit's `~/.t3` — that one on 3773 is the server, and killing it takes every
+agent session running inside it down mid-task.
+
+Fixed at the source in `t3code.nix`: the wrapper launches the app into a
+transient `systemd-run --user` **service**, so the backend lands in that unit's
+cgroup and the default `KillMode=control-group` reaps it when the main process
+exits. A `--scope` does not work here — a scope stays alive while any process in
+it is alive, which is precisely the orphan. The cost is that the service is
+started by the `systemd --user` manager, not by this shell, so it inherits the
+manager's environment and none of ours: `T3CODE_HOME`, `T3CODE_PORT` and
+`SSL_CERT_FILE` have to travel as `--setenv`, and the Wayland session variables
+have to already be in the manager (niri puts them there).
+
 ### What we deliberately do not use
 
 `t3 service install` writes a **mutable** `~/.config/systemd/user/t3code.service`

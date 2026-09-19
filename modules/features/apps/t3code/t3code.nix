@@ -64,6 +64,22 @@
   # (the preview panel and the agent's `preview_*` tools, which no browser
   # client can have).
   #
+  # That forked backend does not die with the app: when the main Electron
+  # process goes away its children are re-parented to `systemd` and the backend
+  # keeps `T3CODE_PORT`. The next launch then forks a backend that cannot bind
+  # the port, `desktop:get-local-environment-bearer-token` has no local server
+  # to mint a session against, and the window dies on
+  # `DesktopLocalEnvironmentAuthSessionBootstrapError` — measured 2026-09-19,
+  # notes.md. Launching into a transient `--user` service fixes it at the
+  # source: the backend lands in that unit's cgroup and the default
+  # `KillMode=control-group` reaps it the moment the main process exits, so no
+  # stale listener can outlive the app. It must be a service, not a `--scope`:
+  # a scope lives as long as *any* process in it, which is exactly the orphan
+  # we are trying to kill. A service is started by the `systemd --user`
+  # manager, so it inherits that manager's environment (the Wayland session
+  # variables niri puts there) and nothing from this shell — hence `--setenv`
+  # rather than `export` for the three variables above.
+  #
   # `--ozone-platform=wayland` is passed explicitly instead of the NIXOS_OZONE_WL
   # dance in `discord.nix`: nixpkgs' t3code wrapper only prefixes PATH, so it acts
   # on no such variable. Electron's own `--ozone-platform-hint=auto` reads the
@@ -75,11 +91,14 @@
   in
     pkgs.writeShellApplication {
       name = "t3code-desktop";
+      runtimeInputs = [pkgs.systemd];
       text = ''
-        export T3CODE_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/t3code-desktop"
-        export T3CODE_PORT=3799
-        export SSL_CERT_FILE=${caBundle}
-        exec ${full}/bin/t3code-desktop --ozone-platform=wayland "$@"
+        exec systemd-run --user --collect \
+          --description="T3 Code desktop client" \
+          --setenv=T3CODE_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/t3code-desktop" \
+          --setenv=T3CODE_PORT=3799 \
+          --setenv=SSL_CERT_FILE=${caBundle} \
+          -- ${full}/bin/t3code-desktop --ozone-platform=wayland "$@"
       '';
     };
 in {
@@ -191,6 +210,12 @@ in {
       machine.succeed(f"grep -q 'T3CODE_HOME=' {wrapper}")
       machine.succeed(f"grep -q 'T3CODE_PORT=3799' {wrapper}")
       machine.succeed(f"grep -q -- '--ozone-platform=wayland' {wrapper}")
+
+      # The app's backend only gets reaped with the app because the wrapper
+      # launches into a transient user *service*. A plain exec (or a --scope)
+      # leaks the backend onto 3799 and bricks the next launch (notes.md).
+      machine.succeed(f"grep -q 'systemd-run --user --collect' {wrapper}")
+      machine.fail(f"grep -q -- '--scope' {wrapper}")
 
       # Without this the Antigravity provider's embedded Python has no trust
       # store and every model call comes back as a bogus 502 (see notes.md).
