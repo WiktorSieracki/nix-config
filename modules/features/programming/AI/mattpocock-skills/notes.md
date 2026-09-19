@@ -31,3 +31,11 @@ directory really contains a `SKILL.md`.
 
 `obsidian-vault` was deleted upstream entirely (not moved), so it is vendored in
 the `local-skills` feature from the last mattpocock revision that shipped it.
+
+## 2026-09-19 — disabled on both hosts in favour of pstack
+
+Both hosts switched to the `pstack` feature. The two are declared mutually
+exclusive (`featureMeta.conflicts` on `pstack`): they both ship a `tdd` and a
+`teach`, and more importantly each is a whole engineering system — running both
+at once is more vocabulary than a person can hold. This feature stays in the
+repo, disabled; switching back is one toggle in switchboard.

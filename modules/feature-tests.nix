@@ -22,6 +22,11 @@
             type = lib.types.enum ["config" "cli" "service" "gui"];
             description = "What the feature is; sets the rigor level (which `provides` it must declare).";
           };
+          conflicts = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [];
+            description = "Features that may not be enabled in the same scope as this one (e.g. two skill sets shipping the same skill name); the host loader hard-fails. Declaring it on either side is enough.";
+          };
           runtimeUntestable = lib.mkOption {
             type = lib.types.bool;
             default = false;
@@ -286,6 +291,12 @@
         ++ map (f: "  feature '${f}' has a feature test but no featureMeta") (lib.subtractLists metaNames testNames)
         ++ map (n: "  featureMeta.'${n}' does not name a real feature") (lib.filter (n: !(builtins.elem n featureNames)) metaNames)
         ++ map (n: "  featureTests.'${n}' does not name a real feature") (lib.filter (n: !(builtins.elem n featureNames)) testNames)
+        ++ lib.concatMap (
+          n:
+            map (c: "  featureMeta.'${n}'.conflicts names '${c}', which is not a real feature")
+            (lib.filter (c: !(builtins.elem c featureNames)) (meta.${n}.conflicts or []))
+        )
+        metaNames
         ++ lib.optionals enforceAll (map (f: "  feature '${f}' has no featureMeta/feature test — every feature must have one") (lib.subtractLists metaNames featureNames))
         # gui⇒desktop (CONTEXT.md, ADR 0002): a `kind = "gui"` feature must reach
         # `desktop` through its `requires`, so its feature test boots the real

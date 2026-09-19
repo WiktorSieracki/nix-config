@@ -70,6 +70,13 @@
       url = "github:mattpocock/skills";
       flake = false;
     };
+
+    # Cursor's plugin monorepo; only `pstack/` is consumed, by the `pstack`
+    # feature. Bump with `nix flake update cursor-plugins`.
+    cursor-plugins = {
+      url = "github:cursor/plugins";
+      flake = false;
+    };
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);

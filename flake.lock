@@ -34,6 +34,22 @@
         "type": "github"
       }
     },
+    "cursor-plugins": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1789773461,
+        "narHash": "sha256-ZOCJ6KD/WRrSBGuBISgX1JouC93two2j4swK+6nmxcI=",
+        "owner": "cursor",
+        "repo": "plugins",
+        "rev": "032be146865d973682535de75f2287da438550bf",
+        "type": "github"
+      },
+      "original": {
+        "owner": "cursor",
+        "repo": "plugins",
+        "type": "github"
+      }
+    },
     "firefox-addons": {
       "inputs": {
         "nixpkgs": [
@@ -225,6 +241,7 @@
     },
     "root": {
       "inputs": {
+        "cursor-plugins": "cursor-plugins",
         "firefox-addons": "firefox-addons",
         "flake-parts": "flake-parts",
         "home-manager": "home-manager",

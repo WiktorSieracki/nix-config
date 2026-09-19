@@ -122,6 +122,23 @@ in {
       reqs = m: (meta.${m} or {}).requires or [];
       missing = enabled: m: lib.filter (d: !(builtins.elem d (system ++ enabled))) (reqs m);
 
+      # Mutually exclusive features (e.g. two skill sets that both ship a `tdd`
+      # skill, so both would define the same home.file). Scoped like `requires`:
+      # what matters is what one account sees, `system` plus its own list.
+      # Without this the clash surfaces as an opaque home-manager "conflicting
+      # definition values" error naming a file; this names both features.
+      conflicts = m: (meta.${m} or {}).conflicts or [];
+      # Declaring the conflict on either side is enough — the pair is rendered
+      # name-sorted so a mutual declaration doesn't report it twice.
+      clashes = enabled:
+        lib.unique (lib.concatMap (
+            m:
+              map (c: lib.concatStringsSep " and " (lib.sort (a: b: a < b) ["'${m}'" "'${c}'"]))
+              (lib.filter (c: c != m && builtins.elem c enabled) (conflicts m))
+          )
+          enabled);
+      systemClashes = clashes system;
+
       # A features.json name is real iff it has a NixOS part, a home-manager
       # part, or an explicit featureMeta (the last covers module-less features
       # like `personal-snippets` that only add global niriBinds). Without this,
@@ -155,6 +172,14 @@ in {
                 (missing users.${u} m)
             )
             users.${u}
+        )
+        logins
+        ++ map (p: "  features ${p} conflict — `system` may enable only one")
+        systemClashes
+        ++ lib.concatMap (
+          u:
+            map (p: "  features ${p} conflict — user '${u}' may enable only one")
+            (lib.subtractLists systemClashes (clashes (system ++ users.${u})))
         )
         logins
         ++ map (u: "  host declares user '${u}' but flake.meta.users has no entry for it")
