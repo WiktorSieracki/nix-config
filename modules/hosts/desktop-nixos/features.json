@@ -22,7 +22,8 @@
     "obsidian",
     "ollama",
     "open-webui",
-    "claude-agent-acp"
+    "claude-agent-acp",
+    "waydroid"
   ],
   "users": {
     "wiktor": [
