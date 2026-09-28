@@ -177,7 +177,13 @@
                 colorizeIcons = false;
                 enableScrollWheel = true;
                 followFocusedScreen = false;
-                hideUnoccupied = false;
+                # The named workspaces `scratch` (quick-terminal) and `sandbox`
+                # (live sandbox VM) are permanent in the niri config, so they sat
+                # in the bar as dead dots next to niri's trailing empty workspace
+                # — three pills on a monitor with one real workspace. Unoccupied
+                # workspaces are hidden; the focused one is always shown, and
+                # Mod+1..9 still reaches an empty workspace.
+                hideUnoccupied = true;
                 showApplications = false;
                 showApplicationsHover = false;
                 showBadge = true;
