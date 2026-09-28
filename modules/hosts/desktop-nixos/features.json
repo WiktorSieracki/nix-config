@@ -21,7 +21,6 @@
     "switchboard",
     "obsidian",
     "ollama",
-    "open-webui",
     "claude-agent-acp",
     "waydroid"
   ],
@@ -41,9 +40,7 @@
       "brave",
       "spotify",
       "discord",
-      "affine",
       "localsend",
-      "aeroftp",
       "t3code",
       "t3code-server",
       "handy",
@@ -52,7 +49,6 @@
       "claude-code",
       "codex",
       "local-skills",
-      "pstack",
       "opencode"
     ],
     "work": [
