@@ -19,11 +19,18 @@
     ];
   };
 
+  # The user-global instructions (~/.claude/CLAUDE.md). Kept under another name
+  # so Claude Code doesn't pick it up as a nested project CLAUDE.md while
+  # working in this repo. Read-only once linked — tools that append to it
+  # (e.g. `graphify install`) have to be edited into this file instead.
+  flake.modules.homeManager.claude-code.home.file.".claude/CLAUDE.md".source = ./global-claude.md;
+
   flake.featureMeta.claude-code = {
     requires = [];
     kind = "cli";
     # Binary name from meta.mainProgram: claude-code → "claude".
     provides.systemBins = ["claude"];
+    provides.userFiles = ["~/.claude/CLAUDE.md"];
   };
 
   # feature test: fully covered by `provides` — no extra script needed.

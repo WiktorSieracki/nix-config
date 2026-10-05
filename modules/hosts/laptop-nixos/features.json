@@ -18,13 +18,13 @@
     "eduroam",
     "switchboard",
     "claude-agent-acp",
-    "claude-code",
     "codex",
     "home-wifi"
   ],
   "users": {
     "wiktor": [
       "fish",
+      "claude-code",
       "local-skills",
       "pstack",
       "git",
