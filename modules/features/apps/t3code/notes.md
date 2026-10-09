@@ -482,9 +482,28 @@ The same trap waits for any other foreign agent binary t3code spawns — read a
 provider-level "connection failed" against an endpoint that `curl` reaches fine
 as a missing trust store first.
 
+## 2026-10-08 — no window after the 0.0.44 bump: node-pty can't find libstdc++
+
+Symptom: `t3code-desktop` starts, the Electron process stays alive, but no
+window ever appears; launching again just hands off to the windowless instance.
+`~/.local/share/t3code-desktop/userdata/logs/server-child.log` shows the
+backend restart-looping every ~30 s on `NodePtyModuleLoadError: Failed to load
+node-pty for linux-x64`, with a misleading `Cannot find module
+'./prebuilds/linux-x64/pty.node'` — the file is there; `ldd` on it says
+`libstdc++.so.6 => not found`.
+
+node-pty 1.2.0-beta ships a linux-x64 prebuild, so the package's
+`pnpm rebuild` no longer builds `pty.node` from source, and nixpkgs sets
+`dontPatchELF` on the vendored tree. `t3 serve` is unaffected (nodejs links
+libstdc++ itself, so the dlopen resolves); the app's backend runs under
+Electron, which does not. That is also why the feature test loads node-pty with
+`ELECTRON_RUN_AS_NODE=1 electron`, not `node` — the `node` version passes on the
+broken package. Fix: `t3codeUnwrappedFor` adds a libstdc++ rpath to just that
+file. Drop it once nixpkgs patches the prebuild (the assertion will tell).
+
 ## Updating
 
-Bump nixpkgs (`nix flake update nixpkgs`). There is nothing version-shaped left
-in this file. `passthru.updateScript` upstream tracks GitHub releases, so the
+Bump nixpkgs (`nix flake update nixpkgs`). The only version-shaped thing left
+in `t3code.nix` is the node-pty rpath patch above. `passthru.updateScript` upstream tracks GitHub releases, so the
 nixpkgs attr follows stable tags, not the several-times-a-day `*-nightly`
 prereleases.

@@ -43,6 +43,9 @@
                 "formulahendry.auto-rename-tag"
                 # typst
                 "myriad-dreamin.tinymist"
+                # latex — toolchain comes from the `latex` feature
+                "James-Yu.latex-workshop"
+                "iamhyc.overleaf-workshop"
                 # misc
                 "ms-vscode-remote.remote-containers"
                 "ms-vscode-remote.remote-ssh"
@@ -70,6 +73,15 @@
             "explorer.confirmDragAndDrop" = false;
             "[typescriptreact]" = {
               "editor.defaultFormatter" = "esbenp.prettier-vscode";
+            };
+            # latex — the toolchain (latexmk, latexindent) comes from the
+            # `latex` feature. Build artifacts go to a build/ subdir so .aux
+            # droppings don't end up synced back to an Overleaf project.
+            "latex-workshop.latex.outDir" = "%DIR%/build";
+            "latex-workshop.latex.autoBuild.run" = "onSave";
+            "latex-workshop.view.pdf.viewer" = "tab";
+            "[latex]" = {
+              "editor.defaultFormatter" = "James-Yu.latex-workshop";
             };
             "workbench.colorTheme" = "NoctaliaTheme";
             "workbench.editor.tabSizing" = "fixed";

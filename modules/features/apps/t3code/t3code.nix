@@ -23,8 +23,27 @@
   # `security.pki` adds — is what the provider sees. See notes.md.
   caBundle = "/etc/ssl/certs/ca-certificates.crt";
 
+  # Since 0.0.44 node-pty (1.2.0-beta) ships a linux-x64 prebuild, so the
+  # package's `pnpm rebuild` no longer compiles `pty.node` from source — and with
+  # `dontPatchELF` nothing points the prebuilt at a libstdc++. nodejs links one
+  # anyway, but the app's backend runs under Electron, which does not: it died
+  # with NodePtyModuleLoadError and the app never opened a window (2026-10-08).
+  # Only this one file gets the rpath; the rest of the vendored tree stays
+  # untouched, as upstream intends. Drop this once nixpkgs patches it.
+  t3codeUnwrappedFor = pkgs:
+    pkgs.t3code.unwrapped.overrideAttrs (old: {
+      nativeBuildInputs = old.nativeBuildInputs ++ [pkgs.patchelf];
+      postFixup =
+        (old.postFixup or "")
+        + ''
+          find "$out"/libexec/t3code -path '*/node-pty/prebuilds/linux-*/pty.node' \
+            -exec patchelf --add-rpath ${pkgs.lib.getLib pkgs.stdenv.cc.cc}/lib {} +
+        '';
+    });
+
   t3codeFor = pkgs:
     pkgs.t3code.override {
+      t3code-unwrapped = t3codeUnwrappedFor pkgs;
       enableClaude = true;
       claude-code = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code;
       enableCodex = false;
@@ -197,6 +216,8 @@ in {
   # `useUserPackages` it lands in the account's profile — a path that carries the
   # login and therefore can't be written as a static declaration.
   flake.featureTests.t3code = {
+    # The same Electron the package runs on (nixpkgs' default `electron`).
+    extraNixosModules = [({pkgs, ...}: {environment.systemPackages = [pkgs.electron];})];
     testScript = ''
       entry = "/etc/profiles/per-user/tester/share/applications/t3code.desktop"
       machine.succeed(f"test -e {entry}")
@@ -220,6 +241,19 @@ in {
       # Without this the Antigravity provider's embedded Python has no trust
       # store and every model call comes back as a bogus 502 (see notes.md).
       machine.succeed(f"grep -q 'SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt' {wrapper}")
+
+      # The app's backend runs under Electron, and node-pty's native module
+      # must load there, or the backend dies at startup with
+      # NodePtyModuleLoadError and the app never opens a window. Electron (unlike
+      # nodejs) does not pull in libstdc++, which the prebuilt `pty.node` needs
+      # (see `t3codeFor`) — so this has to be Electron, not a bare node.
+      pkg = machine.succeed(
+          "dirname $(dirname $(readlink -f /etc/profiles/per-user/tester/bin/t3))"
+      ).strip()
+      machine.succeed(
+          "ELECTRON_RUN_AS_NODE=1 electron -e 'require(process.argv[1])' "
+          + f"{pkg}/libexec/t3code/node_modules/.pnpm/node-pty@*/node_modules/node-pty"
+      )
     '';
   };
 
