@@ -1,8 +1,4 @@
-{
-  config,
-  lib,
-  ...
-}: let
+{config, ...}: let
   usersMeta = config.flake.meta.users or {};
 in {
   flake.modules = {

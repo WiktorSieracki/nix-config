@@ -1,5 +1,8 @@
 {inputs, ...}: {
-  flake.niriBinds.spotify = {pkgs, lib}: {
+  flake.niriBinds.spotify = {
+    pkgs,
+    lib,
+  }: {
     "Mod+S" = _: {
       props."hotkey-overlay-title" = "Open Spotify";
       content."spawn" = ["${lib.getExe pkgs.spotify}"];

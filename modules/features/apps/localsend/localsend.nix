@@ -13,7 +13,10 @@
   # it up itself. `--hidden` starts it straight into the tray instead of popping
   # a window over the workspace on every login — the noctalia bar's Tray widget
   # is what makes it reachable again.
-  flake.niriSpawnAtStartup.localsend = {pkgs, lib}: "${pkgs.writeShellScript "localsend-hidden" "exec ${lib.getExe' pkgs.localsend "localsend_app"} --hidden"}";
+  flake.niriSpawnAtStartup.localsend = {
+    pkgs,
+    lib,
+  }: "${pkgs.writeShellScript "localsend-hidden" "exec ${lib.getExe' pkgs.localsend "localsend_app"} --hidden"}";
 
   flake.featureMeta.localsend = {
     requires = ["desktop"];

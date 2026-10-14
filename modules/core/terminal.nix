@@ -1,5 +1,8 @@
 {config, ...}: {
-  flake.niriBinds.terminal = {pkgs, lib}: {
+  flake.niriBinds.terminal = {
+    pkgs,
+    lib,
+  }: {
     "Mod+Return".spawn-sh = "${lib.getExe pkgs.${config.flake.meta.programs.terminal}} --gtk-single-instance=true";
   };
 

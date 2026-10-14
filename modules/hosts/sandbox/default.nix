@@ -249,9 +249,11 @@ in {
   # actually runs `sandbox up`.
   perSystem = {pkgs, ...}: {
     checks.sandbox-eval = let
-      validated = map (
-        f: builtins.length (config.flake.lib.loadHost config (mkSpec [f]))
-      ) sandboxFeatures;
+      validated =
+        map (
+          f: builtins.length (config.flake.lib.loadHost config (mkSpec [f]))
+        )
+        sandboxFeatures;
       base = builtins.length (config.flake.lib.loadHost config (mkSpec []));
     in
       builtins.seq base (builtins.deepSeq validated

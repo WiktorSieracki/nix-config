@@ -1,8 +1,4 @@
-{
-  config,
-  lib,
-  ...
-}: let
+{...}: let
   # Shared by the host and by the VM test below, so the test exercises this
   # exact code rather than a copy of it.
   guardModule = {

@@ -1,5 +1,8 @@
 {
-  flake.niriBinds.teams = {pkgs, lib}: {
+  flake.niriBinds.teams = {
+    pkgs,
+    lib,
+  }: {
     "Mod+M" = _: {
       props."hotkey-overlay-title" = "Open Teams";
       content."spawn" = ["${lib.getExe pkgs.teams-for-linux}"];

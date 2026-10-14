@@ -131,9 +131,6 @@
       # Optional: a feature whose `provides` says everything needs no script.
       testScript ? "",
       requires ? (config.flake.featureMeta.${feature}.requires or []),
-      # `kind` sets the rigor level (ADR 0002): it decides which `provides` a
-      # feature must declare — enforced in feature-coverage below, not here.
-      kind ? (config.flake.featureMeta.${feature}.kind or "config"),
       provides ? (config.flake.featureMeta.${feature}.provides or {}),
       extraNixosModules ? [],
       # Extra home-manager modules merged into the test user's HM — used by feature
@@ -162,7 +159,7 @@
         inputs.home-manager.nixosModules.home-manager
         {
           home-manager = {
-            backupFileExtension = ".bak";
+            backupFileExtension = "hm-bak";
             useGlobalPkgs = true;
             useUserPackages = true;
           };
@@ -358,7 +355,7 @@
                 inputs.home-manager.nixosModules.home-manager
                 {
                   home-manager = {
-                    backupFileExtension = ".bak";
+                    backupFileExtension = "hm-bak";
                     useGlobalPkgs = true;
                     useUserPackages = true;
                   };

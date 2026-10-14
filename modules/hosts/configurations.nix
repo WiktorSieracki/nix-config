@@ -25,20 +25,13 @@
     };
 
   linux = mkNixos "x86_64-linux" "nixos";
-  linux-arm = mkNixos "aarch64-linux" "nixos";
-
-  wsl = mkNixos "x86_64-linux" "wsl";
 in {
   # `flake.lib` is an undeclared freeform flake output, so flake-parts can't
   # merge contributions from more than one module. Keep ALL of `flake.lib` here
   # (sole writer); other harness helpers live under their own attr (e.g.
   # feature-tests.nix → `flake.featureTestLib.mkFeatureTest`) and are only *read* elsewhere.
   flake.lib.mkSystems = {
-    inherit
-      linux
-      linux-arm
-      wsl
-      ;
+    inherit linux;
   };
 
   # mkHostUser — the single account factory (ADR 0004). Creates the Unix user
@@ -57,49 +50,50 @@ in {
     sopsAvailable ? true,
   }: let
     hasSopsPassword = (userMeta ? passwordSecret) && sopsAvailable;
-  in {
-    pkgs,
-    config,
-    ...
-  }:
+  in
     {
-      users.users.${login} =
-        {
-          isNormalUser = true;
-          # GECOS is what the SDDM greeter labels the account with, so it takes
-          # displayName when the identity distinguishes the two (fullName alone
-          # made the two accounts of one person indistinguishable at login).
-          description = userMeta.displayName or userMeta.fullName or login;
-          extraGroups = userMeta.groups or [];
-        }
-        // lib.optionalAttrs (userMeta ? shell) {
-          shell = pkgs.${userMeta.shell};
-        }
-        // lib.optionalAttrs (userMeta ? authorizedKeys) {
-          openssh.authorizedKeys.keys = userMeta.authorizedKeys;
-        }
-        // lib.optionalAttrs hasSopsPassword {
-          hashedPasswordFile = config.sops.secrets.${userMeta.passwordSecret}.path;
-        };
-
-      home-manager.users.${login}.imports =
-        hmModules
-        ++ [
+      pkgs,
+      config,
+      ...
+    }:
+      {
+        users.users.${login} =
           {
-            _module.args.userMeta = userMeta // {inherit login;};
-            home.username = login;
-            home.homeDirectory = "/home/${login}";
-            home.stateVersion = "24.11";
-            programs.home-manager.enable = true;
+            isNormalUser = true;
+            # GECOS is what the SDDM greeter labels the account with, so it takes
+            # displayName when the identity distinguishes the two (fullName alone
+            # made the two accounts of one person indistinguishable at login).
+            description = userMeta.displayName or userMeta.fullName or login;
+            extraGroups = userMeta.groups or [];
           }
-        ];
-    }
-    # The password hash must be decrypted before user creation (sysusers runs
-    # early), hence neededForUsers. Guarded so hosts/feature tests without the sops
-    # module never even mention the option.
-    // lib.optionalAttrs hasSopsPassword {
-      sops.secrets.${userMeta.passwordSecret}.neededForUsers = true;
-    };
+          // lib.optionalAttrs (userMeta ? shell) {
+            shell = pkgs.${userMeta.shell};
+          }
+          // lib.optionalAttrs (userMeta ? authorizedKeys) {
+            openssh.authorizedKeys.keys = userMeta.authorizedKeys;
+          }
+          // lib.optionalAttrs hasSopsPassword {
+            hashedPasswordFile = config.sops.secrets.${userMeta.passwordSecret}.path;
+          };
+
+        home-manager.users.${login}.imports =
+          hmModules
+          ++ [
+            {
+              _module.args.userMeta = userMeta // {inherit login;};
+              home.username = login;
+              home.homeDirectory = "/home/${login}";
+              home.stateVersion = "24.11";
+              programs.home-manager.enable = true;
+            }
+          ];
+      }
+      # The password hash must be decrypted before user creation (sysusers runs
+      # early), hence neededForUsers. Guarded so hosts/feature tests without the sops
+      # module never even mention the option.
+      // lib.optionalAttrs hasSopsPassword {
+        sops.secrets.${userMeta.passwordSecret}.neededForUsers = true;
+      };
 
   # loadHost — assembles a host from its features.json spec (ADR 0003/0004):
   #   { system = [ ... ];               # machine features (hardware, services)
@@ -215,7 +209,11 @@ in {
             imports = [inputs.home-manager.nixosModules.home-manager];
 
             home-manager = {
-              backupFileExtension = ".bak";
+              # No leading dot: home-manager inserts its own, so ".bak" would
+              # produce "settings.json..bak". `overwriteBackup` keeps a stale
+              # backup from failing the next activation on a file collision.
+              backupFileExtension = "hm-bak";
+              overwriteBackup = true;
               useGlobalPkgs = true;
               useUserPackages = true;
             };
