@@ -19,20 +19,27 @@
     ];
   };
 
-  # The user-global instructions (~/.claude/CLAUDE.md). Kept under another name
-  # so Claude Code doesn't pick it up as a nested project CLAUDE.md while
-  # working in this repo. Read-only once linked — tools that append to it
-  # (e.g. `graphify install`) have to be edited into this file instead.
-  flake.modules.homeManager.claude-code.home.file.".claude/CLAUDE.md".source = ./global-claude.md;
+  # The user-global instructions (~/.claude/CLAUDE.md) come from the shared
+  # agent-agnostic ../AGENTS.md. Linked out of the store into this account's
+  # own checkout (ADR 0004), so edits there are live in the next session
+  # without a rebuild, and tools that append to it (e.g. `graphify install`)
+  # write straight into the repo.
+  flake.modules.homeManager.claude-code = {config, ...}: {
+    home.file.".claude/CLAUDE.md".source =
+      config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/.config/nix-config/modules/features/programming/AI/AGENTS.md";
+  };
 
   flake.featureMeta.claude-code = {
     requires = [];
     kind = "cli";
     # Binary name from meta.mainProgram: claude-code → "claude".
     provides.systemBins = ["claude"];
-    provides.userFiles = ["~/.claude/CLAUDE.md"];
   };
 
-  # feature test: fully covered by `provides` — no extra script needed.
-  flake.featureTests.claude-code = {};
+  # Not in provides.userFiles: its `test -e` follows the link, and the test
+  # account has no checkout of the repo, so the link is dangling there.
+  flake.featureTests.claude-code.testScript = ''
+    machine.succeed("su - tester -c 'readlink -m ~/.claude/CLAUDE.md' | grep -qx /home/tester/.config/nix-config/modules/features/programming/AI/AGENTS.md")
+  '';
 }
