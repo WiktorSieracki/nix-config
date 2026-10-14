@@ -22,20 +22,24 @@ jobs:
       contents: write # create/overwrite the release
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         # nix-eval-jobs (under nix-fast-build) forces `revCount` on the
         # `git+file:.` input, which a shallow clone cannot provide:
         # "is a shallow Git repository, so 'revCount' is not available".
         # checkout defaults to fetch-depth 1, so the full history is required.
+        # persist-credentials: false keeps the contents:write token out of
+        # .git/config, where every later step (incl. third-party actions) could
+        # read it; the release steps get their token explicitly instead.
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       # ubuntu-latest has ~14 GB free; the ISO build doesn't fit in that.
       # root-safe-haven: Stage artifacts copies the finished ISO to the workspace
       # on /, and the default 2 GB reserve killed this step (and the worker
       # itself) with ENOSPC.
       - name: Free disk space
-        uses: wimpysworld/nothing-but-nix@main
+        uses: wimpysworld/nothing-but-nix@687c797a730352432950c707ab493fcc951818d7 # v10
         with:
           hatchet-protocol: rampage
           root-safe-haven: '12288'
@@ -45,7 +49,7 @@ jobs:
       # where ~2 GB is left after cleanup — the ISO mksquashfs died there with ENOSPC
       # "Probably out of space on output filesystem".
       - name: Install Nix
-        uses: cachix/install-nix-action@v30
+        uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
@@ -54,7 +58,7 @@ jobs:
             build-dir = /nix/build
 
       - name: Setup Cachix
-        uses: cachix/cachix-action@v15
+        uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15
         with:
           name: wiktor-nixos
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -114,7 +118,7 @@ jobs:
           done
 
       - name: Publish rolling release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: latest
           name: Latest installer ISO

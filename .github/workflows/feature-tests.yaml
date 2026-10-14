@@ -14,6 +14,11 @@ on:
       - '**.md'
   workflow_dispatch:
 
+# Least privilege: no job here writes to the repo. The token is read-only
+# regardless of the repository's default token permissions.
+permissions:
+  contents: read
+
 concurrency:
   group: feature-tests-${{ github.ref }}
   cancel-in-progress: true
@@ -23,13 +28,15 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       # The caches are listed here rather than in flake.nix's nixConfig (which
       # this repo deliberately does not have -- see the comment there). The same
       # two lines appear in every install-nix-action step across the workflows;
       # keep them identical. wiktor-nixos is named even where cachix-action
       # would also add it, so the block does not differ per job.
-      - uses: cachix/install-nix-action@v30
+      - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
@@ -37,6 +44,8 @@ jobs:
             extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g= wiktor-nixos.cachix.org-1:3DOZHbBhM0h+YZFUZ1zZikBSLC7cTbZglgQEhF7Gi2M=
       - name: feature-coverage
         run: nix build -L '.#checks.x86_64-linux.feature-coverage'
+      - name: formatting
+        run: nix build -L '.#checks.x86_64-linux.formatting'
 
   # Full VM feature tests. KVM can be flaky on runners — so not on every PR,
   # only on main and manually; green builds land in Cachix, so later ones are fast.
@@ -44,13 +53,15 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       # root-safe-haven: the action carves an expansion disk out of / and the
       # default 2 GB reserve is not enough for the runner's own diag logs —
       # the 59 feature-test build log filled / and killed the worker itself
       # with ENOSPC (while /nix still had ~95 GB free). Same fix as iso.yaml.
       - name: Free disk space
-        uses: wimpysworld/nothing-but-nix@main
+        uses: wimpysworld/nothing-but-nix@687c797a730352432950c707ab493fcc951818d7 # v10
         with:
           root-safe-haven: '12288'
       - name: Enable KVM
@@ -62,14 +73,14 @@ jobs:
       # build-dir MUST point at the /nix volume (nothing-but-nix creates
       # /nix/build exactly for this): without it the daemon builds the VM
       # images in /tmp on /, where little is left after the carve-out.
-      - uses: cachix/install-nix-action@v30
+      - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
             extra-substituters = https://nix-community.cachix.org https://cache.numtide.com https://wiktor-nixos.cachix.org
             extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g= wiktor-nixos.cachix.org-1:3DOZHbBhM0h+YZFUZ1zZikBSLC7cTbZglgQEhF7Gi2M=
             build-dir = /nix/build
-      - uses: cachix/cachix-action@v15
+      - uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15
         with:
           name: wiktor-nixos
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
