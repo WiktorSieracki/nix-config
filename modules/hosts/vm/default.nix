@@ -57,6 +57,25 @@ in {
           boot.loader.efi.canTouchEfiVariables = lib.mkForce false;
           boot.loader.timeout = lib.mkForce 5;
 
+          # Only the qemu-efi image variant defines filesystems, so the plain
+          # toplevel (what `nix flake check` evaluates) had no root and failed
+          # its assertion. Mirror exactly what that variant creates
+          # (disk-image.nix + make-disk-image.nix: ext4 labelled `nixos`, vfat
+          # ESP labelled `ESP`) at mkDefault: the image's own normal-priority
+          # definitions then drop these entirely, and `build.vm` replaces all
+          # of fileSystems via mkVMOverride anyway.
+          fileSystems = {
+            "/" = lib.mkDefault {
+              device = "/dev/disk/by-label/nixos";
+              fsType = "ext4";
+              autoResize = true;
+            };
+            "/boot" = lib.mkDefault {
+              device = "/dev/disk/by-label/ESP";
+              fsType = "vfat";
+            };
+          };
+
           # ghostty's OpenGL renderer can't get a working GL context under the
           # nested virgl (virtio-vga-gl) path, so `Mod+Return` opens nothing in
           # the VM. Forcing mesa's llvmpipe (software GL) makes it render. Scoped

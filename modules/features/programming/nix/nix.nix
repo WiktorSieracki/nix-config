@@ -16,6 +16,18 @@
     # daily). Deliberately a timer, not auto-optimise-store = true — the
     # per-build variant slows builds and has a history of hardlink races.
     nix.optimise.automatic = true;
+    # Periodic GC so the store and generation list stop growing until pruned
+    # by hand: weekly `nh clean all` (nh-clean.timer, Persistent). Keeps every
+    # generation from the last 14 days and never fewer than 5. Use instead of
+    # nix.gc.automatic (the nh module warns if both are on). `flake` stays
+    # unset: NH_FLAKE is per-user, see the home-manager part below.
+    programs.nh = {
+      enable = true;
+      clean = {
+        enable = true;
+        extraArgs = "--keep-since 14d --keep 5";
+      };
+    };
     nix.settings.substituters = [
       "https://cache.nixos.org"
       "https://nix-community.cachix.org"
@@ -34,7 +46,7 @@
       nixd
       nix-search-cli
       nixfmt
-      nh
+      # nh itself comes from programs.nh above.
       comma
       manix
     ];
@@ -68,7 +80,7 @@
     kind = "config";
     provides = {
       systemBins = ["alejandra" "nh"];
-      units = ["nix-optimise.timer"];
+      units = ["nix-optimise.timer" "nh-clean.timer"];
     };
   };
 
