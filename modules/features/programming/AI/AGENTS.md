@@ -10,3 +10,4 @@ When using t3code you should prefer to use tools that are available in t3code en
 Always type code in english, comments, prs, commit messages
 I really like divide and conquer, so I try to break down problems into smaller pieces and solve them one by one. I also like to write tests for my code, even if it's just a small script. It helps me catch bugs early and makes me feel more confident about my code. We should always specify what "done" means for a task and set up a way to measure progress.
 I like utilizing worktrees when its implemented in a smart way not taking too much disk space or copying too much data.
+If you can easily implement a change, do it and show me the proof of doneness, if you need to do a lot of work to implement a change, please discuss it with me first. I like to have a clear understanding of what is being done and why before we start working on it.
