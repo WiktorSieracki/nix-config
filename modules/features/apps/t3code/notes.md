@@ -202,6 +202,11 @@ empty database. **Nothing of yours should live there** — a thread or project
 created on the app's local environment lands in that database and is invisible
 from the phone. Always pick `desktopNixos`.
 
+**Since V2 (0.1.0) there is no local backend at all.** The wrapper sets
+`localEnvironmentEnabled: false` in the app's `desktop-settings.json` before
+every launch. See the 2026-10-16 section *One environment instead of two*.
+The paragraphs above describe 0.0.x.
+
 ### Pairing the app to the unit (one-time)
 
 ```bash
@@ -215,6 +220,12 @@ into host + code by itself — and submit. The toast says *"The environment is
 saved and will reconnect on app startup"*, and it does; the credential lives in
 `T3CODE_HOME`, so it survives rebuilds and only has to be redone if that
 directory is wiped.
+
+Redo it after changing the machine's `PRETTY_HOSTNAME`: the app copies the
+environment's name when it pairs. On V2, `t3 pair` without `--scope` grants the
+full client set (`settings:write`, `providers:manage`, `preview:operate`,
+`filesystem:*`, …). A token minted under 0.0.x has only the narrow
+orchestration/terminal scopes.
 
 With the app's data directory isolated, `t3 pair` also stops picking the wrong
 server: the trap noted above (with the app open, `t3 pair` reports the app's
@@ -501,9 +512,131 @@ Electron, which does not. That is also why the feature test loads node-pty with
 broken package. Fix: `t3codeUnwrappedFor` adds a libstdc++ rpath to just that
 file. Drop it once nixpkgs patches the prebuild (the assertion will tell).
 
+## 2026-10-16 — pinned to 0.1.0 (Orchestrator V2) ahead of nixpkgs
+
+nixpkgs (even master) was still on 0.0.45 the day after upstream shipped the
+first stable V2, so `t3code.nix` pins `version` + `srcHash` + `pnpmDepsHash`
+over nixpkgs' recipe instead of waiting for the r-ryantm bump. Things V2
+changes that matter here:
+
+- **V1 and V2 do not talk to each other** — the side that is older refuses the
+  connection. The unit and the app come from the same derivation, so they move
+  together; the phone needs the 2.0 store app (or the web app at
+  app.t3.codes, which follows the server).
+- **The first V2 start copies the database one way.** The V1 copy stays put, so
+  rolling back to an older generation brings back the pre-update threads, not
+  the ones made since.
+- **Minimum provider versions:** Claude Code 2.1.280+ (llm-agents was on
+  2.1.292). Settings → Providers flags a too-old one.
+- **New Chromium profile:** Electron's userData moved from `~/.config/t3code`
+  to `~/.config/t3code-v2`. Upstream imports the V1 Local Storage (drafts,
+  layout, theme) once and leaves a `v1-local-storage-imported` marker, but the
+  safeStorage key is not carried over (next section).
+
+## 2026-10-16 — the paired unit vanished from the app after 0.1.0
+
+Right after the switch, `desktopNixos` was gone from Settings → Connections.
+The app showed only its own local environment. The pairing itself was fine:
+`t3 auth session list` still had the `t3code-desktop | Electron` session, valid
+until 2026-11-08. The app could no longer read it. Every launch logged this in
+`~/.local/share/t3code-desktop/userdata/logs/desktop.trace.ndjson`:
+
+```
+DesktopConnectionCatalogStoreProtectionError: Desktop connection catalog
+  protection failed during decrypt-catalog at …/connection-catalog.json
+  [cause]: ElectronSafeStorageDecryptError … safeStorage.decryptString
+```
+
+The catalog (saved environments plus their bearer credentials) is encrypted
+with Electron `safeStorage`. On Linux the key lives in the keyring under the
+app's **`productName`**, and upstream derives that from the release stage.
+0.0.44 shipped `"productName": "T3 Code (Alpha)"`, 0.1.0 ships
+`"T3 Code (Beta)"`. The first 0.1.0 launch found no key under the new name,
+generated one, and the catalog (`v11` prefix: libsecret key) became
+unreadable:
+
+```console
+$ secret-tool search --all xdg:schema chrome_libsecret_os_crypt_password_v2
+attribute.application = T3 Code (Alpha)   created 2026-10-11   ← the catalog's key
+attribute.application = T3 Code (Beta)    created 2026-10-16 19:35:50 UTC ← first 0.1.0 launch
+```
+
+Upstream's own `app.setName("T3 Code Beta")` runs later and does not affect
+the keyring entry. Only package.json's `productName` does, because Electron
+reads it before the main script runs.
+
+**Fix:** `t3codeUnwrappedFor` rewrites the installed
+`apps/desktop/package.json` so `productName` is always `keyringName`
+(`"T3 Code (Alpha)"`, the name the existing key was made under). The
+existing catalog decrypts again with no re-pairing, and later stage renames
+(Beta → stable, …) no longer touch the key. The feature test asserts the pinned
+name. `productName` is read by nothing else that matters here: the bundle
+never reads it, and upstream sets userData, the about-panel name and the
+app_id (`app.setDesktopName()` + `--class`) explicitly. The orphaned
+`T3 Code (Beta)` keyring entry is harmless.
+
+Decrypting the catalog by hand with the Alpha key (PBKDF2-SHA1 of the keyring
+secret, salt `saltysalt`, 1 iteration, AES-128-CBC, IV of 16 spaces) showed
+the `desktopNixos` profile intact. It also showed the unit's environmentId in
+`disabledEnvironmentIds`. The V1 app wrote that at 21:35:37, right when the unit
+came back as V2. So after the fix the environment returns switched off and
+needs one toggle in Settings → Connections.
+
+If the environment disappears again after a bump, check the log line above
+first. If it is a decrypt error and `productName` is still pinned, upstream
+changed where the key name comes from. Compare the newest keyring entry's
+`application` with `keyringName`.
+
+## 2026-10-16 — one environment instead of two, named "Desktop"
+
+Once the unit was back, the environment picker listed it twice:
+`desktopNixos · http://127.0.0.1:3773/` (the unit) and
+`desktopNixos · http://127.0.0.1:3799/` (the app's own backend, see *The
+client* above). V2 lets the app run without that backend. Its
+`desktop-settings.json` has `localEnvironmentEnabled` (default `true`), and with
+`false` the bootstrap logs `bootstrap skipping local environment (disabled in
+settings)`. No server is spawned, and the `t3code://` protocol serves the UI
+from the bundled assets instead of proxying to a backend. There is no flag or
+variable for it, only that file. The app also writes window bounds and the
+update channel there, so `desktopSettingsFor` sets just that one key with jq
+before every launch, and leaves a file jq cannot parse alone.
+
+What turning it off costs: `desktop:pick-folder` and the project-favicon picker
+return `null` without a local environment, so "Add project" cannot open the
+native folder dialog. Adding a project to the unit goes through the server's
+filesystem RPC, which needs a V2 pairing (`filesystem:read`). Preview does not
+depend on the local environment.
+
+The name comes from the server, not the app. `resolveServerEnvironmentLabel`
+tries `PRETTY_HOSTNAME` from `/etc/machine-info`, then `hostnamectl --pretty`,
+then `os.hostname()`. Neither of the first two existed here, hence
+`desktopNixos`. `hosts/desktop-nixos/pretty-hostname.nix` sets it through
+`environment.etc` (NixOS points systemd-hostnamed at `/etc/static/machine-info`
+and has no option of its own). The server reads it at startup, so it takes a
+restart of `t3code.service`. The app's connection catalog stores the label
+from the moment of pairing (`"label": "desktopNixos"` in the profile), so
+re-pair after a rename. The icon is a server setting (`environmentIcon` in
+`~/.t3/userdata/settings.json`, here detected as `server`), changeable in
+Settings → Connections.
+
 ## Updating
 
-Bump nixpkgs (`nix flake update nixpkgs`). The only version-shaped thing left
-in `t3code.nix` is the node-pty rpath patch above. `passthru.updateScript` upstream tracks GitHub releases, so the
-nixpkgs attr follows stable tags, not the several-times-a-day `*-nightly`
-prereleases.
+Two ways, depending on whether nixpkgs has caught up:
+
+- **nixpkgs has the version you want:** drop `version` / `srcHash` /
+  `pnpmDepsHash` and their `overrideAttrs` lines from `t3codeUnwrappedFor`, then
+  `nix flake update nixpkgs`.
+- **nixpkgs lags:** bump `version`, set `srcHash` from
+  `nix run nixpkgs#nix-prefetch-github -- pingdotgg t3code --rev v<version>`,
+  set `pnpmDepsHash` to a fake hash and build once — the mismatch prints the
+  real one. Check that `native/resource-monitor/Cargo.lock` did not change
+  between the tags (`gh api repos/pingdotgg/t3code/contents/native/resource-monitor/Cargo.lock?ref=<tag> --jq .sha`);
+  if it did, nixpkgs' `cargoHash` for the sidecar is stale too.
+
+Track stable tags (`gh release list -R pingdotgg/t3code --exclude-pre-releases`),
+not the several-times-a-day `*-nightly` / `*-preview` prereleases. The node-pty
+rpath patch is still needed on the pinned nixpkgs; nixpkgs master now carries
+the same `postFixup`, so it can go once the pin moves past that. The
+`productName` pin (`keyringName`) stays regardless of how the version is
+sourced. It is not a version workaround: dropping it orphans the saved
+environments again.

@@ -23,6 +23,25 @@
   # `security.pki` adds — is what the provider sees. See notes.md.
   caBundle = "/etc/ssl/certs/ca-certificates.crt";
 
+  # nixpkgs trails upstream's stable tags, so the version is pinned here: only
+  # `src` and the pnpm dependency hash change, the rest of nixpkgs' recipe is
+  # reused as-is. The resource-monitor sidecar inherits `src` from this
+  # derivation and keeps nixpkgs' `cargoHash`, which stays valid only while
+  # `native/resource-monitor/Cargo.lock` is unchanged. Drop the pin once
+  # nixpkgs catches up (notes.md, "Updating").
+  version = "0.1.0";
+  srcHash = "sha256-P82DqoY1E9wtROwu5Nr7MB/I1PdmZHWXXR4nRa4GWXM=";
+  pnpmDepsHash = "sha256-oX4tOu20tYO3ci7VvSEL8eFgxAYWp5HlQFSfAWJGJmg=";
+
+  # Electron on Linux keeps the app's safeStorage key in the keyring under the
+  # `productName` of the app's package.json, and upstream renames it with every
+  # release stage ("T3 Code (Alpha)" → "T3 Code (Beta)" in 0.1.0). After a
+  # rename the app mints a fresh key, can no longer decrypt
+  # `connection-catalog.json`, and the paired unit silently drops out of
+  # Settings → Connections (measured 2026-10-16, notes.md). Pinning the name
+  # pins the key. It stays at the name the existing key was created under.
+  keyringName = "T3 Code (Alpha)";
+
   # Since 0.0.44 node-pty (1.2.0-beta) ships a linux-x64 prebuild, so the
   # package's `pnpm rebuild` no longer compiles `pty.node` from source — and with
   # `dontPatchELF` nothing points the prebuilt at a libstdc++. nodejs links one
@@ -30,14 +49,30 @@
   # with NodePtyModuleLoadError and the app never opened a window (2026-10-08).
   # Only this one file gets the rpath; the rest of the vendored tree stays
   # untouched, as upstream intends. Drop this once nixpkgs patches it.
+  # The same hook pins the app's productName; see `keyringName`.
   t3codeUnwrappedFor = pkgs:
-    pkgs.t3code.unwrapped.overrideAttrs (old: {
-      nativeBuildInputs = old.nativeBuildInputs ++ [pkgs.patchelf];
+    pkgs.t3code.unwrapped.overrideAttrs (finalAttrs: old: {
+      inherit version;
+      src = old.src.override {
+        tag = "v${version}";
+        hash = srcHash;
+      };
+      pnpmDeps = pkgs.fetchPnpmDeps {
+        inherit (finalAttrs) pname version src pnpmWorkspaces;
+        pnpm = pkgs.pnpm_11;
+        fetcherVersion = 4;
+        hash = pnpmDepsHash;
+      };
+      nativeBuildInputs = old.nativeBuildInputs ++ [pkgs.patchelf pkgs.jq];
       postFixup =
         (old.postFixup or "")
         + ''
           find "$out"/libexec/t3code -path '*/node-pty/prebuilds/linux-*/pty.node' \
             -exec patchelf --add-rpath ${pkgs.lib.getLib pkgs.stdenv.cc.cc}/lib {} +
+
+          pj="$out"/libexec/t3code/apps/desktop/package.json
+          jq --arg name ${pkgs.lib.escapeShellArg keyringName} '.productName = $name' "$pj" > "$pj.tmp"
+          mv "$pj.tmp" "$pj"
         '';
     });
 
@@ -72,18 +107,42 @@
       done
     '';
 
+  # V2 can run the app with no backend of its own: with
+  # `localEnvironmentEnabled = false` in its desktop-settings.json it skips the
+  # local server and serves the UI from its bundled assets ("bootstrap skipping
+  # local environment (disabled in settings)"). Left on, that backend shows up
+  # as a second environment with the host's name next to the unit, on an
+  # empty database of its own (notes.md). No flag or variable sets it, and the
+  # app owns the rest of the file (window bounds, update channel), so the
+  # wrapper sets just this key before every launch. A file jq cannot parse is
+  # left for the app to deal with instead of blocking the launch.
+  desktopSettingsFor = pkgs:
+    pkgs.writeShellApplication {
+      name = "t3code-desktop-settings";
+      runtimeInputs = [pkgs.coreutils pkgs.jq];
+      text = ''
+        doc="$1/userdata/desktop-settings.json"
+        mkdir -p "$(dirname "$doc")"
+        [ -s "$doc" ] || echo '{}' > "$doc"
+        tmp="$(mktemp "$doc.XXXXXX")"
+        if jq '.localEnvironmentEnabled = false' "$doc" > "$tmp"; then
+          mv "$tmp" "$doc"
+        else
+          rm -f "$tmp"
+        fi
+      '';
+    };
+
   # The client: the Electron app, kept off the unit's data by construction.
-  # The app *always* spawns its own backend — `DesktopConfig` has no "attach to
-  # a running server" option (checked upstream) — so `T3CODE_HOME` gives that
-  # backend a data directory of its own and `T3CODE_PORT` a port of its own,
-  # and the unit's `~/.t3/userdata/state.sqlite` is never opened twice. That
-  # second backend does nothing but serve the app's UI; the real server is
-  # reached by pairing the unit as a saved environment, once, in
-  # Settings → Connections. See notes.md for the recipe and what it buys
-  # (the preview panel and the agent's `preview_*` tools, which no browser
-  # client can have).
+  # Its only environment is the unit, paired once as a saved environment in
+  # Settings → Connections (notes.md has the recipe and what it buys: the
+  # preview panel and the agent's `preview_*` tools, which no browser client
+  # can have). `T3CODE_HOME` is where the app keeps that pairing and its
+  # settings, apart from the unit's `~/.t3`. Before V2 the app *always* forked a
+  # backend onto it, and `T3CODE_PORT` kept that backend off the unit's port. It
+  # still matters if the local environment is ever switched back on in the UI.
   #
-  # That forked backend does not die with the app: when the main Electron
+  # A forked backend does not die with the app: when the main Electron
   # process goes away its children are re-parented to `systemd` and the backend
   # keeps `T3CODE_PORT`. The next launch then forks a backend that cannot bind
   # the port, `desktop:get-local-environment-bearer-token` has no local server
@@ -97,7 +156,7 @@
   # we are trying to kill. A service is started by the `systemd --user`
   # manager, so it inherits that manager's environment (the Wayland session
   # variables niri puts there) and nothing from this shell — hence `--setenv`
-  # rather than `export` for the three variables above.
+  # rather than `export` for the three variables below.
   #
   # `--ozone-platform=wayland` is passed explicitly instead of the NIXOS_OZONE_WL
   # dance in `discord.nix`: nixpkgs' t3code wrapper only prefixes PATH, so it acts
@@ -112,9 +171,11 @@
       name = "t3code-desktop";
       runtimeInputs = [pkgs.systemd];
       text = ''
+        home="''${XDG_DATA_HOME:-$HOME/.local/share}/t3code-desktop"
+        ${pkgs.lib.getExe (desktopSettingsFor pkgs)} "$home"
         exec systemd-run --user --collect \
           --description="T3 Code desktop client" \
-          --setenv=T3CODE_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/t3code-desktop" \
+          --setenv=T3CODE_HOME="$home" \
           --setenv=T3CODE_PORT=3799 \
           --setenv=SSL_CERT_FILE=${caBundle} \
           -- ${full}/bin/t3code-desktop --ozone-platform=wayland "$@"
@@ -216,8 +277,9 @@ in {
   # `useUserPackages` it lands in the account's profile — a path that carries the
   # login and therefore can't be written as a static declaration.
   flake.featureTests.t3code = {
-    # The same Electron the package runs on (nixpkgs' default `electron`).
-    extraNixosModules = [({pkgs, ...}: {environment.systemPackages = [pkgs.electron];})];
+    # The same Electron the package runs on (nixpkgs' default `electron`), and
+    # jq to read back the app's settings file.
+    extraNixosModules = [({pkgs, ...}: {environment.systemPackages = [pkgs.electron pkgs.jq];})];
     testScript = ''
       entry = "/etc/profiles/per-user/tester/share/applications/t3code.desktop"
       machine.succeed(f"test -e {entry}")
@@ -242,6 +304,33 @@ in {
       # store and every model call comes back as a bogus 502 (see notes.md).
       machine.succeed(f"grep -q 'SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt' {wrapper}")
 
+      # The app must not start a local backend of its own: the unit is its only
+      # environment (see `desktopSettingsFor`). The wrapper runs the settings
+      # step before every launch; drive it directly against three states.
+      settings_bin = machine.succeed(
+          f"grep -o '/nix/store/[^ ]*/bin/t3code-desktop-settings' {wrapper}"
+      ).strip()
+      home = "/tmp/t3home"
+      doc = f"{home}/userdata/desktop-settings.json"
+      local = "jq -e '.localEnvironmentEnabled == false'"
+
+      # First launch: no settings file yet.
+      machine.succeed(f"{settings_bin} {home}")
+      machine.succeed(f"{local} {doc}")
+
+      # The app's own keys (window bounds, update channel) survive the rewrite.
+      machine.succeed(
+          f"echo '{{\"localEnvironmentEnabled\":true,\"updateChannel\":\"nightly\"}}' > {doc}"
+      )
+      machine.succeed(f"{settings_bin} {home}")
+      machine.succeed(f"{local} {doc}")
+      machine.succeed(f"jq -e '.updateChannel == \"nightly\"' {doc}")
+
+      # A file jq cannot parse is left alone, and the launch still goes ahead.
+      machine.succeed(f"echo 'not json' > {doc}")
+      machine.succeed(f"{settings_bin} {home}")
+      machine.succeed(f"grep -qx 'not json' {doc}")
+
       # The app's backend runs under Electron, and node-pty's native module
       # must load there, or the backend dies at startup with
       # NodePtyModuleLoadError and the app never opens a window. Electron (unlike
@@ -253,6 +342,13 @@ in {
       machine.succeed(
           "ELECTRON_RUN_AS_NODE=1 electron -e 'require(process.argv[1])' "
           + f"{pkg}/libexec/t3code/node_modules/.pnpm/node-pty@*/node_modules/node-pty"
+      )
+
+      # Electron finds the app's safeStorage key in the keyring by productName,
+      # so a rename orphans every saved environment (see `keyringName`).
+      machine.succeed(
+          "grep -qF '\"productName\": \"${keyringName}\"' "
+          + f"{pkg}/libexec/t3code/apps/desktop/package.json"
       )
     '';
   };
