@@ -1,0 +1,25 @@
+{
+  "id": "todoist",
+  "name": "Todoist",
+  "version": "0.1.0",
+  "minNoctaliaVersion": "4.0.0",
+  "author": "Wiktor Sieracki",
+  "license": "MIT",
+  "repository": "https://github.com/WiktorSieracki/nix-config",
+  "description": "Today's Todoist tasks in the bar, driven by the official `td` CLI.",
+  "tags": ["Bar", "Panel", "Productivity"],
+  "entryPoints": {
+    "main": "Main.qml",
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {
+      "refreshInterval": 60000,
+      "view": "inbox"
+    }
+  }
+}

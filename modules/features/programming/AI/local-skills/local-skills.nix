@@ -13,12 +13,12 @@ in {
   flake.modules.homeManager.local-skills.home.file = agentSkillsLib.links {
     "create-issue" = ./create-issue;
     "obsidian-vault" = ./obsidian-vault;
-    "todo" = ./todo;
   };
 
   # kind `config`: static skill files under $HOME; nothing to run. No `requires`
-  # — `todo` only shells out to `noctalia-ipc`, and the rest are plain prompts,
-  # so these links are useful to whichever agent CLI is installed.
+  # — these are plain prompts, useful to whichever agent CLI is installed. (A
+  # skill that drives a feature's tool ships with that feature instead, like
+  # `todo` with `todoist`.)
   flake.featureMeta.local-skills = {
     requires = [];
     kind = "config";
@@ -27,9 +27,8 @@ in {
     provides.userFiles = [
       "~/.claude/skills/create-issue/SKILL.md"
       "~/.claude/skills/obsidian-vault/SKILL.md"
-      "~/.claude/skills/todo/SKILL.md"
-      "~/.agents/skills/todo/SKILL.md"
-      "~/.gemini/skills/todo/SKILL.md"
+      "~/.agents/skills/create-issue/SKILL.md"
+      "~/.gemini/skills/create-issue/SKILL.md"
     ];
   };
 

@@ -1,9 +1,9 @@
 # local-skills — feature notes
 
 The skills written (or rescued) in this repo rather than pulled from an upstream
-input: `create-issue/` (hand-written, no upstream), `obsidian-vault/` (rescued
-from mattpocock, see below) and `todo/` (drives the noctalia todo plugin over
-`noctalia-ipc`).
+input: `create-issue/` (hand-written, no upstream) and `obsidian-vault/`
+(rescued from mattpocock, see below). `todo/` lived here until 2026-10-16 and
+now ships with the `todoist` feature.
 
 2026-07-18: Created as `claude-skills`. Replaces the manual `~/.claude/skills/*`
 symlinks (which pointed into `~/.agents/skills/`, populated by the upstream skill
@@ -48,3 +48,10 @@ flake inputs, so a skill that recommends a second, unpinned install path is a
 route back to the split-brain `~/.agents/skills` the migration above cleaned up.
 Removed rather than left switched off — bring it back as its own feature if
 upstream ever ships more than the one skill.
+
+## 2026-10-16 — `todo` moved to the `todoist` feature
+
+The todo list moved from the noctalia "Todo List" plugin to Todoist (driven by
+`td`), so the `todo` skill now depends on a binary that only the `todoist`
+feature installs. It ships with that feature now, not here. What stays in
+`local-skills` are skills with no tool behind them.

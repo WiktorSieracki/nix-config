@@ -195,31 +195,14 @@
                   refreshInterval = 5000;
                 };
               }
+              # Todoist: Inbox + today. The plugin ships with the `todoist`
+              # feature (apps/todoist/noctalia-plugin); on a host without that
+              # feature the slot is simply empty.
               {
-                id = "plugin:todo";
+                id = "plugin:todoist";
                 defaultSettings = {
-                  completedCount = 0;
-                  count = 0;
-                  current_page_id = 0;
-                  exportEmptySections = false;
-                  exportFormat = "markdown";
-                  exportPath = "~/Documents";
-                  isExpanded = false;
-                  pages = [
-                    {
-                      id = 0;
-                      name = "General";
-                    }
-                  ];
-                  priorityColors = {
-                    high = "#f44336";
-                    medium = "#2196f3";
-                    low = "#9e9e9e";
-                  };
-                  todos = [];
-                  showBackground = true;
-                  showCompleted = true;
-                  useCustomColors = false;
+                  refreshInterval = 60000;
+                  view = "inbox";
                 };
               }
             ];
