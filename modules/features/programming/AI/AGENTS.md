@@ -17,3 +17,4 @@
 - **Worktrees** - I like utilizing worktrees when its implemented in a smart way not taking too much disk space or copying too much data.
 - **Implementing changes** - If you can easily implement a change, do it and show me the proof of doneness
 - **Using subagents** - For subagent use the latest models in 3 different price ranges (for example opus, sonnet, haiku), look for them in the web to have the most up to date information
+- **Reasearching** - When i tell you to do something first look for the relevant information in the documentation or in the web for the topic and possible solutions. Look for good harnesses that people use in their real projects.

@@ -88,8 +88,16 @@ in {
         layout = {
           always-center-single-column = _: {};
           # New windows open full-width by default; narrow them per-app with a
-          # window rule (or live with Mod+R to cycle preset widths).
+          # window rule (or live with Mod+F to cycle preset widths).
           default-column-width.proportion = 1.0;
+          # Mod+F cycles these in order. A full-width column already matches
+          # the first preset, so it drops to half; any other width goes to
+          # full first. 0.5 already subtracts gaps, so two halves tile the
+          # screen exactly.
+          preset-column-widths = [
+            {proportion = 1.0;}
+            {proportion = 0.5;}
+          ];
         };
 
         # Monitor layouts are host data, contributed from modules/hosts/*
@@ -132,7 +140,16 @@ in {
             # from different generations.
             "Mod+Space".spawn-sh = "${lib.getExe self'.packages.noctalia-ipc} call launcher toggle";
 
-            "Mod+F".maximize-column = _: {};
+            "Mod+F" = _: {
+              props."hotkey-overlay-title" = "Cycle window width: 100% / 50%";
+              content."switch-preset-column-width" = _: {};
+            };
+            # Pop the focused window out of its column as a floating window
+            # (and back into the tiling layout on the next press).
+            "Mod+Shift+F" = _: {
+              props."hotkey-overlay-title" = "Toggle floating window";
+              content."toggle-window-floating" = _: {};
+            };
 
             "Mod+O" = _: {
               props = {
