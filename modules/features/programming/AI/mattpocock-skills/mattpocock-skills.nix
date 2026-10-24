@@ -52,6 +52,9 @@ in {
   };
 
   # feature test: `provides` spot-checks one skill per root; this asserts the
-  # whole tree resolves in all three.
-  flake.featureTests.mattpocock-skills.testScript = agentSkillsLib.testScript;
+  # whole tree resolves in all three and every frontmatter parses.
+  flake.featureTests.mattpocock-skills = {
+    inherit (agentSkillsLib) testScript;
+    extraNixosModules = agentSkillsLib.testModules;
+  };
 }

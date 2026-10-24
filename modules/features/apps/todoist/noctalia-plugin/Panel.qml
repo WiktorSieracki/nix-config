@@ -44,6 +44,19 @@ Item {
     }
   ]
 
+  // Task ids whose description is unfolded. Kept here, not in the delegate:
+  // every refresh hands the ListView a new rows array, which rebuilds rows.
+  property var expanded: ({})
+
+  function toggleExpanded(id) {
+    var next = Object.assign({}, expanded);
+    if (next[id])
+      delete next[id];
+    else
+      next[id] = true;
+    expanded = next;
+  }
+
   function tabCount(v) {
     if (!main)
       return 0;
@@ -223,9 +236,13 @@ Item {
                 readonly property string due: isHeader ? "" : Todoist.dueLabel(task, root.today)
                 readonly property bool overdue: !isHeader && Todoist.isOverdue(task, root.today)
                 readonly property string project: isHeader || root.view === "inbox" ? "" : (root.main?.projects[task.projectId] ?? "")
+                readonly property string descPreview: isHeader ? "" : Todoist.descriptionPreview(task.description)
+                readonly property bool expanded: !isHeader && root.expanded[task.id] === true
+                // Worth unfolding when there is more than the one line shown.
+                readonly property bool expandable: descPreview !== "" && (expanded || descText.truncated || Todoist.descriptionLines(task.description).length > 1)
 
                 width: ListView.view.width
-                height: isHeader ? Style.baseWidgetSize * 0.9 : Math.round(Style.baseWidgetSize * 1.55)
+                height: isHeader ? Style.baseWidgetSize * 0.9 : Math.max(Math.round(Style.baseWidgetSize * 1.55), textColumn.implicitHeight + Style.marginS * 2)
 
                 // Section header: "Overdue  2"
                 NText {
@@ -253,16 +270,30 @@ Item {
                     }
                   }
 
+                  // Clicking the row folds the description in or out. Declared
+                  // before the content, so the checkbox's own area stays on top.
+                  MouseArea {
+                    anchors.fill: parent
+                    enabled: row.expandable
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleExpanded(row.task.id)
+                  }
+
                   RowLayout {
                     anchors.fill: parent
                     anchors.leftMargin: Style.marginM
                     anchors.rightMargin: Style.marginM
+                    anchors.topMargin: Style.marginS
+                    anchors.bottomMargin: Style.marginS
                     spacing: Style.marginM
 
                     // Todoist-style round checkbox, ringed in the priority color.
+                    // An unfolded row is tall, so the box moves up to the title.
                     Rectangle {
                       id: check
                       readonly property color ring: row.prio !== "" ? row.prio : Color.mOutline
+                      Layout.alignment: row.expanded ? Qt.AlignTop : Qt.AlignVCenter
+                      Layout.topMargin: row.expanded ? Math.max(0, (titleText.height - height) / 2) : 0
                       Layout.preferredWidth: Math.round(Style.baseWidgetSize * 0.6)
                       Layout.preferredHeight: Layout.preferredWidth
                       radius: width / 2
@@ -295,16 +326,45 @@ Item {
                     }
 
                     ColumnLayout {
+                      id: textColumn
                       Layout.fillWidth: true
-                      Layout.alignment: Qt.AlignVCenter
+                      Layout.alignment: row.expanded ? Qt.AlignTop : Qt.AlignVCenter
                       spacing: Style.marginXXS
 
                       NText {
+                        id: titleText
                         Layout.fillWidth: true
                         text: row.task ? Todoist.plainText(row.task.content) : ""
                         elide: Text.ElideRight
                         font.strikeout: row.done
                         color: row.done ? Color.mOnSurfaceVariant : Color.mOnSurface
+                      }
+
+                      // Description: its first line, greyed and cut to fit; the
+                      // whole text, wrapped, once the row is unfolded.
+                      RowLayout {
+                        visible: row.descPreview !== ""
+                        Layout.fillWidth: true
+                        spacing: Style.marginXS
+
+                        NText {
+                          id: descText
+                          Layout.fillWidth: true
+                          text: row.expanded ? Todoist.descriptionFull(row.task.description) : row.descPreview
+                          pointSize: Style.fontSizeXS
+                          font.weight: Font.Normal
+                          color: Color.mOnSurfaceVariant
+                          wrapMode: row.expanded ? Text.Wrap : Text.NoWrap
+                          elide: row.expanded ? Text.ElideNone : Text.ElideRight
+                        }
+
+                        NIcon {
+                          visible: row.expandable
+                          Layout.alignment: Qt.AlignTop
+                          icon: row.expanded ? "chevron-up" : "chevron-down"
+                          pointSize: Style.fontSizeXS
+                          color: Color.mOnSurfaceVariant
+                        }
                       }
 
                       RowLayout {

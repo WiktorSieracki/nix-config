@@ -44,8 +44,9 @@
         roots);
 
     # The assertions every skill feature's feature test repeats: nothing dangles,
-    # and every linked directory really is a skill. Each test VM contains only the
-    # feature under test, so sweeping the whole root is exactly right.
+    # every linked directory really is a skill, and its frontmatter parses. Each
+    # test VM contains only the feature under test, so sweeping the whole root is
+    # exactly right. Needs `testModules` in the test's extraNixosModules.
     testScript = ''
       for root in ["~tester/.claude/skills", "~tester/.agents/skills", "~tester/.gemini/skills"]:
           dangling = machine.succeed(f"find -L {root} -maxdepth 1 -type l -print").strip()
@@ -54,6 +55,43 @@
               f"for s in {root}/*/; do test -f \"$s/SKILL.md\" || "
               f"{{ echo \"missing SKILL.md: $s\"; exit 1; }}; done"
           )
+          machine.succeed(f"check-skill-frontmatter {root}/*/SKILL.md")
     '';
+
+    # The description is what makes an agent pick a skill up, and the
+    # frontmatter is YAML: an unquoted `: ` inside it ("todo: …") is a parse
+    # error, after which Claude Code silently loads the skill with no
+    # description and it stops triggering. So parse it for real.
+    #
+    # A list, not a bare module: this option is `attrsOf anything`, and
+    # `anything` re-wraps every function it merges as `arg: …`, dropping the
+    # `{pkgs, ...}` formals — the module system then never passes `pkgs`. Lists
+    # with a single definition pass through untouched.
+    testModules = [
+      ({pkgs, ...}: {
+        environment.systemPackages = [
+          (pkgs.writers.writePython3Bin "check-skill-frontmatter" {
+              libraries = [pkgs.python3Packages.pyyaml];
+            } ''
+              import sys
+              import yaml
+
+              for path in sys.argv[1:]:
+                  text = open(path).read()
+                  if not text.startswith("---\n"):
+                      sys.exit(f"{path}: no frontmatter")
+                  try:
+                      meta = yaml.safe_load(text.split("---", 2)[1])
+                  except yaml.YAMLError as e:
+                      sys.exit(f"{path}: frontmatter is not valid YAML: {e}")
+                  desc = meta.get("description") if isinstance(meta, dict) else None
+                  if not isinstance(desc, str) or not desc.strip():
+                      sys.exit(f"{path}: no description")
+                  if len(desc) > 1024:
+                      sys.exit(f"{path}: description is {len(desc)} chars, max 1024")
+            '')
+        ];
+      })
+    ];
   };
 }

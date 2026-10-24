@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+echo "gh disabled in todo-skill eval: $*" >&2
+printf "%s\n" "gh $*" >> "${TD_LOG:-/tmp/todo-skill-eval/td.log}"
+exit 1

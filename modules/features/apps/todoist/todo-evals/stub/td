@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""Eval stub for Doist's `td`: logs every call, keeps tasks in a JSON state
+file, mimics quick add's date parsing crudely. Never touches the network."""
+import json, os, re, shlex, sys
+
+args = sys.argv[1:]
+log = os.environ.get("TD_LOG", "/tmp/todo-skill-eval/td.log")
+with open(log, "a") as f:
+    f.write(shlex.join(args) + "\n")
+if "--help" in args or "-h" in args or (args and args[0] == "help"):
+    # Help is offline and harmless: show the real CLI's.
+    os.execv("/run/current-system/sw/bin/td", ["td", *args])
+state_path = log + ".state.json"
+tasks = json.load(open(state_path)) if os.path.exists(state_path) else {}
+
+DATE = re.compile(r"\b(jutro|tomorrow|dzi[sś]|today|next week|w przyszłym tygodniu|"
+                  r"(?:mon|tue|wed|thu|fri|sat|sun)\w*|poniedziałek|piątek)"
+                  r"(?:\s+(?:o|at)?\s*\d{1,2}(?::\d{2})?)?\b", re.I)
+
+
+# Like the real CLI, options only count before `--`; after it, everything is text.
+opts = args[:args.index("--")] if "--" in args else args
+
+
+def opt(name):
+    if name in opts:
+        i = opts.index(name)
+        if i + 1 < len(opts):
+            return opts[i + 1]
+    return None
+
+
+def save():
+    json.dump(tasks, open(state_path, "w"), ensure_ascii=False)
+
+
+def due_of(text):
+    if not text:
+        return None
+    due = {"string": text, "date": "2026-10-18", "isRecurring": False}
+    hm = re.search(r"\b(\d{1,2})(?::(\d{2}))?\s*$", text)
+    if hm:
+        due["datetime"] = f"2026-10-18T{int(hm.group(1)):02d}:{hm.group(2) or '00'}:00"
+    return due
+
+
+def new_task(content, description, due, project):
+    tid = str(9000000001 + len(tasks))
+    t = {"id": tid, "content": " ".join(content.split()), "description": description or "",
+         "projectId": project, "due": due_of(due), "priority": opt("--priority") or "p4",
+         "labels": []}
+    tasks[tid] = t
+    save()
+    return t
+
+
+cmd = args[0] if args else ""
+if cmd == "add":
+    # Quick add takes no field options, exactly like the real `td add`.
+    bad = [o for o in opts[1:] if o.startswith("-") and o not in ("--json", "--stdin", "--dry-run")]
+    if bad:
+        print(f"error: unknown option '{bad[0]}'", file=sys.stderr)
+        sys.exit(1)
+    text = " ".join(args[args.index("--") + 1:]) if "--" in args else args[-1]
+    due = opt("--due")
+    m = DATE.search(text) if not due else None
+    if m:
+        due, text = m.group(0), (text[:m.start()] + text[m.end():]).strip()
+    project = "inbox-1"
+    pm = re.search(r"#(\w+)", text)
+    if pm:
+        project, text = "proj-" + pm.group(1), text.replace(pm.group(0), "").strip()
+    print(json.dumps(new_task(text, "", due, project), ensure_ascii=False))
+elif cmd in ("today", "upcoming", "inbox"):
+    print(json.dumps(list(tasks.values()), ensure_ascii=False))
+elif cmd == "task" and len(args) > 1 and args[1] == "add":
+    # Explicit fields, content stored verbatim (no quick-add parsing).
+    content = " ".join(args[args.index("--") + 1:]) if "--" in args else (opt("--content") or args[-1])
+    desc = sys.stdin.read().strip() if "--stdin" in opts else opt("--description")
+    project = ("proj-" + opt("--project")) if opt("--project") else "inbox-1"
+    print(json.dumps(new_task(content, desc, opt("--due"), project), ensure_ascii=False))
+elif cmd == "task" and len(args) > 2:
+    sub, ref = args[1], args[2].removeprefix("id:")
+    t = tasks.get(ref)
+    if sub == "list":
+        print(json.dumps(list(tasks.values()), ensure_ascii=False))
+    elif t is None:
+        print(json.dumps({"error": {"code": "TASK_NOT_FOUND", "message": f"Task {ref} not found"}}))
+        sys.exit(1)
+    elif sub == "update":
+        if opt("--content"): t["content"] = opt("--content")
+        if opt("--description"): t["description"] = opt("--description")
+        if opt("--due"): t["due"] = due_of(opt("--due"))
+        save()
+        print(json.dumps(t, ensure_ascii=False))
+    elif sub == "view":
+        print(json.dumps(t, ensure_ascii=False))
+    elif sub in ("complete", "uncomplete", "delete"):
+        if sub == "delete": tasks.pop(ref)
+        save()
+        print(f"{sub}d: {ref}")
+elif cmd == "project":
+    print(json.dumps([{"id": "inbox-1", "name": "Inbox", "isInboxProject": True}]))
+else:
+    print("{}")

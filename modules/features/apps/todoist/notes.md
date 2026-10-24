@@ -68,3 +68,61 @@ per-generation `NOCTALIA_SETTINGS_FILE` the running instance was launched with.
 
 **The `todo` agent skill** moved here from `local-skills`. It now drives `td`
 instead of `noctalia-ipc call plugin:todo`, and ships with the CLI it calls.
+
+## 2026-10-17 — `todo` skill catches deferrals; evals in `todo-evals/`
+
+The skill now also fires when the user defers work mid-conversation
+("zróbmy to później", "odłóżmy to na potem") without saying "todo", and saves
+the item with enough context to act on weeks later: a verb-first title plus a
+description of what was decided, the repo, the branch and the files.
+
+**`td add` takes no field options.** Quick add parses date, `p1`–`p4`,
+`#Project` and `@label` out of the text, but `--description`, `--due` and
+`--project` exist only on `td task add`, which stores the title verbatim. The
+first version of the skill told agents to use `td add --description`, and every
+such call failed with `unknown option '--description'`.
+
+**Frontmatter is YAML.** The new description contains `"todo: …"`. In a plain
+scalar that `: ` is a parse error, and Claude Code then loads the skill with no
+description, so it silently stops triggering. The description is now a `>-`
+block scalar, and `agentSkillsLib.testModules` adds a `check-skill-frontmatter`
+assertion to every skill feature's test.
+
+**Evals.** `todo-evals/harness.py` runs each query through a fresh `claude -p`
+with the real config. The whole skill listing competes, the way it does in a
+session. The `td` and `gh` binaries are stubbed, and a fake `TODOIST_API_TOKEN`
+makes the real `td` fail with 401 if a stub is ever bypassed.
+`--permission-mode default` is needed because the user default is
+`bypassPermissions`. `Skill` must be in `--allowedTools`, or `-p` refuses to
+load the skill at all.
+
+Results, 3 runs per query (`triggers.json`) or 2 per scenario (`behavior.json`):
+
+| | before | after |
+|---|---|---|
+| triggers, 10 should + 10 near-miss shouldn't | 18/20 | 20/20 |
+| "X zróbmy później, teraz Y" fires | 0/3 | 3/3 |
+| "przypomnij mi jak…" falsely fires | 2/3 | 0/3 |
+| deferrals saved without asking first | 7/8 | 8/8 |
+| saved items with repo + files in the description | 0/8 | 6/6 work items |
+| `td` calls failing with an unknown option | 3 of 3 with a description | 0 |
+
+The evals cost real model calls, so they are not part of `nix flake check`.
+Re-run them after editing the description.
+
+## 2026-10-17 — task descriptions in the panel
+
+A task with a description shows its first line, greyed and cut to fit, under
+the title. A chevron means there is more. Clicking the row unfolds the whole
+description, wrapped, and a second click folds it back. `descriptionLines` in
+`todoist.js` does the shaping (node-tested): Todoist descriptions are markdown,
+so headings and quotes lose their markers, list and checklist items become
+"• ", inline markup goes through `plainText`, and blank lines are dropped.
+
+The set of unfolded ids lives on the panel, not in the row delegate, because
+every refresh gives the ListView a new rows array and rebuilds every row. It
+resets when the panel closes.
+
+To screenshot an unfolded row, open the panel over IPC and click with `wlrctl`.
+Don't "home" the pointer with `wlrctl pointer move -10000 -10000`: it lands in
+niri's top-left hot corner, which opens the overview and closes the panel.

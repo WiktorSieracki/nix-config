@@ -1,0 +1,12 @@
+[
+  {"id": "b-ci-later", "should_trigger": true,
+   "setup": "Jak mógłbym przyspieszyć buildy CI w tym repo? Odpowiedz w 3 zdaniach, konkretnie, nic nie zmieniaj.",
+   "query": "dobry pomysł, ale zróbmy to później"},
+  {"id": "b-review-save", "should_trigger": true,
+   "setup": "Przejrzyj modules/features/apps/todoist/todoist.nix i w 2-3 zdaniach powiedz, co jedno byś tam poprawił. Nic nie zmieniaj.",
+   "query": "ok, zapisz to jako do zrobienia"},
+  {"id": "b-defer-and-continue", "should_trigger": true,
+   "query": "ten refactor noctalia.nix, żeby bar był per-user, zróbmy później. teraz tylko powiedz mi, ile linii ma README.md"},
+  {"id": "b-personal", "should_trigger": true,
+   "query": "zanotuj żebym jutro o 10 zadzwonił do dentysty"}
+]

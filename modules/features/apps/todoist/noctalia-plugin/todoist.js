@@ -225,6 +225,29 @@ function plainText(content) {
     .replace(/\*(\S(?:.*?\S)?)\*/g, "$1");
 }
 
+// Descriptions are Todoist markdown too, block-level included. The panel shows
+// them as plain lines: headings and quotes lose their markers, list items and
+// checklist items become "• ", blank lines go.
+function descriptionLines(description) {
+  return String(description || "").split("\n").map(function (line) {
+    var l = line.trim()
+      .replace(/^#{1,6}\s+/, "")
+      .replace(/^>\s*/, "")
+      .replace(/^[-*+]\s+(\[[ xX]\]\s+)?/, "• ");
+    return plainText(l);
+  }).filter(function (l) {
+    return l !== "";
+  });
+}
+
+function descriptionPreview(description) {
+  return descriptionLines(description)[0] || "";
+}
+
+function descriptionFull(description) {
+  return descriptionLines(description).join("\n");
+}
+
 // ── td invocation ──────────────────────────────────────────────────────────
 
 // `--` stops option parsing, so content like "-5 kg" isn't read as a flag.

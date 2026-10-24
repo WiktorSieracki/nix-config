@@ -33,6 +33,9 @@ in {
   };
 
   # feature test: `provides` spot-checks the links; this asserts the whole tree
-  # resolves in all three roots.
-  flake.featureTests.local-skills.testScript = agentSkillsLib.testScript;
+  # resolves in all three roots and every frontmatter parses.
+  flake.featureTests.local-skills = {
+    inherit (agentSkillsLib) testScript;
+    extraNixosModules = agentSkillsLib.testModules;
+  };
 }

@@ -48,12 +48,15 @@ in {
 
   # feature test: the shared sweep over the three skill roots, plus the agents
   # dir — which `agentSkillsLib.testScript` knows nothing about.
-  flake.featureTests.pstack.testScript =
-    agentSkillsLib.testScript
-    + ''
-      dangling_agents = machine.succeed(
-          "find -L ~tester/.claude/agents -maxdepth 1 -type l -print"
-      ).strip()
-      assert dangling_agents == "", f"dangling agent symlinks: {dangling_agents}"
-    '';
+  flake.featureTests.pstack = {
+    testScript =
+      agentSkillsLib.testScript
+      + ''
+        dangling_agents = machine.succeed(
+            "find -L ~tester/.claude/agents -maxdepth 1 -type l -print"
+        ).strip()
+        assert dangling_agents == "", f"dangling agent symlinks: {dangling_agents}"
+      '';
+    extraNixosModules = agentSkillsLib.testModules;
+  };
 }

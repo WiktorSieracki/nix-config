@@ -167,6 +167,27 @@ test("plainText strips the markdown Todoist allows in titles", () => {
   assert.equal(T.plainText("2 * 3 = 6"), "2 * 3 = 6");
 });
 
+test("descriptionLines drops blank lines and markdown block markers", () => {
+  const d = "## Kontekst\n\nZ rozmowy o **CI**.\n- matrix\n* [cachix](https://cachix.org)\n- [ ] sprawdzić\n> cytat\n2. drugi";
+  assert.deepEqual(plain(T.descriptionLines(d)),
+    ["Kontekst", "Z rozmowy o CI.", "• matrix", "• cachix", "• sprawdzić", "cytat", "2. drugi"]);
+});
+
+test("descriptionLines is empty for a missing or blank description", () => {
+  assert.deepEqual(plain(T.descriptionLines("")), []);
+  assert.deepEqual(plain(T.descriptionLines(" \n\t\n")), []);
+  assert.deepEqual(plain(T.descriptionLines(undefined)), []);
+});
+
+test("descriptionPreview is the first meaningful line", () => {
+  assert.equal(T.descriptionPreview("\n\n# Repo: ~/.config/nix-config\nreszta"), "Repo: ~/.config/nix-config");
+  assert.equal(T.descriptionPreview(""), "");
+});
+
+test("descriptionFull keeps every line, one per row", () => {
+  assert.equal(T.descriptionFull("pierwsza\n\n- druga\n"), "pierwsza\n• druga");
+});
+
 test("quickAddArgs ends option parsing so a leading dash stays content", () => {
   assert.deepEqual(plain(T.quickAddArgs("  -5 kg by Friday ")), ["add", "--json", "--", "-5 kg by Friday"]);
   assert.equal(T.quickAddArgs("   "), null);

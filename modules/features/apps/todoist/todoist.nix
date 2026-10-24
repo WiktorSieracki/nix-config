@@ -144,8 +144,10 @@ in {
         # The plugin directory must stay writable for its settings.json.
         machine.succeed("su - tester -c 'touch ~/.config/noctalia/plugins/todoist/settings.json'")
       '';
-    extraNixosModules = [
-      ({pkgs, ...}: {environment.systemPackages = [pkgs.jq];})
-    ];
+    extraNixosModules =
+      agentSkillsLib.testModules
+      ++ [
+        ({pkgs, ...}: {environment.systemPackages = [pkgs.jq];})
+      ];
   };
 }
