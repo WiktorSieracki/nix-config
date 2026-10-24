@@ -42,6 +42,22 @@
   # pins the key. It stays at the name the existing key was created under.
   keyringName = "T3 Code (Alpha)";
 
+  # JPEG quality of the server browser's preview stream, at rest and while
+  # scrolling (upstream: 70 / 50). See `postPatch` in `t3codeUnwrappedFor`.
+  streamQuality = 92;
+  streamMotionQuality = 75;
+
+  # The server browser's display. `server-browser-headed.patch` swaps the
+  # downloaded `chrome-headless-shell` for a full Google Chrome, run headed:
+  # Google rejects the shell's sign-in (`/v3/signin/rejected`) but lets the full
+  # browser through to the password step (measured 2026-10-24, notes.md). A
+  # headed browser needs an X display, and the unit must not put windows on the
+  # niri session, so it gets a virtual one of its own.
+  browserDisplayNumber = "99";
+  browserDisplay = ":${browserDisplayNumber}";
+  # Bitwarden, force-installed into that Chrome by policy (notes.md).
+  bitwardenExtensionId = "nngceckbapebfimnlniiiahkandclblb";
+
   # Since 0.0.44 node-pty (1.2.0-beta) ships a linux-x64 prebuild, so the
   # package's `pnpm rebuild` no longer compiles `pty.node` from source — and with
   # `dontPatchELF` nothing points the prebuilt at a libstdc++. nodejs links one
@@ -63,7 +79,34 @@
         fetcherVersion = 4;
         hash = pnpmDepsHash;
       };
+      # Runs `T3CODE_SERVER_BROWSER_EXECUTABLE`, when set, headed in place of
+      # the headless shell, with extensions and sync left on. See `browserDisplay`.
+      #
+      # The app reaches the unit as a saved environment, which upstream always
+      # treats as another machine: "Open in VS Code" became an SSH deep link
+      # into this very host. On loopback the app now opens the local editor's
+      # `vscode://file/<path>` link instead (notes.md).
+      patches =
+        (old.patches or [])
+        ++ [
+          ./server-browser-headed.patch
+          ./open-local-editor.patch
+        ];
       nativeBuildInputs = old.nativeBuildInputs ++ [pkgs.patchelf pkgs.jq];
+      # The server's browser streams every tab it hosts (all agent tabs) to the
+      # client as JPEG frames. The client never asks for a quality, so the
+      # server's default of 70 — 50 while scrolling — is what you see: soft text
+      # and ringing around edges (upstream #16578, closed without a setting).
+      # Recordings already use 90. Raise both; the stream runs over loopback or
+      # the tailnet, where the extra bytes don't matter. See notes.md.
+      postPatch =
+        (old.postPatch or "")
+        + ''
+          substituteInPlace apps/server/src/preview/ServerBrowserStream.ts \
+            --replace-fail 'const DEFAULT_QUALITY = 70;' 'const DEFAULT_QUALITY = ${toString streamQuality};'
+          substituteInPlace apps/server/src/preview/ServerBrowser.ts \
+            --replace-fail 'const SCREENCAST_MOTION_QUALITY = 50;' 'const SCREENCAST_MOTION_QUALITY = ${toString streamMotionQuality};'
+        '';
       postFixup =
         (old.postFixup or "")
         + ''
@@ -195,6 +238,7 @@ in {
       # enable this feature get it.
       t3code-server = {
         lib,
+        pkgs,
         hostUsers ? {},
         ...
       }: {
@@ -202,6 +246,53 @@ in {
           lib.genAttrs
           (lib.filter (u: builtins.elem "t3code-server" hostUsers.${u}) (builtins.attrNames hostUsers))
           (_: {linger = true;});
+
+        # The server renders previews (browser tabs,
+        # `html_render`) in a headless Chrome it downloads into ~/.t3/tools.
+        # That binary is foreign, so it loads through nix-ld, whose base set
+        # has none of Chrome's libraries — every `preview_open` failed with
+        # "This host is missing libraries T3's browser needs". Upstream's fix,
+        # `sudo t3 browser setup`, apt-installs Chrome's Debian deps (its
+        # DEBIAN_PACKAGES); this is the same list for NixOS. T3 checks with the
+        # browser's own `--version`, not ldd, so nix-ld is enough, and the
+        # running server already reads /run/current-system/sw/share/nix-ld — no
+        # restart. Chrome's sandbox needs nothing more here (measured
+        # 2026-10-19). See notes.md.
+        programs.nix-ld.libraries = with pkgs; [
+          glib
+          nspr
+          nss
+          atk
+          at-spi2-atk
+          at-spi2-core
+          dbus
+          expat
+          libgbm
+          libx11
+          libxcomposite
+          libxdamage
+          libxext
+          libxfixes
+          libxrandr
+          libxcb
+          libxkbcommon
+          systemd # libudev
+          alsa-lib
+        ];
+
+        # The server browser is Google Chrome (see `browserDisplay`), which reads
+        # managed policy from here. Bitwarden's popup is browser chrome the JPEG
+        # stream never shows, but its inline autofill menu is drawn into the page.
+        environment.etc."opt/chrome/policies/managed/t3code-server.json".text = builtins.toJSON {
+          ExtensionInstallForcelist = [
+            "${bitwardenExtensionId};https://clients2.google.com/service/update2/crx"
+          ];
+          # The panel streams a tab through a CDP session of its own, and by
+          # default (0) Chrome refuses DevTools on the pages of policy-installed
+          # extensions: Bitwarden's popup tab showed "Browser connection was
+          # refused" (`Target.attachToTarget: Not allowed`). 1 allows it.
+          DeveloperToolsAvailability = 1;
+        };
       };
     };
 
@@ -230,8 +321,24 @@ in {
       in {
         home.packages = [t3];
 
+        # The server browser's virtual display (see `browserDisplay`). 4K so the
+        # 2× browser has room for its 1280×800 viewport and the page's `screen`
+        # is a real monitor's rather than the viewport's.
+        systemd.user.services.t3code-display = {
+          Unit.Description = "Virtual X display for the T3 Code server's browser";
+          Service = {
+            ExecStart = "${pkgs.xvfb}/bin/Xvfb ${browserDisplay} -screen 0 3840x2160x24 -nolisten tcp -noreset";
+            Restart = "on-failure";
+          };
+          Install.WantedBy = ["default.target"];
+        };
+
         systemd.user.services.t3code = {
-          Unit.Description = "T3 Code server, published on the tailnet over Tailscale Serve";
+          Unit = {
+            Description = "T3 Code server, published on the tailnet over Tailscale Serve";
+            Wants = ["t3code-display.service"];
+            After = ["t3code-display.service"];
+          };
 
           Service = {
             # `serve` = start headless and print the pairing token, URL and QR code
@@ -250,7 +357,13 @@ in {
             # A user unit inherits nothing from the login shell, so this is the
             # only place the server (and the providers it spawns) can learn
             # where the CA bundle is. See `caBundle` above.
-            Environment = ["SSL_CERT_FILE=${caBundle}"];
+            Environment = [
+              "SSL_CERT_FILE=${caBundle}"
+              # Not DISPLAY: the server imports the login shell's environment,
+              # whose DISPLAY/WAYLAND_DISPLAY are the niri session (notes.md).
+              "T3CODE_SERVER_BROWSER_DISPLAY=${browserDisplay}"
+              "T3CODE_SERVER_BROWSER_EXECUTABLE=${lib.getExe pkgs.google-chrome}"
+            ];
           };
 
           Install.WantedBy = ["default.target"];
@@ -350,6 +463,12 @@ in {
           "grep -qF '\"productName\": \"${keyringName}\"' "
           + f"{pkg}/libexec/t3code/apps/desktop/package.json"
       )
+
+      # "Open in VS Code" on the unit (loopback) is a local `vscode://file`
+      # link, not SSH: the client must build it and the app's shell must let
+      # it through (`open-local-editor.patch`).
+      machine.succeed(f"grep -Rlq 'this-machine' {pkg}/libexec/t3code/apps/server/dist/client/assets/")
+      machine.succeed(f"grep -q 'isLocalEditorUrl(url)' {pkg}/libexec/t3code/apps/desktop/dist-electron/main.cjs")
     '';
   };
 
@@ -362,7 +481,11 @@ in {
     runtimeUntestable = true;
     provides = {
       userBins = ["t3"];
-      userFiles = [".config/systemd/user/t3code.service"];
+      userFiles = [
+        ".config/systemd/user/t3code.service"
+        ".config/systemd/user/t3code-display.service"
+      ];
+      files = ["/etc/opt/chrome/policies/managed/t3code-server.json"];
     };
   };
 
@@ -371,10 +494,74 @@ in {
   # of the providers it spawns — and that single variable is the difference
   # between Antigravity answering and every turn failing as a 502 (notes.md).
   flake.featureTests.t3code-server = {
+    extraNixosModules = [({pkgs, ...}: {environment.systemPackages = [pkgs.jq pkgs.curl];})];
     testScript = ''
       unit = "/home/tester/.config/systemd/user/t3code.service"
       machine.succeed(
           f"grep -q 'Environment=SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt' {unit}"
+      )
+
+      # The server's headless Chrome (previews, html_render) is a downloaded
+      # binary that loads through nix-ld; each of these is a library its
+      # loader refused on this host before (see `programs.nix-ld.libraries`
+      # in `nixos.t3code-server`).
+      for lib in [
+          "libglib-2.0.so.0", "libgobject-2.0.so.0", "libgio-2.0.so.0",
+          "libnspr4.so", "libnss3.so", "libnssutil3.so",
+          "libatk-1.0.so.0", "libatk-bridge-2.0.so.0", "libatspi.so.0",
+          "libdbus-1.so.3", "libexpat.so.1", "libgbm.so.1",
+          "libX11.so.6", "libXcomposite.so.1", "libXdamage.so.1",
+          "libXext.so.6", "libXfixes.so.3", "libXrandr.so.2", "libxcb.so.1",
+          "libxkbcommon.so.0", "libudev.so.1", "libasound.so.2",
+      ]:
+          machine.succeed(f"test -e /run/current-system/sw/share/nix-ld/lib/{lib}")
+
+      # Agent tabs reach the human as the server's JPEG stream; the patched
+      # quality must survive into the bundled server (see `streamQuality`).
+      # `--replace-fail` guards the source side; this guards the bundler.
+      dist = machine.succeed(
+          "dirname $(dirname $(readlink -f /etc/profiles/per-user/tester/bin/t3))"
+      ).strip() + "/libexec/t3code/apps/server/dist"
+      machine.succeed(f"grep -q 'DEFAULT_QUALITY = ${toString streamQuality};' {dist}/*.mjs")
+      machine.succeed(
+          f"grep -q 'SCREENCAST_MOTION_QUALITY = ${toString streamMotionQuality};' {dist}/*.mjs"
+      )
+
+      # The server browser is a full Chrome, run headed on the unit's own
+      # display (see `browserDisplay`). The patch must survive into the bundle,
+      # and the unit must hand the server both the browser and the display.
+      machine.succeed(f"grep -q 'T3CODE_SERVER_BROWSER_EXECUTABLE' {dist}/*.mjs")
+      # Bitwarden's popup is reachable only as a tab of its own page.
+      machine.succeed(f"grep -q '\"chrome-extension:\"' {dist}/*.mjs")
+      machine.succeed(
+          f"grep -q 'Environment=T3CODE_SERVER_BROWSER_DISPLAY=${browserDisplay}' {unit}"
+      )
+      # The headed browser is pinned to that display and to X11, whatever
+      # session the login shell's environment points at.
+      machine.succeed(f"grep -q 'T3CODE_SERVER_BROWSER_DISPLAY' {dist}/*.mjs")
+      machine.succeed(f"grep -q -- '--ozone-platform=x11' {dist}/*.mjs")
+      chrome = machine.succeed(
+          f"grep -oP 'T3CODE_SERVER_BROWSER_EXECUTABLE=\\K\\S+' {unit}"
+      ).strip()
+
+      # The display comes up with the account's user manager (linger), and
+      # Chrome starts headed on it: it only prints its DevTools endpoint once
+      # its browser process is up, and it dies at once without a display.
+      machine.wait_for_unit("t3code-display.service", "tester")
+      machine.wait_for_file("/tmp/.X11-unix/X${browserDisplayNumber}")
+      machine.succeed(
+          f"su tester -c 'DISPLAY=${browserDisplay} timeout 60 {chrome} "
+          + "--user-data-dir=$(mktemp -d) --remote-debugging-port=9222 "
+          + "--no-first-run about:blank' > /tmp/chrome.log 2>&1 &"
+      )
+      machine.wait_until_succeeds("grep -q 'DevTools listening on ws://' /tmp/chrome.log", timeout=60)
+      machine.succeed("curl -sf http://127.0.0.1:9222/json/version | grep -q '\"Browser\": \"Chrome/'")
+
+      # Bitwarden is force-installed by Chrome's managed policy.
+      machine.succeed(
+          "jq -e '(.ExtensionInstallForcelist[0] | startswith(\"${bitwardenExtensionId};\"))"
+          + " and .DeveloperToolsAvailability == 1' "
+          + "/etc/opt/chrome/policies/managed/t3code-server.json"
       )
     '';
   };

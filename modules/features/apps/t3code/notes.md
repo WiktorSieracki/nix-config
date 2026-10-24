@@ -619,6 +619,187 @@ re-pair after a rename. The icon is a server setting (`environmentIcon` in
 `~/.t3/userdata/settings.json`, here detected as `server`), changeable in
 Settings → Connections.
 
+## 2026-10-19 — the server's browser needs Chrome's libraries in nix-ld
+
+0.1.0 moved preview off the Electron client: the **server** now runs browser
+tabs and `html_render` in a shared headless Chrome it downloads to
+`~/.t3/tools/chrome-headless-shell/linux64/<version>/` (upstream
+`apps/server/src/preview/PreviewBrowserHost.ts`). On this host every
+`preview_open` failed with *"This host is missing libraries T3's browser needs
+(libglib-2.0.so.0, … 22 in all). Run `sudo env "PATH=$PATH" t3 browser setup`"*.
+That command apt-installs Chrome's Debian deps and writes an AppArmor profile —
+neither applies to NixOS. Don't run it.
+
+The binary is foreign, so it loads through nix-ld; the fix is those libraries in
+`programs.nix-ld.libraries` (feature `t3code-server`, the list mirrors
+upstream's `DEBIAN_PACKAGES`). Measured before changing anything: with the 22
+libraries on `NIX_LD_LIBRARY_PATH`, `chrome-headless-shell --version` answers
+and a sandboxed `--headless --dump-dom` renders a page, so the sandbox needs
+nothing more (no `T3CODE_SERVER_BROWSER_SANDBOX=0`).
+
+`ldd` keeps reporting all 22 as `not found` even then — it goes through Nix's
+glibc loader and never consults nix-ld. T3 knows: it decides with the browser's
+own `--version` and only lists ldd's misses after that fails. So don't trust
+`ldd` here; run the binary.
+
+The running unit needs no restart: its `NIX_LD_LIBRARY_PATH` is the fixed
+`/run/current-system/sw/share/nix-ld/lib`, which the switch refills.
+
+## 2026-10-21 — why the preview browser feels worse than a real browser
+
+Complaints: blurry, logins don't stick, no extensions (Bitwarden), Google says
+"This browser or app may not be secure". There are two browsers behind the one
+Browser panel, and which one a tab gets decides all four:
+
+| tab opened by…                 | runs in                                                          | drawn as                  | storage                                              |
+| ------------------------------ | ---------------------------------------------------------------- | ------------------------- | ---------------------------------------------------- |
+| you, in the desktop app        | the app's own Electron `<webview>` (`runtime: "desktop"`)        | native, sharp             | `~/.config/t3code-v2/Partitions/t3code-preview-*`    |
+| an agent (`preview_open`)      | the unit's `chrome-headless-shell` (`runtime: "server"`)         | JPEG screencast stream    | `~/.t3/userdata/server-browser/profiles/<profile>`   |
+
+The desktop app renders a server tab natively only for a server it spawned
+itself (`DesktopBrowserChannel` needs the bootstrap fds). The unit is not one, so
+every agent tab is streamed. `previewRuntimeFor` (upstream #17316) sends the
+tabs *you* open on a non-primary environment to the desktop instead, and a
+streamed tab has **More → Open on this computer**. Agents can't see a desktop
+tab.
+
+Measured on this host:
+
+- **Quality.** The stream is JPEG at the server's `DEFAULT_QUALITY = 70`, and
+  50 at half resolution while scrolling. The client never sends `quality`
+  (upstream #16578, closed with #17316 and no setting). `t3codeUnwrappedFor`
+  patches both up (`streamQuality`, `streamMotionQuality`). Rendering is 2×, so
+  the gain is ringing around text, not resolution.
+- **Google sign-in.** In the server browser the page sees `plugins.length = 0`,
+  no `window.chrome`, a SwiftShader WebGL renderer and `screen` equal to the
+  viewport, which are all headless tells. Upstream spoofs the UA and client
+  hints (#16963), but Google's account check still rejects it (#20867, closed
+  as out of scope). Sign in from a desktop tab instead. Upstream says #16939
+  fixed sign-in there; not measured on this host.
+- **State.** Logins live in four places that never share: the server browser's
+  profile, and three Electron profiles from three app generations:
+  `~/.config/t3code` (until 08-25), `T3 Code (Alpha)` (until 10-15) and
+  `t3code-v2` (since V2, 10-16). V2 moved the profile on purpose
+  (`DesktopUserData.ts`) and carried over only localStorage, not partitions,
+  so every login made before 10-16 stayed behind in the Alpha profile. A login
+  in a desktop tab is invisible to agent tabs and the other way round.
+- **Extensions.** Neither browser can have them: upstream never calls
+  `session.loadExtension` and the headless shell has no extension support.
+  Even a full Chromium swapped in for the shell (Ideas #17465, the
+  `Tarsow/t3-headed-browser` shim) would stream page pixels only, so a
+  Bitwarden popup would never appear. Use **Open in browser** for sites that
+  need the vault. *(Superseded for the server browser on 2026-10-24, below.)*
+
+## 2026-10-24 — the server browser is a headed Google Chrome
+
+Upstream still hardcodes `headless: true` and the downloaded shell (`main` at
+71df573f; #20867 closed without a fix), so `server-browser-headed.patch` adds
+one switch: with `T3CODE_SERVER_BROWSER_EXECUTABLE` set, `ServerBrowserContexts`
+launches that browser **headed** instead of the shell. The unit sets it to
+nixpkgs' `google-chrome`, on `:99`, a virtual Xvfb display from its own
+`t3code-display` unit (passed as `T3CODE_SERVER_BROWSER_DISPLAY`, see below), so
+no window lands on the niri session. Unset, the
+patched server behaves exactly like upstream.
+
+Measured with T3's own Playwright (1.60) and launch options, same IP:
+
+| browser                                   | `webdriver` | `window.chrome` | plugins | Google sign-in after the email   |
+| ----------------------------------------- | ----------- | --------------- | ------- | -------------------------------- |
+| `chrome-headless-shell` 154, as T3 runs it | false       | undefined       | 0       | `/v3/signin/rejected`            |
+| `google-chrome` 154, headed on Xvfb        | false       | object          | 5       | password step                    |
+
+What the patch has to do besides `headless: false`:
+
+- **Keep the first window.** `contextFor` closes every page a persistent
+  context starts with. A headless shell survives that; a headed browser quits
+  with its last window and the next `newPage` dies with *"Target page, context
+  or browser has been closed"* (the shim's docs measured the same). In headed
+  mode it keeps the first `about:blank` window; it is never a T3 tab.
+- **Drop Playwright's anti-person defaults.** Playwright adds
+  `--disable-extensions`, `--disable-component-extensions-with-background-pages`,
+  `--disable-sync`, `--disable-background-networking` and
+  `--disable-component-update`; with them Chrome Sync is off and a policy
+  extension never installs. Headed mode ignores those five (plus
+  `--enable-automation`, as upstream). `--password-store=basic` stays, so
+  cookies are encrypted with Chrome's fixed key and need no keyring.
+- **Nothing for identity.** `presentAsChrome` only rewrites a `HeadlessChrome`
+  user agent; the real Chrome's doesn't match, so it is left alone.
+
+Why Google Chrome and not Chromium or Brave: Chromium builds have no Chrome Sync
+(Google withdrew the API keys), and sync is what lets a login made once follow
+the profile. The version is also nixpkgs' and pinned by the flake, not a second
+download; at the switch both were 154.0.8037.x, so the shell's existing profile
+(`~/.t3/userdata/server-browser/profiles/default`) opened unchanged.
+
+Logins persist in that profile. Agent tabs (`preview_open`) use the client's
+default profile too, so they see the same logins; only incognito tabs and agent
+tabs opened without a client-reported profile get throwaway contexts.
+
+**Bitwarden** is force-installed by Chrome managed policy
+(`/etc/opt/chrome/policies/managed/t3code-server.json`,
+`ExtensionInstallForcelist`), from `nixos.t3code-server`. Chrome ≥137 ignores
+`--load-extension` in branded builds, so policy is the only declarative route.
+Measured after the switch: installed on the first launch (`location: 7`,
+external policy download, no `disable_reasons`).
+
+A policy-installed extension also needs `DeveloperToolsAvailability = 1` in the
+same file. The panel attaches its own CDP session to stream a tab, and Chrome's
+default (0) refuses DevTools on the pages of policy-installed extensions. The
+agent's tab rendered, because its session was attached while the page was still
+`about:blank`, but the human's panel showed *"Browser connection was refused"*,
+and the unit logged `Target.attachToTarget: Not allowed`. Chrome reads policy at
+startup: after changing it, kill the server's Chrome (main process, `pgrep -f
+'share/google/chrome/chrome --simulate-outdated.*\.t3'`), and T3 relaunches it on
+the next tab.
+
+Its popup is browser chrome, which the stream never shows, so it is opened as a
+page: `chrome-extension://nngceckbapebfimnlniiiahkandclblb/popup/index.html` in
+the panel's address bar (or `preview_open`). Upstream's `normalizePreviewUrl`
+(`packages/shared/src/preview.ts`) allowed only http(s); the same patch adds
+`chrome-extension:`. Log in to the vault there once; the inline autofill menu on
+login forms appears only after that. Its first screen asks to become the default
+password manager through a browser permission prompt the stream can't show:
+skip it.
+
+Verified end to end on 2026-10-24: after logging in to the vault in that tab
+(new-device code by email), focusing `#login_field` on github.com/login shows
+Bitwarden's field icon and its inline menu with the saved login, both in the
+agent's snapshot and in the human's panel (checked with `grim`).
+
+**The window must be pinned to Xvfb.** The first deploy set `DISPLAY=:99` in
+the unit, and Chrome still opened its windows on the niri session (a
+"Bitwarden - Google Chrome" window on workspace 4): its environment had
+`DISPLAY=:0` and `WAYLAND_DISPLAY=wayland-1`. The server merges the login
+shell's environment into `process.env` at startup, so the unit's `DISPLAY` is
+overwritten. The patch reads the display from its own variable,
+`T3CODE_SERVER_BROWSER_DISPLAY`, which no shell sets, drops `WAYLAND_DISPLAY`
+from the browser's environment, and passes `--ozone-platform=x11`. Verified:
+`xwininfo -root -tree` on `:99` lists the window; `niri msg windows` lists no
+Chrome.
+
+**Google sign-in in the panel** (`test@gmail.com`): no `/rejected`. After
+several tries of the same address from this IP it asked for a text CAPTCHA
+instead of the password, which is a normal challenge for a person to solve.
+
+## 2026-10-24 — "Open in VS Code" opened over SSH into this same machine
+
+The app reaches the unit as a saved (bearer) environment paired at
+`http://127.0.0.1:3773`. Upstream's `resolveRemoteOpenState`
+(`apps/web/src/remoteOpen.ts`) checks for loopback only on the *primary*
+environment, the backend the app spawns itself. A saved one is always "remote", so
+"Open" built `vscode://vscode-remote/ssh-remote+<MagicDNS name>/<path>` and
+VS Code connected over SSH to the host it was running on.
+
+The opposite, `local-exec`, would be wrong too: it asks the **server** to spawn
+the editor, and the unit has no session display (now `DISPLAY=:99`, so VS Code
+would open invisibly on Xvfb). `open-local-editor.patch` adds a third case: in
+the desktop app, a bearer environment paired on loopback resolves to the
+`this-machine` link host. The app then opens `<scheme>://file/<path>`
+(`buildLocalOpenUrl`, VS Code and its forks, Zed) through `shell.openExternal`,
+whose allowlist (`ElectronShell.ts`) now also lets those plain local links
+through. `xdg-open` hands `vscode://` to `code-url-handler.desktop`. The "Opens
+over SSH" hint is hidden for that case.
+
 ## Updating
 
 Two ways, depending on whether nixpkgs has caught up:

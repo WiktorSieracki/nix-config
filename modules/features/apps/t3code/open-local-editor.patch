@@ -1,0 +1,152 @@
+diff --git a/apps/desktop/src/electron/ElectronShell.ts b/apps/desktop/src/electron/ElectronShell.ts
+index 5504125e..7a5264ff 100644
+--- a/apps/desktop/src/electron/ElectronShell.ts
++++ b/apps/desktop/src/electron/ElectronShell.ts
+@@ -39,6 +39,16 @@ const isRemoteEditorUrl = (url: URL) =>
+         url.pathname.startsWith("/ssh-remote+") &&
+         url.pathname.length > "/ssh-remote+".length);
+ 
++// The same editors' plain local links (`vscode://file/<path>`, `zed://file/<path>`),
++// for a server on this machine that the app did not spawn.
++const isLocalEditorUrl = (url: URL) =>
++  REMOTE_EDITOR_PROTOCOLS.has(url.protocol) &&
++  url.protocol !== "jetbrains:" &&
++  url.username.length === 0 &&
++  url.password.length === 0 &&
++  url.host === "file" &&
++  url.pathname.length > 1;
++
+ export function parseSafeExternalUrl(rawUrl: unknown): Option.Option<string> {
+   if (typeof rawUrl !== "string") {
+     return Option.none();
+@@ -46,7 +56,7 @@ export function parseSafeExternalUrl(rawUrl: unknown): Option.Option<string> {
+ 
+   try {
+     const url = new URL(rawUrl);
+-    return SAFE_WEB_PROTOCOLS.has(url.protocol) || isRemoteEditorUrl(url)
++    return SAFE_WEB_PROTOCOLS.has(url.protocol) || isRemoteEditorUrl(url) || isLocalEditorUrl(url)
+       ? Option.some(url.href)
+       : Option.none();
+   } catch {
+diff --git a/apps/web/src/components/chat/OpenInPicker.tsx b/apps/web/src/components/chat/OpenInPicker.tsx
+index 5cf20d95..ffb90b42 100644
+--- a/apps/web/src/components/chat/OpenInPicker.tsx
++++ b/apps/web/src/components/chat/OpenInPicker.tsx
+@@ -1,6 +1,7 @@
+ import { ThreadDetailsControl } from "./ThreadDetailsControl";
+ import {
+   AuthOrchestrationOperateScope,
++  buildLocalOpenUrl,
+   buildRemoteOpenUrl,
+   EditorId,
+   type EnvironmentId,
+@@ -251,11 +252,14 @@ export const OpenInPicker = memo(function OpenInPicker({
+       if (!editor) return;
+       if (remote.mode === "remote-unavailable") return;
+       if (remote.mode === "remote-links") {
+-        const url = buildRemoteOpenUrl({
+-          editor,
+-          host: remote.host.host,
+-          absolutePath: openInCwd,
+-        });
++        const url =
++          remote.host.kind === "this-machine"
++            ? buildLocalOpenUrl({ editor, absolutePath: openInCwd })
++            : buildRemoteOpenUrl({
++                editor,
++                host: remote.host.host,
++                absolutePath: openInCwd,
++              });
+         if (url === undefined) return;
+         // Only record hint-seen/preferred when the shell actually accepted
+         // the URL (an older desktop build can refuse the editor scheme).
+@@ -355,7 +359,7 @@ export const OpenInPicker = memo(function OpenInPicker({
+               )}
+             </MenuItem>
+           ))}
+-          {remote.mode === "remote-links" && !remoteHintSeen && (
++          {remote.mode === "remote-links" && remote.host.kind !== "this-machine" && !remoteHintSeen && (
+             <MenuItem density={presentation === "menu" ? "touch" : "default"} disabled>
+               Opens over SSH. Needs your key on {environmentLabel}
+             </MenuItem>
+diff --git a/apps/web/src/remoteOpen.ts b/apps/web/src/remoteOpen.ts
+index 7f23d408..12c30662 100644
+--- a/apps/web/src/remoteOpen.ts
++++ b/apps/web/src/remoteOpen.ts
+@@ -25,7 +25,7 @@ import { useLocalStorage } from "~/hooks/useLocalStorage";
+ import { useEnvironmentPresentation } from "~/state/presentation";
+ 
+ export interface RemoteOpenHost {
+-  readonly kind: "ssh-alias" | RemoteOpenTarget["kind"];
++  readonly kind: "ssh-alias" | "this-machine" | RemoteOpenTarget["kind"];
+   readonly host: string;
+ }
+ 
+@@ -60,6 +60,8 @@ export function resolveRemoteOpenState(input: {
+   readonly target: ConnectionTarget | null;
+   /** Real ssh alias for desktop-SSH environments; null elsewhere. */
+   readonly sshAlias: string | null;
++  /** The paired address of a bearer (saved) environment; null elsewhere. */
++  readonly pairedHttpBaseUrl: string | null;
+   /** Server-advertised hosts; undefined on servers that predate the feature. */
+   readonly remoteOpenTargets: ReadonlyArray<RemoteOpenTarget> | undefined;
+   /** True when running inside the desktop app's renderer. */
+@@ -84,6 +86,15 @@ export function resolveRemoteOpenState(input: {
+     }
+   } else if (isDesktopLocalConnectionTarget(target)) {
+     return LOCAL_EXEC;
++  } else if (input.isDesktopRenderer && input.pairedHttpBaseUrl !== null) {
++    // A saved environment paired on loopback is a server on this machine that
++    // the app did not spawn (a service). Its editor launch would run in the
++    // service, away from the session's display, so the app opens the local
++    // editor itself through its plain `<scheme>://file/<path>` link.
++    const hostname = parseHostname(input.pairedHttpBaseUrl);
++    if (hostname !== null && isLoopbackHostname(hostname)) {
++      return { mode: "remote-links", host: { kind: "this-machine", host: hostname } };
++    }
+   }
+ 
+   if (input.sshAlias !== null && input.sshAlias.length > 0) {
+@@ -106,10 +117,13 @@ export function useRemoteOpenResolution(environmentId: EnvironmentId | null): Re
+     const profile = Option.getOrNull(presentation.entry.profile);
+     const sshAlias =
+       profile !== null && profile._tag === "SshConnectionProfile" ? profile.target.alias : null;
++    const pairedHttpBaseUrl =
++      profile !== null && profile._tag === "BearerConnectionProfile" ? profile.httpBaseUrl : null;
+     return {
+       state: resolveRemoteOpenState({
+         target: presentation.entry.target,
+         sshAlias,
++        pairedHttpBaseUrl,
+         remoteOpenTargets: presentation.serverConfig?.remoteOpenTargets,
+         isDesktopRenderer: window.desktopBridge !== undefined,
+       }),
+diff --git a/packages/contracts/src/editor.ts b/packages/contracts/src/editor.ts
+index 7fa324a4..db9b925c 100644
+--- a/packages/contracts/src/editor.ts
++++ b/packages/contracts/src/editor.ts
+@@ -189,6 +189,24 @@ export const remoteSchemeForEditor = (id: EditorId): string | undefined => {
+   return editor === undefined ? undefined : remoteSchemeOf(editor);
+ };
+ 
++/**
++ * Builds a `<scheme>://file<path>` deep link that opens `absolutePath` on this
++ * machine in the local editor (VS Code and its forks, Zed). Returns undefined
++ * for editors without one (JetBrains IDEs).
++ */
++export const buildLocalOpenUrl = (input: {
++  readonly editor: EditorId;
++  readonly absolutePath: string;
++}): string | undefined => {
++  const scheme = remoteSchemeForEditor(input.editor);
++  if (scheme === undefined || scheme === "jetbrains") {
++    return undefined;
++  }
++  const posixPath = input.absolutePath.replaceAll("\\", "/");
++  const rootedPath = posixPath.startsWith("/") ? posixPath : `/${posixPath}`;
++  return `${scheme}://file${rootedPath.split("/").map(encodeURIComponent).join("/")}`;
++};
++
+ /**
+  * Builds a `<scheme>://vscode-remote/ssh-remote+<host><path>` deep link (Zed
+  * takes `zed://ssh/<host><path>`, JetBrains IDEs a Toolbox App

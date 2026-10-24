@@ -1,0 +1,119 @@
+diff --git a/apps/server/src/preview/ServerBrowserContexts.ts b/apps/server/src/preview/ServerBrowserContexts.ts
+index 5f5c94b8..415458c1 100644
+--- a/apps/server/src/preview/ServerBrowserContexts.ts
++++ b/apps/server/src/preview/ServerBrowserContexts.ts
+@@ -79,6 +79,18 @@ export const presentAsChrome = async (
+   if (identity) await cdp.send("Emulation.setUserAgentOverride", identity);
+ };
+ 
++/**
++ * A headed browser's windows belong on the operator's own display
++ * (`T3CODE_SERVER_BROWSER_DISPLAY`), never on the desktop session: the server
++ * imports the login shell's environment, whose DISPLAY and WAYLAND_DISPLAY are
++ * the user's screen.
++ */
++const headedEnv = (env: NodeJS.ProcessEnv): NodeJS.ProcessEnv => {
++  const { WAYLAND_DISPLAY: _wayland, ...rest } = env;
++  const display = env.T3CODE_SERVER_BROWSER_DISPLAY;
++  return display ? { ...rest, DISPLAY: display } : rest;
++};
++
+ /** Persistent human profiles keep their storage; isolated agents share a browser, never a context. */
+ export class ServerBrowserContexts {
+   private readonly options: Options;
+@@ -92,20 +104,43 @@ export class ServerBrowserContexts {
+     this.options = options;
+   }
+ 
++  /**
++   * The operator's own full browser, run headed (on a display the operator
++   * provides) instead of the downloaded headless shell. Sites that reject the
++   * shell, Google sign-in above all, take it as the normal browser it is.
++   */
++  private headedExecutable() {
++    return (this.options.env ?? process.env).T3CODE_SERVER_BROWSER_EXECUTABLE || undefined;
++  }
++
+   private async launchOptions() {
+-    const executablePath = await this.options.executable();
++    const headed = this.headedExecutable();
++    const executablePath = headed ?? (await this.options.executable());
+     const env = this.options.env ?? process.env;
+     return {
+       executablePath,
+-      env,
++      env: headed ? headedEnv(env) : env,
+       // People drive these tabs, so they must not announce automation (navigator.webdriver).
+       args: [
+         "--disable-gpu",
+         "--force-device-scale-factor=2",
+         "--disable-blink-features=AutomationControlled",
++        // X11 only, so a Wayland session in the environment can never claim the windows.
++        ...(headed ? ["--ozone-platform=x11"] : []),
+       ],
+-      ignoreDefaultArgs: ["--enable-automation"],
+-      headless: true,
++      // A headed browser is a person's browser: it keeps extensions, sync, and
++      // the background networking both of them update through.
++      ignoreDefaultArgs: headed
++        ? [
++            "--enable-automation",
++            "--disable-extensions",
++            "--disable-component-extensions-with-background-pages",
++            "--disable-sync",
++            "--disable-background-networking",
++            "--disable-component-update",
++          ]
++        : ["--enable-automation"],
++      headless: headed === undefined,
+       // Only an explicit operator opt-out disables sandboxing. Launch errors never do.
+       chromiumSandbox: !sandboxDisabled(env),
+     };
+@@ -150,7 +185,10 @@ export class ServerBrowserContexts {
+           if (this.contexts.get(key) === pending) this.contexts.delete(key);
+           this.options.onContextClose?.(context);
+         });
+-        for (const page of context.pages()) await page.close().catch(constVoid);
++        // A headed browser quits with its last window, so it keeps its first one.
++        if (!this.headedExecutable()) {
++          for (const page of context.pages()) await page.close().catch(constVoid);
++        }
+         if (this.closing) {
+           await context.close().catch(constVoid);
+           throw new Error("The preview browser is closed.");
+diff --git a/packages/shared/src/preview.ts b/packages/shared/src/preview.ts
+index 393fba0a..712b1696 100644
+--- a/packages/shared/src/preview.ts
++++ b/packages/shared/src/preview.ts
+@@ -82,6 +82,13 @@ const KNOWN_NON_WEB_SCHEMES: ReadonlySet<string> = new Set([
+   "wss:",
+ ]);
+ 
++/**
++ * Schemes a tab may open: the web, and an extension's own pages
++ * (`chrome-extension://<id>/popup/index.html`), which is the only way to reach
++ * an extension's popup in a streamed tab that shows page pixels only.
++ */
++const PAGE_PROTOCOLS: ReadonlySet<string> = new Set(["http:", "https:", "chrome-extension:"]);
++
+ /**
+  * Turns what a user typed in an address bar into the URL to open: an address
+  * as `normalizePreviewUrl` reads it, or else a web search for the text. Text
+@@ -102,7 +109,7 @@ export function resolveAddressBarInput(rawInput: string): string {
+       protocol !== undefined &&
+       (KNOWN_NON_WEB_SCHEMES.has(protocol) || !BARE_HOST_PORT_PATTERN.test(trimmed))
+     ) {
+-      if (protocol !== "http:" && protocol !== "https:") {
++      if (!PAGE_PROTOCOLS.has(protocol)) {
+         throw new PreviewUrlNormalizationError({
+           inputLength: rawInput.length,
+           reason: "unsupported-protocol",
+@@ -155,7 +162,7 @@ export function normalizePreviewUrl(rawUrl: string): string {
+       cause,
+     });
+   }
+-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
++  if (!PAGE_PROTOCOLS.has(parsed.protocol)) {
+     throw new PreviewUrlNormalizationError({
+       inputLength: rawUrl.length,
+       reason: "unsupported-protocol",
