@@ -86,10 +86,13 @@
       # treats as another machine: "Open in VS Code" became an SSH deep link
       # into this very host. On loopback the app now opens the local editor's
       # `vscode://file/<path>` link instead (notes.md).
+      # A window an extension opens (Bitwarden's passkey or login prompt) has no
+      # opener page, so it stayed on the virtual display; it now becomes a tab.
       patches =
         (old.patches or [])
         ++ [
           ./server-browser-headed.patch
+          ./server-browser-extension-windows.patch
           ./open-local-editor.patch
         ];
       nativeBuildInputs = old.nativeBuildInputs ++ [pkgs.patchelf pkgs.jq];
@@ -533,6 +536,8 @@ in {
       machine.succeed(f"grep -q 'T3CODE_SERVER_BROWSER_EXECUTABLE' {dist}/*.mjs")
       # Bitwarden's popup is reachable only as a tab of its own page.
       machine.succeed(f"grep -q '\"chrome-extension:\"' {dist}/*.mjs")
+      # ...and so are the windows it opens, such as the passkey prompt.
+      machine.succeed(f"grep -q 'Browser.getWindowForTarget' {dist}/*.mjs")
       machine.succeed(
           f"grep -q 'Environment=T3CODE_SERVER_BROWSER_DISPLAY=${browserDisplay}' {unit}"
       )

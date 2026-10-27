@@ -800,6 +800,33 @@ whose allowlist (`ElectronShell.ts`) now also lets those plain local links
 through. `xdg-open` hands `vscode://` to `code-url-handler.desktop`. The "Opens
 over SSH" hint is hidden for that case.
 
+## 2026-10-25 — extension windows (Bitwarden's passkey prompt) open as tabs
+
+Bitwarden opens its passkey prompt ("Log in with passkey"), its "pop out"
+window and its login helpers with `chrome.windows.create`. Such a window has no
+opener page, so no tab's Playwright `popup` event fires and upstream never
+turns it into a tab: it stayed a bare window on the virtual display (`:99`),
+invisible and unclickable from the panel. The GitHub passkey sign-in got stuck
+there until it was clicked with `xdotool`.
+
+`server-browser-extension-windows.patch` listens to the context's `page` event.
+A page that commits a non-blank URL, is not already a tab, has no opener, and
+has a real window (`Browser.getWindowForTarget` fails for an extension's
+offscreen document) is adopted like a popup:
+
+- It goes beside the tab a person is watching in that context. It is always the
+  person's tab, so it is switched to for every viewer, even when an agent opened
+  the tab behind it.
+- If no tab is left, it goes to the thread that last opened one. Bitwarden's
+  "pop out" closes the very tab it was clicked in.
+
+Pages the server itself opens navigate only after they are tabs, so they are
+never adopted twice.
+
+Verified live: "Pop out to a new window" in a Bitwarden tab produced a panel
+tab at `popup/index.html?uilocation=popout`, both with another tab open and
+with the clicked tab being the only one.
+
 ## Updating
 
 Two ways, depending on whether nixpkgs has caught up:
