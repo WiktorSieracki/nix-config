@@ -186,6 +186,26 @@
         "type": "github"
       }
     },
+    "nix-index-database": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792915725,
+        "narHash": "sha256-v75hPw5NJ+mRRcwUzKi2OQtVSVv1hgq6ceAlPQB2kEE=",
+        "owner": "nix-community",
+        "repo": "nix-index-database",
+        "rev": "93696586f3463024cceb089353539be95a38ae2b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nix-index-database",
+        "type": "github"
+      }
+    },
     "nix4vscode": {
       "inputs": {
         "nixpkgs": [
@@ -248,6 +268,7 @@
         "import-tree": "import-tree",
         "llm-agents": "llm-agents",
         "mattpocock-skills": "mattpocock-skills",
+        "nix-index-database": "nix-index-database",
         "nix4vscode": "nix4vscode",
         "nixpkgs": "nixpkgs_2",
         "sops-nix": "sops-nix",

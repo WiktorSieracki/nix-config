@@ -50,6 +50,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Prebuilt, weekly-refreshed nix-index database (for nix-index's fish
+    # command-not-found and `comma`), so nothing has to run `nix-index` locally.
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix4vscode = {
       url = "github:nix-community/nix4vscode";
       inputs.nixpkgs.follows = "nixpkgs";

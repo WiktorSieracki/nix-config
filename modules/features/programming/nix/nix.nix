@@ -1,5 +1,10 @@
-{
+{inputs, ...}: {
   flake.modules.nixos.nix = {pkgs, ...}: {
+    # Prebuilt nix-index database: enables nix-index (fish's command-not-found
+    # hook) with it, and `comma` wrapped to use it — no local `nix-index` run.
+    imports = [inputs.nix-index-database.nixosModules.nix-index];
+    programs.nix-index-database.comma.enable = true;
+
     nixpkgs.config.allowUnfree = true;
     nix.settings.experimental-features = [
       "nix-command"
@@ -42,12 +47,11 @@
     ];
 
     environment.systemPackages = with pkgs; [
+      # The repo's formatter (checks.formatting); no second formatter.
       alejandra
       nixd
       nix-search-cli
-      nixfmt
-      # nh itself comes from programs.nh above.
-      comma
+      # nh itself comes from programs.nh above; comma from nix-index-database.
       manix
     ];
 
@@ -62,7 +66,7 @@
 
   # NH_FLAKE/FLAKE live in the always-on home-manager floor, not in the NixOS
   # part above: every account keeps its *own* checkout of this repo under
-  # ~/.config/nix-config (ADR 0004 — homes are 700, so one account can't reach
+  # ~/.config/nix-config (homes are 700, so one account can't reach
   # another's copy). A system-wide value would hardcode one login's home and
   # point every other account at a directory it cannot read.
   flake.modules.homeManager.homeManager = {config, ...}: {
@@ -79,7 +83,7 @@
     requires = [];
     kind = "config";
     provides = {
-      systemBins = ["alejandra" "nh"];
+      systemBins = ["alejandra" "nh" "," "nix-locate"];
       units = ["nix-optimise.timer" "nh-clean.timer"];
     };
   };
@@ -95,6 +99,8 @@
     testScript = ''
       machine.succeed("alejandra --version")
       machine.succeed("nh --version")
+      # nix-locate must find the prebuilt database without a local index run.
+      machine.succeed("nix-locate --minimal --whole-name bin/alejandra | grep -q alejandra")
       # trusted-users must include @wheel, or remote deploys from a sibling
       # machine fail on unsigned store paths (see the setting's comment).
       machine.succeed("nix config show | grep -E '^trusted-users =.*@wheel'")

@@ -1,11 +1,12 @@
 {
   flake.modules = {
-    nixos.fish = {pkgs, ...}: {
+    nixos.fish = {...}: {
       programs.fish.enable = true;
 
+      # The package (with its prebuilt database) comes from the `nix` feature's
+      # nix-index-database module where that is enabled.
       programs.nix-index = {
         enable = true;
-        package = pkgs.nix-index;
         enableFishIntegration = true;
       };
 
