@@ -33,7 +33,8 @@ let
           # so it outlives this script. niri sets the display variables for the
           # processes it spawns, so forward them rather than trusting whatever
           # the user manager happened to import. An already active unit is one
-          # still starting up: just wait for it.
+          # still starting up: just wait for it. No `--no-tray`: since 0.9 handy
+          # ignores `--start-hidden` without a tray icon and opens its window.
           if ! systemctl --user is-active --quiet handy.service \
             && ! systemd-run --user --quiet --collect --unit=handy \
               --description="Handy speech-to-text" \
@@ -41,7 +42,7 @@ let
               --setenv=DISPLAY="''${DISPLAY:-}" \
               --setenv=XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-}" \
               --setenv=XDG_SESSION_TYPE="''${XDG_SESSION_TYPE:-}" \
-              -- "$handy" --start-hidden --no-tray; then
+              -- "$handy" --start-hidden; then
             notify-send -t 3000 "Handy" "could not start handy.service"
             exit 1
           fi

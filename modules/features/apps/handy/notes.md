@@ -140,3 +140,27 @@ after ~0.6 s, second stops it; `handy --transcribe-file` on a 16 kHz espeak WAV
 returned the sentence exactly ("Transcription completed in 0.87s for 3.64s of
 audio"). The recording history DB migrates 3 → 4 on first start (no way back
 to 0.7.6 without a backup of `~/.local/share/com.pais.handy/history.db`).
+
+## 2026-10-27 — `Mod+V` opened handy's window; dictation produced nothing
+
+Two unrelated causes surfaced together right after the 0.9.6 switch.
+
+**Symptom 1:** the first `Mod+V` opened handy's main window (Models page)
+instead of starting silently.
+**Cause:** handy 0.9 (`src-tauri/src/lib.rs`, setup) shows the main window when
+`--start-hidden` is set but no tray icon is available — "without a tray icon,
+the dock is the only way back in". `handy-toggle` passed `--no-tray`, which
+0.7.6 tolerated.
+**Fix:** start with `--start-hidden` only. handy then sits in noctalia's tray
+(StatusNotifierItem), which also shows the recording state. Verified: cold
+start → 0 handy windows in `niri msg windows`.
+
+**Symptom 2:** recordings of several seconds of speech ended with
+`sample count: 0` (see the 2026-09-17 entry: the fault is upstream of handy).
+**Cause:** the default source (Arctis 7 Chat) was muted at the ALSA level —
+`amixer -c <card> sget Headset` showed the capture switch `[off]`, and
+`wpctl status` marked the source `MUTED`. handy's PipeWire stream itself was
+fine (`alsa_capture..handy-wrapped`, state running).
+**Fix:** `wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0`. A 3 s `pw-record` of room
+noise then peaked at −36 dBFS (a dead mic measures around −59 dBFS). Check
+`wpctl get-volume @DEFAULT_AUDIO_SOURCE@` first whenever handy hears nothing.
