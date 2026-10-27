@@ -1,6 +1,6 @@
 name: Feature tests
 
-# Feature tests (see docs/adr/0002-ai-first-testable-features.md).
+# Feature tests (harness: modules/feature-tests.nix, glossary: CONTEXT.md).
 #  - coverage:      cheap eval-time gate (every feature has meta+test) — no KVM, on PRs.
 #  - feature-tests: full VM feature tests (nixosTest) — needs KVM, on main / manual, via Cachix.
 
@@ -84,11 +84,13 @@ jobs:
         with:
           name: wiktor-nixos
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Build all feature tests
+      # ciChecks = every check except the feature tests of features no host
+      # enables (see modules/feature-tests.nix); those stay buildable locally.
+      - name: Build feature tests of enabled features
         run: |
           nix run nixpkgs#nix-fast-build -- \
             --no-nom \
             --skip-cached \
             --retries 2 \
             --cachix-cache wiktor-nixos \
-            --flake '.#checks.x86_64-linux'
+            --flake '.#legacyPackages.x86_64-linux.ciChecks'

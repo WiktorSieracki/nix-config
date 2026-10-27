@@ -1,7 +1,7 @@
 name: ISO Release
 
 # Builds the generic live ISO (host `iso`) and publishes it as a rolling release
-# under the tag `latest`. See docs/adr/0001-iso-release-pipeline.md.
+# under the tag `latest`. The host itself: modules/hosts/iso/default.nix.
 
 on:
   push:

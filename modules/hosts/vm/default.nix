@@ -37,6 +37,7 @@ in {
   # A normal, bootable host used purely to produce disk images
   # (`nh os build-image -H vm --image-variant qemu-efi`). Unlike the `iso`
   # host it has no live-CD module, so `system.build.images.*` works.
+  flake.hostSpecs.vm = vmSpec;
   flake.nixosConfigurations.vm = lib.nixosSystem {
     system = "x86_64-linux";
     modules =

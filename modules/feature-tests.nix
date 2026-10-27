@@ -16,7 +16,7 @@
           requires = lib.mkOption {
             type = lib.types.listOf lib.types.str;
             default = [];
-            description = "Features this feature depends on; the host loader hard-fails unless they are enabled too (ADR 0002).";
+            description = "Features this feature depends on; the host loader hard-fails unless they are enabled too.";
           };
           kind = lib.mkOption {
             type = lib.types.enum ["config" "cli" "service" "gui"];
@@ -102,6 +102,26 @@
       default = {};
       description = "Per-feature feature-test specs: { <feature> = { testScript?; extraNixosModules?; extraHmModules?; }; }.";
     };
+    # Every host's features.json spec, keyed by host name. Read by the CI check
+    # set below: a feature no host enables keeps its feature test (buildable as
+    # checks.<system>.feature-<name>, still audited by feature-coverage), but CI
+    # stops booting a VM for it on every push to main.
+    hostSpecs = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.submodule {
+        options = {
+          system = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [];
+          };
+          users = lib.mkOption {
+            type = lib.types.attrsOf (lib.types.listOf lib.types.str);
+            default = {};
+          };
+        };
+      });
+      default = {};
+      description = "Per-host feature specs ({ system; users.<login>; }), as passed to loadHost.";
+    };
     featureTestLib = lib.mkOption {
       type = lib.types.attrsOf lib.types.anything;
       default = {};
@@ -115,7 +135,7 @@
     # is the `core` floor (flake.modules.nixos.nixos) + the feature under test + the
     # transitive closure of its `requires` (read from flake.featureMeta). The VM
     # contains *nothing else*, so a passing feature test proves the feature is
-    # self-sufficient given its declared deps. See docs/adr/0002.
+    # self-sufficient given its declared deps.
     #
     # Feature files DON'T call this directly — they register a feature-test spec
     # under `flake.featureTests.<name>` (a multi-writer freeform attr, like
@@ -134,7 +154,7 @@
       provides ? (config.flake.featureMeta.${feature}.provides or {}),
       extraNixosModules ? [],
       # Extra home-manager modules merged into the test user's HM — used by feature
-      # tests to stub secret-backed config (e.g. point SOPS at a fixture, ADR 0002 (b)).
+      # tests to stub secret-backed config (e.g. point SOPS at a fixture).
       extraHmModules ? [],
     }: let
       meta = config.flake.featureMeta or {};
@@ -151,7 +171,7 @@
 
       # A feature with a home-manager part needs an account to attach to. The
       # feature test uses the neutral `tester` test identity, created by the SAME
-      # mkHostUser factory the hosts use (ADR 0004) — so a hardcoded real login
+      # mkHostUser factory the hosts use — so a hardcoded real login
       # inside a feature fails its feature test, and the wiring itself gets exercised.
       # Pure-system feature tests (no HM part in the closure) skip it for a leaner VM.
       hasHm = lib.any (m: (config.flake.modules.homeManager or {}) ? ${m}) enabled;
@@ -212,7 +232,9 @@
         testScript = generated + testScript;
       };
 
-    perSystem = {pkgs, ...}: let
+    # `perSystemArgs.config` is the per-system config (its `checks` include the
+    # ones other modules add); plain `config` stays the flake-level one.
+    perSystem = {pkgs, ...} @ perSystemArgs: let
       meta = config.flake.featureMeta or {};
       tests = config.flake.featureTests or {};
 
@@ -253,7 +275,7 @@
       # Rollout (G) complete — every feature must now have featureMeta + a feature test.
       enforceAll = true;
 
-      # ── kind ⇒ provides (ADR 0002's rigor level, enforced) ───────────────────
+      # ── kind ⇒ provides (rigor level, enforced) ─────────────────────
       # `kind` says what a feature *is*; `provides` says what it puts on the
       # system. This pairing is what stops a test from existing while asserting
       # nothing. `runtimeUntestable` features are exempt — by definition their
@@ -295,11 +317,11 @@
         )
         metaNames
         ++ lib.optionals enforceAll (map (f: "  feature '${f}' has no featureMeta/feature test — every feature must have one") (lib.subtractLists metaNames featureNames))
-        # gui⇒desktop (CONTEXT.md, ADR 0002): a `kind = "gui"` feature must reach
+        # gui⇒desktop (CONTEXT.md): a `kind = "gui"` feature must reach
         # `desktop` through its `requires`, so its feature test boots the real
         # graphical session instead of silently passing on `core` alone. The
         # desktop stack itself (niri) is exempt.
-        ++ map (f: "  gui feature '${f}' must `requires` \"desktop\" (directly or transitively) — see CONTEXT.md / ADR 0002")
+        ++ map (f: "  gui feature '${f}' must `requires` \"desktop\" (directly or transitively) — see CONTEXT.md")
         (lib.filter
           (f: !(builtins.elem f desktopStack) && !(builtins.elem "desktop" (reqClosure f)))
           (lib.filter (f: (meta.${f}.kind or null) == "gui") metaNames))
@@ -317,7 +339,21 @@
               }))
         )
         tests;
+
+      # Features some host actually enables (system + every account's list).
+      # `requires` needs no closure here: loadHost already hard-fails unless
+      # every dependency is enabled on the same host.
+      enabledFeatures = lib.unique (lib.concatMap (
+        spec: spec.system ++ lib.concatLists (lib.attrValues spec.users)
+      ) (lib.attrValues config.flake.hostSpecs));
+      unusedTestChecks = map (f: "feature-${f}") (lib.subtractLists enabledFeatures testNames);
     in {
+      # What CI builds: every check minus the feature tests of features no host
+      # enables. `nix flake check` and `checks.<system>.feature-<name>` still
+      # cover everything; enabling a feature on a host puts it back in CI.
+      legacyPackages.ciChecks =
+        lib.filterAttrs (name: _: !(builtins.elem name unusedTestChecks)) perSystemArgs.config.checks;
+
       checks =
         featureChecks
         // {
@@ -340,7 +376,7 @@
             '';
           };
 
-          # Mechanism feature test (ADR 0004): the per-user wiring itself. Two test
+          # Mechanism feature test: the per-user wiring itself. Two test
           # accounts built by the same mkHostUser factory the hosts use; asserts
           # what used to live in the dissolved `work-user` feature — isolation is
           # a property of the loader, not of any feature: HM parts attach only to

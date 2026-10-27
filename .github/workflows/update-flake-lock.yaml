@@ -1,0 +1,60 @@
+name: Update flake.lock
+
+# Weekly `nix flake update`, proposed as a PR (branch update_flake_lock_action).
+# A PR opened with GITHUB_TOKEN does not trigger the other workflows, so this
+# job validates the new lock itself: both real hosts must evaluate and the
+# cheap gates must pass. The VM feature tests run on main after the merge.
+# Needs "Allow GitHub Actions to create and approve pull requests" in the
+# repository's Actions settings.
+
+on:
+  schedule:
+    - cron: '0 4 * * 1' # Mondays 04:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the update branch
+  pull-requests: write # open/update the PR
+
+concurrency:
+  group: update-flake-lock
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Same cache lines as every other install-nix-action step; keep them identical.
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            extra-substituters = https://nix-community.cachix.org https://cache.numtide.com https://wiktor-nixos.cachix.org
+            extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g= wiktor-nixos.cachix.org-1:3DOZHbBhM0h+YZFUZ1zZikBSLC7cTbZglgQEhF7Gi2M=
+      - name: Update flake.lock and open a PR
+        id: update
+        uses: DeterminateSystems/update-flake-lock@da03c0f078bc4b2c37ee4f7e072d34bf8f188bb3 # v29
+        with:
+          pr-title: 'chore(flake): update flake.lock'
+          pr-labels: dependencies
+          commit-msg: 'chore(flake): update flake.lock'
+      # Validate exactly what the PR carries.
+      - name: Check out the update branch
+        if: steps.update.outputs.pull-request-number != ''
+        run: |
+          git fetch --depth=1 origin update_flake_lock_action
+          git checkout --detach FETCH_HEAD
+      - name: Evaluate hosts
+        if: steps.update.outputs.pull-request-number != ''
+        run: |
+          for host in desktopNixos laptopNixos; do
+            nix eval --raw ".#nixosConfigurations.$host.config.system.build.toplevel.drvPath"
+            echo
+          done
+      - name: Coverage and formatting
+        if: steps.update.outputs.pull-request-number != ''
+        run: |
+          nix build -L '.#checks.x86_64-linux.feature-coverage' '.#checks.x86_64-linux.formatting'

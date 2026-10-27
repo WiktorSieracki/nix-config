@@ -27,6 +27,7 @@
     users.wiktor = ["fish"];
   };
 in {
+  flake.hostSpecs.iso = isoSpec;
   flake.nixosConfigurations.iso = lib.nixosSystem {
     system = "x86_64-linux";
     modules =
