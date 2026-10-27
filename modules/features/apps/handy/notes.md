@@ -112,3 +112,31 @@ required** — without it the process aborts with
 `Failed to initialize gtk backend!`. niri sets these for the processes it
 spawns but does not carry them in its own `environ`, so they must be taken from
 the bind's environment rather than reconstructed from niri's.
+
+## 2026-10-27 — nixpkgs' handy 0.9.6 replaces the 0.7.6 AppImage
+
+The feature now uses `pkgs.handy` (built from source, in cache.nixos.org)
+instead of a hand-pinned AppImage from a second nixpkgs instance. Two things
+changed for `handy-toggle`:
+
+**Symptom:** with 0.9.6, `Mod+V` started handy but then reported "did not
+become ready within 10 s".
+**Cause:** nixpkgs wraps the binary (wrapGAppsHook), so the process is named
+`.handy-wrapped` and `pgrep -x handy` never found it.
+**Fix:** the PID comes from the unit (`systemctl --user show -p MainPID handy`),
+not from the process name.
+
+**Symptom:** a toggle sent right after a cold start did nothing.
+**Cause:** handy 0.9 owns its D-Bus name (`com.pais.handy.SingleInstance`)
+before its `TranscriptionCoordinator` exists; a toggle in that window is logged
+as "TranscriptionCoordinator not initialized" and dropped. The SIGUSR2 handler
+is registered right after the coordinator, so `SigCgt` bit 11 is still the
+right readiness signal; the bus name is not.
+**Fix:** wait for the SIGUSR2 bit, then `exec handy --toggle-transcription`
+(the official way to toggle a running instance, also SIGUSR2-free).
+
+Verified live on desktopNixos: cold start → first toggle starts recording
+after ~0.6 s, second stops it; `handy --transcribe-file` on a 16 kHz espeak WAV
+returned the sentence exactly ("Transcription completed in 0.87s for 3.64s of
+audio"). The recording history DB migrates 3 → 4 on first start (no way back
+to 0.7.6 without a backup of `~/.local/share/com.pais.handy/history.db`).
