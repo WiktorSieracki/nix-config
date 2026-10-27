@@ -1,7 +1,7 @@
 {
   # Wiktor's personal machine aliases (`ssh laptop`, `ssh desktop`), split out
   # of the generic `ssh` feature because they log in as a *concrete* account —
-  # exactly what a shared user feature must not hardcode (ADR 0004). Enable
+  # exactly what a shared user feature must not hardcode. Enable
   # only on the accounts that should reach these machines as wiktor.
   #
   # One block per machine: the short name is the `Host` alias, `HostName`

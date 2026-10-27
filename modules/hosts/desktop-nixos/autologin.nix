@@ -2,7 +2,7 @@
   # Boot straight into wiktor's niri session instead of stopping at the SDDM
   # greeter. Host-level, not a feature: "trust whoever is physically at this
   # machine" is a per-machine policy, and the option names a login — the thing
-  # features are explicitly built not to hardcode (ADR 0004). The vm and iso
+  # features are explicitly built not to hardcode. The vm and iso
   # hosts set it the same way.
   #
   # Toggle: flip `enable` (or delete this file) and reboot.

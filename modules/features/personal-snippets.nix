@@ -21,7 +21,7 @@
   };
 
   # feature test: build-only (runtimeUntestable). Boots the desktop closure with
-  # SOPS stubbed (no key in the VM, per ADR 0002 (b)); a green run proves the
+  # SOPS stubbed (no key in the VM, (b)); a green run proves the
   # snippet keybinds compile into the niri package — a broken `wtype`/pkgs
   # reference would fail the myNiri build and take the VM down with it.
   flake.featureTests.personal-snippets = {

@@ -24,7 +24,7 @@
 
   # The user-global instructions (~/.claude/CLAUDE.md) come from the shared
   # agent-agnostic ../AGENTS.md. Linked out of the store into this account's
-  # own checkout (ADR 0004), so edits there are live in the next session
+  # own checkout, so edits there are live in the next session
   # without a rebuild, and tools that append to it (e.g. `graphify install`)
   # write straight into the repo.
   flake.modules.homeManager.claude-code = {config, ...}: {

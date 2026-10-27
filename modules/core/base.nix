@@ -8,7 +8,7 @@
 
     # Admin policy for `wheel` accounts (who is in wheel lives per account in
     # flake.meta.users.<login>.groups). Was part of the dissolved `wiktor`
-    # foundation feature (ADR 0004).
+    # foundation feature.
     security.sudo.wheelNeedsPassword = false;
     hardware.bluetooth.enable = true;
     services.power-profiles-daemon.enable = true;

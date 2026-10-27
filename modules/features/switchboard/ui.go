@@ -80,7 +80,7 @@ type model struct {
 	sections   []string // "system" + logins; the grid edits sections[section]
 	section    int
 	meta       map[string]FeatureMeta
-	hmNames    map[string]bool // features with a home-manager part (ADR 0004)
+	hmNames    map[string]bool // features with a home-manager part
 	metaLoaded bool
 	metaErr    string
 	search     textinput.Model

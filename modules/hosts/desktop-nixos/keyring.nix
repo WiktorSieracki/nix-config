@@ -61,8 +61,8 @@ in {
   # Keep PAM's hands off the autologin account's login keyring.
   #
   # Host-level, not a feature, for the same reason as autologin.nix: the policy
-  # names a login, which features are explicitly built not to hardcode (ADR
-  # 0004). It is the direct consequence of autologin.nix and only makes sense
+  # names a login, which features are explicitly built not to hardcode. It is
+  # the direct consequence of autologin.nix and only makes sense
   # next to it — it reads the account straight off that option rather than
   # naming it a second time.
   #

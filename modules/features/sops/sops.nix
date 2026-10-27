@@ -30,7 +30,7 @@
         # systemctl --user reset-failed
       };
     };
-    # NOTE: no homeManager part on purpose (ADR 0004). HM-level sops-nix would
+    # NOTE: no homeManager part on purpose. HM-level sops-nix would
     # decrypt with wiktor's ssh key — unreadable for any other account (home
     # 700). Per-user secrets are delivered by *system* sops with `owner`
     # instead (see git's email templates), so the HM half died with its last
@@ -40,7 +40,7 @@
   # sops decrypts secrets with wiktor's real ssh key — absent in any VM. So the
   # runtime (actual decryption) is untestable here; the feature test only proves the
   # module integrates and boots with secrets stubbed, and the `sops` CLI is
-  # present. runtimeUntestable = honest (c)-escape-hatch flag (ADR 0002 Q8).
+  # present. runtimeUntestable = honest (c)-escape-hatch flag.
   flake.featureMeta.sops = {
     requires = [];
     kind = "config";

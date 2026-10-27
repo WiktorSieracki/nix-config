@@ -34,7 +34,7 @@ in {
     inherit linux;
   };
 
-  # mkHostUser — the single account factory (ADR 0004). Creates the Unix user
+  # mkHostUser — the single account factory. Creates the Unix user
   # from its `flake.meta.users` entry and wires its home-manager evaluation:
   # the per-user HM modules plus a foundation that injects `userMeta`
   # (identity + `login`) via `_module.args`, so user features never hardcode a
@@ -95,15 +95,15 @@ in {
         sops.secrets.${userMeta.passwordSecret}.neededForUsers = true;
       };
 
-  # loadHost — assembles a host from its features.json spec (ADR 0003/0004):
+  # loadHost — assembles a host from its features.json spec:
   #   { system = [ ... ];               # machine features (hardware, services)
   #     users.<login> = [ ... ]; }      # per-account user features
   # NixOS parts of every mentioned feature merge globally (that's how NixOS
   # works); home-manager parts attach ONLY to the accounts that list them.
   # Accounts themselves are created from the `users` keys via mkHostUser, with
-  # identity from flake.meta.users. Validation hard-fails (no auto-pulling,
-  # ADR 0002): a feature's `requires` must be satisfied by `system` plus the
-  # same user's own list; a feature with a home-manager part may not sit in
+  # identity from flake.meta.users. Validation hard-fails (no auto-pulling): a
+  # feature's `requires` must be satisfied by `system` plus the same user's own
+  # list; a feature with a home-manager part may not sit in
   # `system` (its HM half would silently attach to nobody).
   flake.lib.loadHost = config: spec:
     assert builtins.isAttrs spec; let
@@ -137,7 +137,7 @@ in {
       # part, or an explicit featureMeta (the last covers module-less features
       # like `personal-snippets` that only add global niriBinds). Without this,
       # `... or {}` below silently turns a typo or stale name into a no-op,
-      # undermining ADR 0003's "features.json is the source of truth".
+      # undermining "features.json is the source of truth".
       isFeature = m:
         (config.flake.modules.nixos ? ${m})
         || (config.flake.modules.homeManager ? ${m})

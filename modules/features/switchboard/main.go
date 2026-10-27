@@ -1,8 +1,8 @@
 // Command switchboard is a TUI for managing the per-host feature lists of
 // this nix-config. Real hosts keep their enabled features in
-// modules/hosts/<host>/features.json (ADR 0003); Switchboard edits those data
+// modules/hosts/<host>/features.json; Switchboard edits those data
 // files — never .nix — and always writes the full transitive closure of
-// `requires`, because the loader hard-fails on gaps (ADR 0002).
+// `requires`, because the loader hard-fails on gaps.
 package main
 
 import (

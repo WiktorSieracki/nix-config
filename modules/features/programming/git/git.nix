@@ -2,7 +2,7 @@
   usersMeta = config.flake.meta.users or {};
 in {
   flake.modules = {
-    # User-agnostic (ADR 0004): identity comes injected as `userMeta`, never a
+    # User-agnostic: identity comes injected as `userMeta`, never a
     # hardcoded login. The email is a *secret*, delivered by a system-level
     # sops template rendered per user (owner = that user) — HM-level sops
     # can't work here, since it would decrypt with another account's key.
@@ -67,8 +67,8 @@ in {
     provides.userBins = ["git" "gh"];
   };
 
-  # feature test (Tier 1). git is secret-backed: the VM has no real SOPS key, so per
-  # ADR 0002 (b) we *stub* — blank every SOPS secret/template so the VM boots,
+  # feature test (Tier 1). git is secret-backed: the VM has no real SOPS key, so
+  # we *stub* — blank every SOPS secret/template so the VM boots,
   # and inject the email via a plaintext include. We then assert what actually
   # matters: git & gh run, user.name comes from the injected userMeta (the
   # neutral test identity — a hardcoded real name would fail here), and the

@@ -92,7 +92,7 @@
     provides.systemBins = ["aeroftp" "aeroftp-cli" "aftp"];
   };
 
-  # feature test: per ADR 0002 a gui feature doesn't launch a window in the VM,
+  # feature test: a gui feature doesn't launch a window in the VM,
   # so the binaries landing on PATH is the whole assertion.
   flake.featureTests.aeroftp = {};
 }

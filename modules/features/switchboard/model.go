@@ -17,7 +17,7 @@ type FeatureMeta struct {
 	Kind     string   `json:"kind"`
 }
 
-// HostSpec mirrors features.json (ADR 0003/0004): machine features in
+// HostSpec mirrors features.json: machine features in
 // `system`, per-account user features in `users.<login>`.
 type HostSpec struct {
 	System []string            `json:"system"`

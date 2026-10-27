@@ -1,7 +1,7 @@
 {
   # Installed via home-manager (`home.packages`), NOT environment.systemPackages,
   # so it lands only in the listing account's PATH/launcher (per-user profile) —
-  # the app-invisibility boundary between accounts (ADR 0004).
+  # the app-invisibility boundary between accounts.
   flake.modules.homeManager.slack = {pkgs, ...}: {
     home.packages = [pkgs.slack];
   };

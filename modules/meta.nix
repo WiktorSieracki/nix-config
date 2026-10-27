@@ -8,7 +8,7 @@
       fileManager = "nautilus";
     };
 
-    # Account identities (ADR 0004). An account exists on a host ⇔ its login is
+    # Account identities. An account exists on a host ⇔ its login is
     # a key of that host's `users` section in features.json; the loader
     # (hosts/configurations.nix) creates it, reading the data from here. User
     # features receive this attrset injected as `userMeta` (+ `login`) into their

@@ -112,7 +112,7 @@
     };
   };
 
-  # feature test: GUI app — per ADR 0002 assert the binary lands on PATH and the
+  # feature test: GUI app — assert the binary lands on PATH and the
   # desktop entry is installed (via `provides`), rather than launching a window.
   flake.featureTests.orca = {};
 }

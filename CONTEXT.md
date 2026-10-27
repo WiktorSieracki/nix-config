@@ -136,16 +136,16 @@ _Avoid_: integration test.
 
 **Feature notes** (`notes.md`):
 A dated record of a feature's **non-executable** knowledge: upstream quirks, "why
-this workaround", environment gotchas. Read by `/nix-loop` at start (so known
-problems aren't re-derived from scratch) and auto-appended with a date when the
-loop resolves something new. The boundary with the **feature test**: a
+this workaround", environment gotchas. Read before working on a feature (so
+known problems aren't re-derived from scratch) and appended with a date when
+something new is resolved. The boundary with the **feature test**: a
 *reproducible* bug goes into the feature test as an assertion (it won't rot);
 feature notes hold only what can't sensibly be encoded in a test. Entry
 structure: `Symptom → Cause → Fix`.
 _Avoid_: README, docs.
 
 **runtimeUntestable** (flag in `featureMeta`):
-Escape hatch (c) from ADR 0002: marks a feature whose *runtime* can't be verified
+Marks a feature whose *runtime* can't be verified
 in a VM (no hardware — `nvidia`/`wacom`/`mouse`; no real network/SOPS key —
 `eduroam`/`home-wifi`/`sops`). Such a feature **still has a feature test**, but it
 only checks that the module integrates and the system boots (eval/boot

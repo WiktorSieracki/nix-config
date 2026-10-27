@@ -1,6 +1,6 @@
 package main
 
-// Repo I/O: host feature specs (features.json, ADR 0003/0004) and the
+// Repo I/O: host feature specs (features.json) and the
 // featureMeta catalog from `nix eval`.
 
 import (
@@ -11,7 +11,7 @@ import (
 )
 
 // Real hosts only — image hosts (iso/vm) keep inline specs and are not
-// Switchboard's target (ADR 0003).
+// Switchboard's target.
 var hostFiles = map[string]string{
 	"desktopNixos": "modules/hosts/desktop-nixos/features.json",
 	"laptopNixos":  "modules/hosts/laptop-nixos/features.json",
