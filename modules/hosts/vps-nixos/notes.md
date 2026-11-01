@@ -80,7 +80,7 @@ vps-nixos cx33` (server powered off) once it's back. Booted BIOS, disk
 ## Updating
 
 ```bash
-nh os switch -H vpsNixos --target-host <tailscale-name-or-ip>
+nh os switch -H vpsNixos --target-host vps-nixos   # tailnet only; port 22 is closed publicly
 ```
 
 Builds locally, copies the closure, activates remotely.
