@@ -74,9 +74,17 @@ VPS doesn't come up, check the provider's console for the GRUB stage first.
 ## Secrets
 
 `secrets-vps.yaml` (recipients: wiktor + the VPS host key, `.sops.yaml`)
-holds `studentEmail`, `personalEmail` (git identity), `cachixAuthToken` and
+holds `studentEmail`, `personalEmail` (git identity), `cachixAuthToken`,
+`firecrawlApiKey`, `openrouterApiKey` (exported as `FIRECRAWL_API_KEY` /
+`OPENROUTER_API_KEY` by the `firecrawl-api` / `openrouter-api` features) and
 `vpsHostKey`. A feature added here that declares a new `sops.secrets.<x>`
 needs `<x>` copied into this file (`sops secrets-vps.yaml`), or activation
-fails on the missing key. Rotating the host key: generate a new one, swap the
+fails on the missing key.
+
+The Firecrawl and OpenRouter keys started as copies of the laptop's. To give
+the VPS its own (so a leak there can be revoked without touching the other
+machines), create new keys at firecrawl.dev/app/api-keys and
+openrouter.ai/settings/keys, replace them with `sops secrets-vps.yaml`, and
+switch. Rotating the host key: generate a new one, swap the
 `&vpsNixos` age key (`ssh-to-age`), `sops updatekeys secrets-vps.yaml`, replace
 `vpsHostKey`, put the key on the box and switch.

@@ -9,7 +9,9 @@
     "python",
     "nodejs",
     "claude-agent-acp",
-    "codex"
+    "codex",
+    "firecrawl-api",
+    "openrouter-api"
   ],
   "users": {
     "wiktor": [
