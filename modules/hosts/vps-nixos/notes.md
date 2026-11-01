@@ -60,6 +60,12 @@ vps-nixos cx33` (server powered off) once it's back. Booted BIOS, disk
    `sudo systemctl restart tailscaled-set; systemctl --user restart t3code`.
    Then `tailscale serve status` shows `https://vps-nixos.<tailnet>.ts.net`; `journalctl --user -u t3code`
    prints the pairing URL/token (`t3 pair` mints a new one).
+   Pair each client with its own token, `t3 pair --tailscale --ttl 1h --label
+   <client>`, and enter it **in the app** (Add environment → address + code,
+   or the in-app scanner). The token is single-use: opening the link or
+   scanning the QR with the phone camera lets the browser consume it, and the
+   app then reports "The environment credential is invalid" (2026-11-01).
+   `t3 auth session list` shows who is paired.
 5. Give the VPS its own GitHub identity — again never your personal key:
    `ssh-keygen -t ed25519 -C wiktor@vpsNixos` on the box, then add the
    `.pub` to GitHub (`gh ssh-key add`, or a per-repo deploy key for tighter
