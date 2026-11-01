@@ -19,7 +19,9 @@
     "switchboard",
     "claude-agent-acp",
     "codex",
-    "home-wifi"
+    "home-wifi",
+    "firecrawl-api",
+    "openrouter-api"
   ],
   "users": {
     "wiktor": [

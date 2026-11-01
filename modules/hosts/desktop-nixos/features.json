@@ -23,7 +23,9 @@
     "obsidian",
     "ollama",
     "claude-agent-acp",
-    "waydroid"
+    "waydroid",
+    "firecrawl-api",
+    "openrouter-api"
   ],
   "users": {
     "wiktor": [
