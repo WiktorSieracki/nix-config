@@ -50,6 +50,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Declarative partitioning for the `vpsNixos` host, which is installed
+    # remotely with nixos-anywhere (it formats the disk from this layout).
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Prebuilt, weekly-refreshed nix-index database (for nix-index's fish
     # command-not-found and `comma`), so nothing has to run `nix-index` locally.
     nix-index-database = {

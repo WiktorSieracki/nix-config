@@ -50,7 +50,7 @@ jobs:
       - name: Evaluate hosts
         if: steps.update.outputs.pull-request-number != ''
         run: |
-          for host in desktopNixos laptopNixos; do
+          for host in desktopNixos laptopNixos vpsNixos; do
             nix eval --raw ".#nixosConfigurations.$host.config.system.build.toplevel.drvPath"
             echo
           done

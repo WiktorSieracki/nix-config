@@ -1,0 +1,40 @@
+# Disk layout nixos-anywhere formats on install. GPT with both a BIOS boot
+# partition and an ESP, so GRUB works whether the provider boots BIOS or UEFI
+# (see the boot.loader notes in ./hardware-configuration.nix).
+{inputs, ...}: {
+  flake.modules.nixos."hosts/vpsNixos" = {
+    imports = [inputs.disko.nixosModules.disko];
+
+    disko.devices.disk.main = {
+      type = "disk";
+      device = "/dev/sda";
+      content = {
+        type = "gpt";
+        partitions = {
+          boot = {
+            size = "1M";
+            type = "EF02";
+          };
+          ESP = {
+            size = "512M";
+            type = "EF00";
+            content = {
+              type = "filesystem";
+              format = "vfat";
+              mountpoint = "/boot";
+              mountOptions = ["umask=0077"];
+            };
+          };
+          root = {
+            size = "100%";
+            content = {
+              type = "filesystem";
+              format = "ext4";
+              mountpoint = "/";
+            };
+          };
+        };
+      };
+    };
+  };
+}
