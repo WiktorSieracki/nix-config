@@ -20,7 +20,6 @@
         validateSopsFiles = false;
 
         secrets = {
-          eduroamPassword = {};
           studentEmail = {};
           personalEmail = {owner = "wiktor";};
         };
