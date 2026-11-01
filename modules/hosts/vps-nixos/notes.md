@@ -64,8 +64,11 @@ vps-nixos cx33` (server powered off) once it's back. Booted BIOS, disk
    `ssh-keygen -t ed25519 -C wiktor@vpsNixos` on the box, then add the
    `.pub` to GitHub (`gh ssh-key add`, or a per-repo deploy key for tighter
    scope). Revoke it on GitHub if the VPS is ever compromised.
-6. Log in to the agents on the box: `claude` (prints an OAuth URL to open on
-   any device). Google sign-in from a datacenter IP often hits extra
+6. Claude Code needs no login on the box: it runs on the long-lived token in
+   `secrets-vps.yaml` (`claudeCodeOauthToken` → `CLAUDE_CODE_OAUTH_TOKEN`,
+   `claude-token.nix`). `claude auth login` over SSH kept rejecting the
+   pasted code. Renew yearly: `claude setup-token` **on the desktop**, then
+   `sops secrets-vps.yaml` and switch. Google sign-in from a datacenter IP often hits extra
    verification — route through the desktop as a Tailscale exit node for that.
 
 ## Updating
@@ -89,7 +92,7 @@ VPS doesn't come up, check the provider's console for the GRUB stage first.
 
 `secrets-vps.yaml` (recipients: wiktor + the VPS host key, `.sops.yaml`)
 holds `studentEmail`, `personalEmail` (git identity), `cachixAuthToken`,
-`firecrawlApiKey`, `openrouterApiKey` (exported as `FIRECRAWL_API_KEY` /
+`firecrawlApiKey`, `openrouterApiKey`, `claudeCodeOauthToken` (exported as `FIRECRAWL_API_KEY` /
 `OPENROUTER_API_KEY` by the `firecrawl-api` / `openrouter-api` features) and
 `vpsHostKey`. A feature added here that declares a new `sops.secrets.<x>`
 needs `<x>` copied into this file (`sops secrets-vps.yaml`), or activation
