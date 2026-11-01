@@ -25,7 +25,8 @@
     "claude-agent-acp",
     "waydroid",
     "firecrawl-api",
-    "openrouter-api"
+    "openrouter-api",
+    "hcloud"
   ],
   "users": {
     "wiktor": [
