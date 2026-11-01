@@ -26,6 +26,15 @@
       };
     };
 
+    # Sized for a 4 GB cx23 (CX33 was not orderable on 2026-11-01). Nothing is
+    # built here — `nh os switch --target-host` builds on the desktop — but
+    # t3code, its Chrome and a few agents can still outgrow 4 GB, and
+    # compressed RAM is cheaper than an OOM kill. No disk swap: there is none.
+    zramSwap = {
+      enable = true;
+      memoryPercent = 100;
+    };
+
     # Laptop-only services the core floor turns on; there is no such hardware here.
     hardware.bluetooth.enable = lib.mkForce false;
     services.power-profiles-daemon.enable = lib.mkForce false;
