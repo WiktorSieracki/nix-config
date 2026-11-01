@@ -51,9 +51,14 @@ vps-nixos cx33` (server powered off) once it's back. Booted BIOS, disk
    Its public host key is known in advance (for `known_hosts`):
    `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKKVozCO3BZQzHQM+bu0lpJvyaTYWQaccYGCwpc1I44d`.
 
-4. `ssh wiktor@<ip>` → `sudo tailscale up` (opens a login URL). Once the node
-   is on the tailnet, `t3code.service` stops crash-looping on
-   `tailscale serve` and publishes itself; `journalctl --user -u t3code`
+4. `ssh wiktor@<ip>` → `sudo tailscale up --operator=wiktor` (opens a login
+   URL). The `--operator` matters: a bare `tailscale up` resets the operator
+   that the `tailscale` feature sets via `tailscaled-set.service`, and
+   t3code's `tailscale serve` then fails with `permission-denied` — while the
+   unit stays `active`, it just logs "Failed to configure Tailscale Serve"
+   (measured 2026-11-01). Fix after the fact:
+   `sudo systemctl restart tailscaled-set; systemctl --user restart t3code`.
+   Then `tailscale serve status` shows `https://vps-nixos.<tailnet>.ts.net`; `journalctl --user -u t3code`
    prints the pairing URL/token (`t3 pair` mints a new one).
 5. Give the VPS its own GitHub identity — again never your personal key:
    `ssh-keygen -t ed25519 -C wiktor@vpsNixos` on the box, then add the
