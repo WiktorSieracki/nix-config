@@ -14,6 +14,15 @@ which is what `disko.nix` assumes; check `lsblk` in the rescue system first —
 if the provider exposes `/dev/vda`, change both `disko.nix` and
 `boot.loader.grub.devices`.
 
+## The live server (2026-11-01)
+
+Hetzner Cloud project `nix-vps`, server `vps-nixos`: **cx23** (2 vCPU / 4 GB /
+40 GB) in **hel1**, IPv4 `89.167.89.171`, IPv6 `2a01:4f9:c015:fc8e::1`. CX33
+was not orderable in any location that day (`hcloud server-type describe
+cx33`), so the host runs on a cx23 with zram; `hcloud server change-type
+vps-nixos cx33` (server powered off) once it's back. Booted BIOS, disk
+`/dev/sda`, installed by nixos-anywhere from an ubuntu-24.04 image.
+
 ## Install (nixos-anywhere)
 
 1. Order the server with any Linux image and your SSH key; boot it into the
