@@ -147,6 +147,8 @@ key.
 
 Secrets live in `secrets.yaml` (SOPS-encrypted). Decryption key is `/home/wiktor/.ssh/id_ed25519` (configured in `.sops.yaml`). Modules access secrets via `sops.secrets.<name>` and `sops.templates.*`. Eval or activation failures related to sops are typically key/setup issues, not module syntax errors.
 
+`vpsNixos` is the exception: it never sees `secrets.yaml` or wiktor's key. It reads only `secrets-vps.yaml` (encrypted to both wiktor and the VPS in `.sops.yaml`) and decrypts with its own ssh host key, `/etc/ssh/ssh_host_ed25519_key` (`modules/hosts/vps-nixos/sops.nix`). That key's private half is stored in `secrets-vps.yaml` as `vpsHostKey` and put in place at install time. So a secret a VPS feature needs goes into `secrets-vps.yaml`, and `~/.ssh/id_ed25519` on the VPS is its own GitHub identity, not wiktor's personal key. See `modules/hosts/vps-nixos/notes.md`.
+
 ## Default programs
 
 Canonical program choices live in `modules/meta.nix`:
