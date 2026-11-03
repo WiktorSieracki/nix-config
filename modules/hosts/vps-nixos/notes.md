@@ -70,11 +70,15 @@ vps-nixos cx33` (server powered off) once it's back. Booted BIOS, disk
    `ssh-keygen -t ed25519 -C wiktor@vpsNixos` on the box, then add the
    `.pub` to GitHub (`gh ssh-key add`, or a per-repo deploy key for tighter
    scope). Revoke it on GitHub if the VPS is ever compromised.
-6. Claude Code needs no login on the box: it runs on the long-lived token in
-   `secrets-vps.yaml` (`claudeCodeOauthToken` → `CLAUDE_CODE_OAUTH_TOKEN`,
-   `claude-token.nix`). `claude auth login` over SSH kept rejecting the
-   pasted code. Renew yearly: `claude setup-token` **on the desktop**, then
-   `sops secrets-vps.yaml` and switch. Google sign-in from a datacenter IP often hits extra
+6. Log Claude Code in once with `claude auth login` (claude.ai account). It
+   prints a URL; open it anywhere, then paste the **whole** code (`xxx#yyy`,
+   from the same run) back. A code from an earlier run, or one mangled by a
+   phone keyboard, fails with "Login failed: 400". Pasting via `tmux
+   send-keys -l` works (2026-11-03). Credentials land in
+   `~/.claude/.credentials.json` and refresh themselves. A full login, unlike
+   a `claude setup-token` token (`CLAUDE_CODE_OAUTH_TOKEN`, used here until
+   2026-11-03), also loads the claude.ai connectors (Gmail, Drive, Calendar…)
+   into `claude mcp list` and the t3code sessions. Google sign-in from a datacenter IP often hits extra
    verification — route through the desktop as a Tailscale exit node for that.
 
 ## Updating
@@ -98,9 +102,11 @@ VPS doesn't come up, check the provider's console for the GRUB stage first.
 
 `secrets-vps.yaml` (recipients: wiktor + the VPS host key, `.sops.yaml`)
 holds `studentEmail`, `personalEmail` (git identity), `cachixAuthToken`,
-`firecrawlApiKey`, `openrouterApiKey`, `claudeCodeOauthToken` (exported as `FIRECRAWL_API_KEY` /
+`firecrawlApiKey`, `openrouterApiKey` (exported as `FIRECRAWL_API_KEY` /
 `OPENROUTER_API_KEY` by the `firecrawl-api` / `openrouter-api` features) and
-`vpsHostKey`. A feature added here that declares a new `sops.secrets.<x>`
+`vpsHostKey`. `claudeCodeOauthToken` is a leftover nothing reads anymore —
+drop it with `sops unset secrets-vps.yaml '["claudeCodeOauthToken"]'` on the
+desktop (the VPS can't decrypt the file itself). A feature added here that declares a new `sops.secrets.<x>`
 needs `<x>` copied into this file (`sops secrets-vps.yaml`), or activation
 fails on the missing key.
 
