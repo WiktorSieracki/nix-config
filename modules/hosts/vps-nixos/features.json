@@ -21,6 +21,7 @@
       "git",
       "ssh",
       "ssh-personal-hosts",
+      "syncthing",
       "t3code-server",
       "todoist-cli"
     ]
