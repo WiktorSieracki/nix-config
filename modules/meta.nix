@@ -27,7 +27,7 @@
         displayName = "Personal";
         groups = ["networkmanager" "wheel"];
         shell = "fish";
-        emailSecret = "studentEmail";
+        emailSecret = "personalEmail";
         authorizedKeys = [
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDwctBSDTMy2mf8LC0WKXnEbYl5mlBLGmtmEJNBpNXR"
         ];
