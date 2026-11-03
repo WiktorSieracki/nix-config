@@ -1,5 +1,5 @@
 {
-  # Wiktor's personal machine aliases (`ssh laptop`, `ssh desktop`), split out
+  # Wiktor's personal machine aliases (`ssh laptop`, `ssh desktop`, `ssh vps`), split out
   # of the generic `ssh` feature because they log in as a *concrete* account —
   # exactly what a shared user feature must not hardcode. Enable
   # only on the accounts that should reach these machines as wiktor.
@@ -28,6 +28,14 @@
         ServerAliveCountMax = "3";
         ConnectTimeout = "30";
       };
+      "vps" = {
+        HostName = "vps-nixos";
+        User = "wiktor";
+        IdentityFile = "~/.ssh/id_ed25519";
+        ServerAliveInterval = "60";
+        ServerAliveCountMax = "3";
+        ConnectTimeout = "30";
+      };
     };
   };
 
@@ -46,6 +54,7 @@
     testScript = ''
       machine.succeed("su - tester -c 'grep -iq hostname.laptopnixos ~/.ssh/config'")
       machine.succeed("su - tester -c 'grep -iq hostname.desktopnixos ~/.ssh/config'")
+      machine.succeed("su - tester -c 'grep -iq hostname.vps-nixos ~/.ssh/config'")
     '';
   };
 }
