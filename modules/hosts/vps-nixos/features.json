@@ -21,7 +21,8 @@
       "git",
       "ssh",
       "ssh-personal-hosts",
-      "t3code-server"
+      "t3code-server",
+      "todoist-cli"
     ]
   }
 }

@@ -1,6 +1,4 @@
-{config, ...}: let
-  inherit (config.flake) agentSkillsLib;
-
+let
   # nixpkgs' todoist-electron only appends the Ozone/Wayland flags when
   # NIXOS_OZONE_WL is set; without it the AppImage's Electron falls back to
   # XWayland (blurry on HiDPI, no Wayland IME). Bake the variable into the
@@ -61,24 +59,18 @@ in {
   };
 
   flake.modules.nixos.todoist = {pkgs, ...}: {
-    environment.systemPackages = [
-      (mkTodoistApp pkgs)
-      # Doist's official CLI (`td today`, `td add "…"`). Authenticates once via
-      # `td auth login` (OAuth, token kept in the keyring) — see notes.md.
-      pkgs.todoist-cli
-    ];
+    # `td` itself comes from the required `todoist-cli` feature.
+    environment.systemPackages = [(mkTodoistApp pkgs)];
   };
 
-  # The bar plugin and the agents' `todo` skill — both are front-ends to the
-  # same `td`, so they ship with it.
+  # The bar plugin — a front-end to `td` (shipped by `todoist-cli`, together
+  # with the agents' `todo` skill).
   flake.modules.homeManager.todoist = {
     config,
     lib,
     pkgs,
     ...
   }: {
-    home.file = agentSkillsLib.links {todo = ./todo;};
-
     # Plugin files are linked one by one (`recursive`), so the plugin directory
     # itself stays writable for the settings.json noctalia keeps there. The bar
     # slot is `plugin:todoist` in noctalia.nix.
@@ -102,52 +94,39 @@ in {
   };
 
   flake.featureMeta.todoist = {
-    requires = ["desktop"];
+    requires = ["desktop" "todoist-cli"];
     kind = "gui";
     provides = {
-      systemBins = ["todoist-electron" "td"];
+      systemBins = ["todoist-electron"];
       userFiles = [
         "~/.config/noctalia/plugins/todoist/manifest.json"
         "~/.config/noctalia/plugins/todoist/Main.qml"
-        "~/.claude/skills/todo/SKILL.md"
-        "~/.agents/skills/todo/SKILL.md"
-        "~/.gemini/skills/todo/SKILL.md"
       ];
     };
   };
 
   # feature test: nixpkgs.config.allowUnfree is already true in the outer perSystem
-  # pkgs (parts.nix), so no extra module is needed. `provides` covers both
-  # binaries, the plugin files and the skill links; the plugin's own logic tests
-  # run when it is built. The script sweeps the skill roots, then guards the
-  # Wayland wrapper, the CLI's cold start, and the two things the plugin needs
-  # at runtime: real store paths instead of placeholders, and an enabled flag
-  # in plugins.json.
+  # pkgs (parts.nix), so no extra module is needed. `provides` covers the app
+  # and the plugin files; the plugin's own logic tests run when it is built. The
+  # script guards the Wayland wrapper and the two things the plugin needs at
+  # runtime: real store paths instead of placeholders, and an enabled flag in
+  # plugins.json.
   flake.featureTests.todoist = {
-    testScript =
-      agentSkillsLib.testScript
-      + ''
-        # The Wayland flags hang off this variable, so guard the wrapper that sets it.
-        machine.succeed("grep -q NIXOS_OZONE_WL $(command -v todoist-electron)")
-        # The CLI must come up without a config file or a token present.
-        machine.succeed("td --help")
-        # Without a token, td fails with the message the plugin keys "needs auth" on.
-        out = machine.fail("su - tester -c 'td today --json' 2>&1")
-        assert "No API token" in out, out
-        # Every @placeholder@ got substituted, and the td it points at runs.
-        main = "/home/tester/.config/noctalia/plugins/todoist/Main.qml"
-        machine.fail(f"grep -q '\"@' {main}")
-        td = machine.succeed(f"grep -oE '/nix/store/[^\"]+/bin/td' {main}").strip()
-        machine.succeed(f"{td} --version")
-        # noctalia only loads plugins flagged enabled in its runtime plugins.json.
-        machine.succeed("su - tester -c \"jq -e '.states.todoist.enabled == true' ~/.config/noctalia/plugins.json\"")
-        # The plugin directory must stay writable for its settings.json.
-        machine.succeed("su - tester -c 'touch ~/.config/noctalia/plugins/todoist/settings.json'")
-      '';
-    extraNixosModules =
-      agentSkillsLib.testModules
-      ++ [
-        ({pkgs, ...}: {environment.systemPackages = [pkgs.jq];})
-      ];
+    testScript = ''
+      # The Wayland flags hang off this variable, so guard the wrapper that sets it.
+      machine.succeed("grep -q NIXOS_OZONE_WL $(command -v todoist-electron)")
+      # Every @placeholder@ got substituted, and the td it points at runs.
+      main = "/home/tester/.config/noctalia/plugins/todoist/Main.qml"
+      machine.fail(f"grep -q '\"@' {main}")
+      td = machine.succeed(f"grep -oE '/nix/store/[^\"]+/bin/td' {main}").strip()
+      machine.succeed(f"{td} --version")
+      # noctalia only loads plugins flagged enabled in its runtime plugins.json.
+      machine.succeed("su - tester -c \"jq -e '.states.todoist.enabled == true' ~/.config/noctalia/plugins.json\"")
+      # The plugin directory must stay writable for its settings.json.
+      machine.succeed("su - tester -c 'touch ~/.config/noctalia/plugins/todoist/settings.json'")
+    '';
+    extraNixosModules = [
+      ({pkgs, ...}: {environment.systemPackages = [pkgs.jq];})
+    ];
   };
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evals for the `todo` agent skill (../todo/SKILL.md). See ../notes.md.
+"""Evals for the `todo` agent skill (../todo/SKILL.md). See ../../apps/todoist/notes.md.
 
 Each query goes through a fresh `claude -p` with the user's real config, so the
 whole skill listing competes for the trigger, the way it does in a real session.
