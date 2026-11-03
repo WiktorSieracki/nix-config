@@ -97,7 +97,7 @@ VPS doesn't come up, check the provider's console for the GRUB stage first.
 ## Secrets
 
 `secrets-vps.yaml` (recipients: wiktor + the VPS host key, `.sops.yaml`)
-holds `studentEmail`, `personalEmail` (git identity), `cachixAuthToken`,
+holds `studentEmail`, `personalEmail` (git identity, `flake.meta.users.wiktor.emailSecret`), `cachixAuthToken`,
 `firecrawlApiKey`, `openrouterApiKey`, `claudeCodeOauthToken` (exported as `FIRECRAWL_API_KEY` /
 `OPENROUTER_API_KEY` by the `firecrawl-api` / `openrouter-api` features) and
 `vpsHostKey`. A feature added here that declares a new `sops.secrets.<x>`
