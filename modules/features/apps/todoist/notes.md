@@ -126,3 +126,11 @@ resets when the panel closes.
 To screenshot an unfolded row, open the panel over IPC and click with `wlrctl`.
 Don't "home" the pointer with `wlrctl pointer move -10000 -10000`: it lands in
 niri's top-left hot corner, which opens the overview and closes the panel.
+
+## 2026-11-03 — `td` and the `todo` skill moved to `todoist-cli`
+
+Both now ship in the `todoist-cli` feature (with `todo/` and `todo-evals/`), so
+the headless VPS can have them without the desktop app. This feature requires
+it; the bar plugin still bakes in its own `td` store path. The entries above
+about the skill and its evals refer to files now under
+`../../todoist-cli/`.
