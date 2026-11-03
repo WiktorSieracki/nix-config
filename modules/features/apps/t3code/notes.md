@@ -89,6 +89,13 @@ Everything arriving through Tailscale Serve is proxied from localhost, so
 `client: phone | mobile | Android | Chrome | 127.0.0.1`. The IP column tells you
 nothing about *which* device paired, so always pass `--label`.
 
+A paired phone's session expires after 30 days. The app then shows "T3 Code on
+<name> did not accept this device" and the journal says `Session token expired`.
+Pair again through the app's Settings → Environments → + with the same address:
+it updates the saved entry instead of adding a second one. The mobile app (2.2.0)
+answers `t3code://pair?pairingUrl=...` with "Route not found", so the deep link
+printed for the desktop app does not work there (measured 2026-11-03).
+
 `t3 serve` also prints a token + QR at startup, so the first one is in
 `journalctl --user -u t3code` — but in 0.0.33 that startup URL is the **loopback**
 one (`http://localhost:3773/pair#token=...`), useless from a phone, even with
