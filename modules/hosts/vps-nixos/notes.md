@@ -89,6 +89,9 @@ nh os switch -H vpsNixos --target-host vps-nixos   # tailnet only; port 22 is cl
 
 Builds locally, copies the closure, activates remotely.
 
+Without a TTY (an agent's shell), add `-e passwordless`: `nh` otherwise tries to
+read a sudo password and fails, though sudo needs none here.
+
 ## Testing locally
 
 `nix build .#nixosConfigurations.vpsNixos.config.system.build.vmWithDisko`
@@ -97,6 +100,13 @@ everything else comes up (verified 2026-11-01: no failed units, `t3code` answers
 on 127.0.0.1:3773 and waits for `tailscale up`). It boots the kernel directly,
 so the GRUB BIOS/ESP install is only exercised by the real first boot — if the
 VPS doesn't come up, check the provider's console for the GRUB stage first.
+
+## Repos on the box
+
+`~/Projects/praca-magisterska` is a plain clone: move work with git. Its PDF is
+built elsewhere, as texliveFull (5.8 GiB) is deliberately not on this disk.
+`~/Projects/second-brain` comes from the desktop through `syncthing`, without its
+`.git`.
 
 ## Secrets
 
