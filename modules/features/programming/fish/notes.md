@@ -36,3 +36,17 @@ separate mechanism check (`checks.host-users`, `modules/feature-tests.nix`), not
 the `fish` feature test — its only job is to prove the `fish` package and the HM
 direnv exist on the test account `tester`, regardless of whether `tester` has fish
 as a login shell.
+
+## 2026-11-03 — Own command-not-found handler (`command-not-found.sh`)
+
+**Why:** nix-index only looks up a binary by its exact name, so `hetzner` got a
+bare "command not found" even with `hcloud` installed, and its hints use
+`nix-env -iA`, which does not fit a flake-managed machine.
+
+**Costs, measured on desktopNixos:** `nix search` takes 1.6 s and 50 MB with the
+eval cache warm, 22 s and 4.5 GB without it. The cache key is the pinned nixpkgs,
+so every nixpkgs bump makes the next miss cold. Hence the 3 s budget and the
+background warm-up, which is skipped under 6 GiB of available memory (the VPS
+case): there the hint tells you to run `nix search` by hand.
+
+**Limit:** `nix search` matches substrings, so a typo like `ripgrp` finds nothing.
