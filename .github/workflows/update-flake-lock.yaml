@@ -1,6 +1,8 @@
 name: Update flake.lock
 
 # Weekly `nix flake update`, proposed as a PR (branch update_flake_lock_action).
+# Inputs referenced only by features no host enables stay pinned (see
+# .github/scripts/used-flake-inputs.sh); bump those by hand when enabling one.
 # A PR opened with GITHUB_TOKEN does not trigger the other workflows, so this
 # job validates the new lock itself: both real hosts must evaluate and the
 # cheap gates must pass. The VM feature tests run on main after the merge.
@@ -34,10 +36,18 @@ jobs:
             experimental-features = nix-command flakes
             extra-substituters = https://nix-community.cachix.org https://cache.numtide.com https://wiktor-nixos.cachix.org
             extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g= wiktor-nixos.cachix.org-1:3DOZHbBhM0h+YZFUZ1zZikBSLC7cTbZglgQEhF7Gi2M=
+      - name: Pick inputs used by enabled features
+        id: inputs
+        # Separate assignment so a script failure fails the step instead of
+        # passing an empty list (which the action reads as "update everything").
+        run: |
+          list=$(.github/scripts/used-flake-inputs.sh)
+          echo "list=$list" >> "$GITHUB_OUTPUT"
       - name: Update flake.lock and open a PR
         id: update
         uses: DeterminateSystems/update-flake-lock@da03c0f078bc4b2c37ee4f7e072d34bf8f188bb3 # v29
         with:
+          inputs: ${{ steps.inputs.outputs.list }}
           pr-title: 'chore(flake): update flake.lock'
           pr-labels: dependencies
           commit-msg: 'chore(flake): update flake.lock'
