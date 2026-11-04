@@ -18,7 +18,7 @@ let
   # The noctalia bar plugin (./noctalia-plugin). Its logic lives in todoist.js
   # and is unit-tested under node in checkPhase, and every QML file must parse,
   # so a broken plugin fails the build instead of silently vanishing from the
-  # bar. `td` and the app are baked in as store paths — noctalia's PATH is
+  # bar. `td`, wl-copy and the app are baked in as store paths — noctalia's PATH is
   # whatever niri was started with, and the plugin must not depend on it.
   mkNoctaliaPlugin = pkgs:
     pkgs.stdenvNoCC.mkDerivation {
@@ -43,7 +43,8 @@ let
         cp manifest.json todoist.js *.qml $out/
         substituteInPlace $out/Main.qml \
           --replace-fail '@td@' '${pkgs.lib.getExe pkgs.todoist-cli}' \
-          --replace-fail '@todoistApp@' '${pkgs.lib.getExe (mkTodoistApp pkgs)}'
+          --replace-fail '@todoistApp@' '${pkgs.lib.getExe (mkTodoistApp pkgs)}' \
+          --replace-fail '@wlCopy@' '${pkgs.wl-clipboard}/bin/wl-copy'
         runHook postInstall
       '';
     };

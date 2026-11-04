@@ -18,6 +18,7 @@ Item {
   // never depends on noctalia's PATH.
   readonly property string tdBin: "@td@"
   readonly property string appBin: "@todoistApp@"
+  readonly property string wlCopyBin: "@wlCopy@"
 
   // Tasks per view, as returned by `td`.
   property var todayTasks: []
@@ -29,6 +30,9 @@ Item {
   property var completing: ({})
   // view -> true while a fetch for it runs
   property var loadingViews: ({})
+  // Order writes still running. An Inbox fetch landing meanwhile would show a
+  // half-applied move, so it is dropped; the last write fetches again.
+  property int orderWrites: 0
 
   property string errorText: ""
   property bool needsAuth: false
@@ -75,9 +79,13 @@ Item {
   function runTd(args, callback) {
     var p = tdProcess.createObject(root, {
                                      "command": [root.tdBin].concat(args),
-                                     "callback": callback
+                                     "callback": callback,
+                                     "stdinEnabled": true
                                    });
     p.running = true;
+    // Disabling closes the pipe. Left open, `td task update --stdin` never sees
+    // EOF and hangs.
+    p.stdinEnabled = false;
   }
 
   function setLoading(v, on) {
@@ -96,9 +104,10 @@ Item {
   // ── reads ───────────────────────────────────────────────────────────────
 
   readonly property var viewArgs: ({
-                                     "today": ["today", "--json", "--all"],
-                                     "upcoming": ["upcoming", "7", "--json", "--all"],
-                                     "inbox": ["inbox", "--json", "--all"]
+                                     // --full is what includes addedAt, the sort key for new tasks.
+                                     "today": ["today", "--json", "--full", "--all"],
+                                     "upcoming": ["upcoming", "7", "--json", "--full", "--all"],
+                                     "inbox": ["inbox", "--json", "--full", "--all"]
                                    })
 
   function refresh(v) {
@@ -119,7 +128,11 @@ Item {
         return;
       }
       root.today = Todoist.localDate(new Date());
-      if (v === "today")
+      if (v === "inbox" && root.orderWrites > 0) {
+        // See orderWrites.
+      } else if (Todoist.sameTasks(tasksFor(v), tasks)) {
+        // Nothing to show; keep the rows, and with them scroll and selection.
+      } else if (v === "today")
         root.todayTasks = tasks;
       else if (v === "upcoming")
         root.upcomingTasks = tasks;
@@ -223,6 +236,42 @@ Item {
         onDone(true);
       root.refreshAll();
     });
+  }
+
+  // args from Todoist.updateTaskArgs
+  function updateTask(args, onDone) {
+    runTd(args, function (code, out, err) {
+      if (code !== 0)
+        ToastService.showError("Todoist", Todoist.describeError(code, err).message);
+      else
+        root.refreshAll();
+      onDone(code === 0);
+    });
+  }
+
+  // Moves row `from` of the Inbox to index `to`. Shown at once; if a write fails
+  // the refetch after the last one puts the real order back.
+  function moveTask(from, to) {
+    var shown = Todoist.inboxOrder(inboxTasks);
+    var plan = Todoist.reorderPlan(shown, from, to);
+    if (plan.length === 0)
+      return;
+    inboxTasks = Todoist.applyOrders(inboxTasks, plan);
+    orderWrites += plan.length;
+    plan.forEach(function (change) {
+      runTd(Todoist.orderArgs(change), function (code, out, err) {
+        if (code !== 0)
+          ToastService.showError("Todoist", Todoist.describeError(code, err).message);
+        root.orderWrites--;
+        if (root.orderWrites === 0)
+          root.refresh("inbox");
+      });
+    });
+  }
+
+  function copyTask(task) {
+    Quickshell.execDetached([root.wlCopyBin, "--", Todoist.taskClipboardText(task)]);
+    ToastService.showNotice("Todoist", "Copied");
   }
 
   function login() {

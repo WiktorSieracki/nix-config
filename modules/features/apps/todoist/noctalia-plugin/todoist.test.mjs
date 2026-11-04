@@ -45,6 +45,10 @@ test("parseTaskList normalizes missing optional fields", () => {
   assert.equal(t.due, null);
   assert.deepEqual(plain(t.labels), []);
   assert.equal(t.description, "");
+  assert.equal(t.addedAt, "");
+  assert.equal(t.childOrder, 0);
+  assert.equal(t.parentId, "");
+  assert.equal(t.sectionId, "");
 });
 
 test("parseTaskList skips a notice line printed before the JSON", () => {
@@ -149,9 +153,121 @@ test("buildRows(upcoming) groups per day", () => {
   ]);
 });
 
-test("buildRows(inbox) keeps Todoist's order and has no headers", () => {
-  const rows = T.buildRows("inbox", [task({id: "z"}), task({id: "a", due: due("2026-10-10")})], "2026-10-16");
-  assert.deepEqual(plain(rows.map((r) => r.kind + ":" + r.task.id)), ["task:z", "task:a"]);
+test("buildRows(inbox) shows the highest childOrder on top and has no headers", () => {
+  // Todoist gives a new task max+1, so this is newest first until something is moved.
+  const rows = T.buildRows("inbox", [
+    task({id: "old", childOrder: 1, addedAt: "2026-11-04T00:00:00Z"}),
+    task({id: "new", childOrder: 9, addedAt: "2026-10-01T00:00:00Z", due: due("2026-10-10")}),
+  ], "2026-10-16");
+  assert.deepEqual(plain(rows.map((r) => r.kind + ":" + r.task.id)), ["task:new", "task:old"]);
+});
+
+test("buildRows(inbox) keeps Todoist's order for tasks without childOrder", () => {
+  const rows = T.buildRows("inbox", [task({id: "z"}), task({id: "a"})], "2026-10-16");
+  assert.deepEqual(plain(rows.map((r) => r.task.id)), ["z", "a"]);
+});
+
+// Top to bottom, as the Inbox shows them.
+const ordered = (...pairs) => pairs.map(([id, childOrder]) => task({id, childOrder}));
+
+test("reorderPlan writes only the moved task when there is a gap", () => {
+  const tasks = ordered(["a", 9], ["b", 5], ["c", 2]);
+  assert.deepEqual(plain(T.reorderPlan(tasks, 2, 1)), [{id: "c", order: 6}]);
+});
+
+test("reorderPlan moves to the very top and the very bottom in one write", () => {
+  const tasks = ordered(["a", 9], ["b", 5], ["c", 2]);
+  assert.deepEqual(plain(T.reorderPlan(tasks, 2, 0)), [{id: "c", order: 10}]);
+  assert.deepEqual(plain(T.reorderPlan(tasks, 0, 2)), [{id: "a", order: 0}]);
+});
+
+test("reorderPlan pushes tasks up only as far as it needs room", () => {
+  const tasks = ordered(["top", 9], ["a", 3], ["b", 2], ["c", 1], ["d", 0]);
+  // d lands between b and c: c stays, d takes 2, b and a move up, top has room.
+  assert.deepEqual(plain(T.reorderPlan(tasks, 4, 3)), [
+    {id: "b", order: 3},
+    {id: "a", order: 4},
+    {id: "d", order: 2},
+  ].sort((x, y) => x.order - y.order));
+});
+
+test("reorderPlan always yields strictly falling orders, even from ties", () => {
+  const tasks = ordered(["a", 2], ["b", 2], ["c", 2], ["d", 0]);
+  const plan = plain(T.reorderPlan(tasks, 3, 1));
+  const after = new Map(tasks.map((t) => [t.id, t.childOrder]));
+  plan.forEach((c) => after.set(c.id, c.order));
+  const shown = ["a", "d", "b", "c"].map((id) => after.get(id));
+  shown.slice(1).forEach((v, i) => assert.ok(v < shown[i], `${shown} must fall`));
+  assert.ok(Math.min(...shown) >= 0);
+});
+
+test("reorderPlan is empty when the task stays where it was", () => {
+  assert.deepEqual(plain(T.reorderPlan(ordered(["a", 2], ["b", 1]), 1, 1)), []);
+});
+
+test("applyOrders changes childOrder and leaves other tasks alone", () => {
+  const out = T.applyOrders(ordered(["a", 2], ["b", 1]), [{id: "b", order: 7}]);
+  assert.deepEqual(plain(out.map((t) => [t.id, t.childOrder])), [["a", 2], ["b", 7]]);
+});
+
+test("gapToIndex maps a drop gap to the moved task's final index", () => {
+  assert.equal(T.gapToIndex(1, 0), 0);
+  assert.equal(T.gapToIndex(1, 1), 1);
+  assert.equal(T.gapToIndex(1, 2), 1);
+  assert.equal(T.gapToIndex(1, 3), 2);
+});
+
+test("canReorder refuses subtasks and sections, whose order is per parent", () => {
+  assert.equal(T.canReorder([task(), task()]), true);
+  assert.equal(T.canReorder([task(), task({parentId: "p"})]), false);
+  assert.equal(T.canReorder([task({sectionId: "s"})]), false);
+});
+
+test("orderArgs binds the value to the flag", () => {
+  assert.deepEqual(plain(T.orderArgs({id: "9", order: 3})), ["task", "update", "id:9", "--order=3", "--json"]);
+});
+
+test("sortTasks puts the newest first among otherwise equal tasks", () => {
+  const tasks = [
+    task({id: "old", due: due("2026-10-16"), addedAt: "2026-10-01T00:00:00Z"}),
+    task({id: "new", due: due("2026-10-16"), addedAt: "2026-10-02T00:00:00Z"}),
+  ];
+  assert.deepEqual(plain(T.sortTasks(tasks).map((t) => t.id)), ["new", "old"]);
+});
+
+test("sameTasks spots any change but ignores a repeated fetch", () => {
+  const a = [task({id: "a"})];
+  assert.equal(T.sameTasks(a, [task({id: "a"})]), true);
+  assert.equal(T.sameTasks(a, [task({id: "a", content: "Edited"})]), false);
+  assert.equal(T.sameTasks(a, []), false);
+});
+
+test("taskClipboardText is the raw title and description", () => {
+  assert.equal(T.taskClipboardText(task({content: "Read [docs](https://x.y)"})), "Read [docs](https://x.y)");
+  assert.equal(T.taskClipboardText(task({content: "Title", description: "## Why\nBecause"})), "Title\n\n## Why\nBecause");
+});
+
+test("updateTaskArgs sends only what changed", () => {
+  const t = task({id: "9", content: "Old", description: "Desc"});
+  assert.deepEqual(plain(T.updateTaskArgs(t, "New", "Desc")), ["task", "update", "id:9", "--content=New", "--json"]);
+  assert.deepEqual(plain(T.updateTaskArgs(t, "Old", "Other")), ["task", "update", "id:9", "--description=Other", "--json"]);
+  assert.equal(T.updateTaskArgs(t, " Old ", "Desc\n"), null);
+});
+
+test("updateTaskArgs binds values with = so a leading dash stays text", () => {
+  const t = task({id: "9", content: "Old"});
+  assert.deepEqual(plain(T.updateTaskArgs(t, "-5 kg", "- item")),
+    ["task", "update", "id:9", "--content=-5 kg", "--description=- item", "--json"]);
+});
+
+test("updateTaskArgs clears a description through --stdin", () => {
+  // td drops an empty --description, and the API rejects it on its own.
+  const t = task({id: "9", content: "Old", description: "Desc"});
+  assert.deepEqual(plain(T.updateTaskArgs(t, "Old", "  ")), ["task", "update", "id:9", "--stdin", "--json"]);
+});
+
+test("updateTaskArgs refuses an empty title", () => {
+  assert.equal(T.updateTaskArgs(task({content: "Old"}), "  ", "New"), null);
 });
 
 test("priorityColor follows Todoist's palette (API 4 == p1)", () => {

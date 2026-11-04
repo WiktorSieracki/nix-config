@@ -134,3 +134,58 @@ the headless VPS can have them without the desktop app. This feature requires
 it; the bar plugin still bakes in its own `td` store path. The entries above
 about the skill and its evals refer to files now under
 `../../todoist-cli/`.
+
+## 2026-11-04 — newest first, selectable text, editing
+
+The Inbox shows `childOrder` highest first, which is Todoist's own order upside
+down. A new task gets max+1 from any client (panel, agent, phone), so it lands on
+top without the panel writing anything, and a move is stored in Todoist itself.
+The cost: the phone and the app show the same list the other way round. Today and
+Upcoming still sort by date; inside equal day and priority, `addedAt` (printed only
+with `--full`) puts the newest first.
+
+A move starts on the grip left of the checkbox, because pressing the row's text
+has to select it. It is Inbox-only: Today and Upcoming have no manual order of
+their own here, and the grip hides if a task has a parent or section, whose
+`childOrder` is counted separately.
+
+`td task update --order N` writes the raw value: it doesn't shift other tasks, it
+allows ties, and it refuses negatives. So `reorderPlan` computes the writes,
+walking up from the bottom. The moved task takes the lowest free value and tasks
+above it are pushed up only when there is no gap. Usually that is one write. The
+move shows at once, and Inbox fetches landing during the writes are dropped, or
+they would show it half applied.
+
+Titles and unfolded descriptions are `TextEdit`s, so they can be selected with
+the mouse and copied with Ctrl+C. A `TextEdit` can't elide, so long titles wrap.
+Its `containmentMask` limits it to the text, so a click on the empty part of a
+row still folds the description. Limiting it with `Layout.maximumWidth` instead
+caps the whole `ColumnLayout`, which pushes short titles off the left edge. The
+mask's function needs the typed signature `contains(point: point): bool`, or Qt
+ignores it with a warning. The description preview stays an `NText`: it needs to
+elide, and clicking it unfolds the row.
+
+A refetch that changes nothing no longer replaces the tasks array. It used to
+rebuild every row each minute, which would drop a selection and the scroll
+position. The editor takes the place of the list rather than living in a row, so
+it survives a rebuild too.
+
+**`td task update` quirks.** It silently drops an empty `--description`, and the
+API rejects one sent alone, so clearing a description needs `--stdin`. Quickshell
+leaves the child's stdin pipe open when `stdinEnabled` is false from the start,
+so `--stdin` hung forever. `runTd` starts with it enabled and then disables it,
+which closes the pipe. Values use `--content=…`, so a leading dash stays text.
+
+**Esc in the editor.** noctalia's window-wide Esc `Shortcut` closes the panel
+before `Keys` sees the key, unless the item accepts it in
+`Keys.onShortcutOverride`.
+
+**Driving the panel without touching the real session.** Run a second noctalia
+in `WLR_BACKENDS=headless WLR_RENDERER=pixman sway`, with `NOCTALIA_CONFIG_DIR`
+pointing at a copy of the config. Copying the plugin sources there, with the
+placeholders filled in, skips the system rebuild. `swaymsg seat cursor` does
+nothing because the seat has no pointer, and `wlrctl` can't hold a button, so
+drags need a small `zwlr_virtual_pointer_v1` client. Each `wtype` call creates a
+new keyboard and focus is lost when it exits, so send one sequence per call; its
+first keystrokes can also get lost, which is the tool and not the plugin.
+
