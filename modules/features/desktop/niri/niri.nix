@@ -259,7 +259,7 @@ in {
     # back. Guard both halves of wl-clipboard. noctalia-shell/noctalia-ipc are
     # the stable PATH names the niri config's noctalia wiring relies on
     # (noctalia.nix contributes them to this module).
-    provides.systemBins = ["niri" "wl-paste" "wl-copy" "noctalia-shell" "noctalia-ipc"];
+    provides.systemBins = ["niri" "wl-paste" "wl-copy" "noctalia-shell" "noctalia-ipc" "cliphist"];
   };
 
   # feature test: we don't launch the compositor (headless VM has no GPU), so

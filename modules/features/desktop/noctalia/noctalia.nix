@@ -11,6 +11,9 @@
     environment.systemPackages = [
       self.packages.${pkgs.stdenv.hostPlatform.system}.myNoctalia
       self.packages.${pkgs.stdenv.hostPlatform.system}.noctalia-ipc
+      # Backs the launcher's `>clip` history: noctalia probes `command -v
+      # cliphist` and its watchers run `wl-paste --watch cliphist store`.
+      pkgs.cliphist
     ];
   };
 
@@ -432,7 +435,7 @@
           customLaunchPrefixEnabled = false;
           enableClipPreview = true;
           enableClipboardChips = true;
-          enableClipboardHistory = false;
+          enableClipboardHistory = true;
           enableClipboardSmartIcons = true;
           enableSessionSearch = true;
           enableSettingsSearch = true;

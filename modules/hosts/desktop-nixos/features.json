@@ -2,6 +2,7 @@
   "system": [
     "niri",
     "desktop",
+    "image-viewer",
     "fonts",
     "nvidia",
     "nix",
@@ -60,7 +61,8 @@
       "todoist-cli",
       "todoist",
       "bitwarden",
-      "pokexgames"
+      "pokexgames",
+      "file-search"
     ],
     "work": [
       "fish",

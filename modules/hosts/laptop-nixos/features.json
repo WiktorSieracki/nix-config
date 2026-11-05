@@ -2,6 +2,7 @@
   "system": [
     "niri",
     "desktop",
+    "image-viewer",
     "fonts",
     "nix",
     "sops",
@@ -41,7 +42,8 @@
       "discord",
       "localsend",
       "wallpapers",
-      "blender"
+      "blender",
+      "file-search"
     ]
   }
 }
