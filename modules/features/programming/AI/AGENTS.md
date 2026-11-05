@@ -7,6 +7,7 @@
 # T3code
 
 - **Using t3code tools** - When using t3code you should prefer to use tools that are available in t3code environment like web preview or device preview, for more information about t3code you can check out the [source code](https://github.com/pingdotgg/t3code).
+- **Web preview** - I like AI to click things for me, for example when setting something up, take the initiative and ask me to login to certain services and set up things with the web preview tool.
 
 # Programming
 
