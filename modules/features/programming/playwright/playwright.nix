@@ -1,4 +1,4 @@
-{...}: {
+_: {
   flake.modules = {
     homeManager.playwright = {pkgs, ...}: let
       browsers = pkgs.playwright-driver.browsers;

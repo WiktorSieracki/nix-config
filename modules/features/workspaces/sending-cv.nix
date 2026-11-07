@@ -12,7 +12,7 @@
   editorAppId = appIds.${programs.editor};
   terminalAppId = appIds.${programs.terminal};
 in {
-  flake.modules.homeManager."sending-cv" = {...}: {
+  flake.modules.homeManager."sending-cv" = _: {
     xdg.desktopEntries."sending-cv" = {
       name = "CV Workspace";
       exec = "sending-cv";

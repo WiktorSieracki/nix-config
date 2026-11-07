@@ -147,9 +147,11 @@ in {
     # 127.0.0.1 — root over ssh is how `nixos-rebuild --target-host` installs
     # the feature under test into the running VM. mkForce because the
     # `ssh-server` feature (which may itself be the feature under test) sets
-    # PermitRootLogin = "no".
+    # PermitRootLogin = "no" and opens 22 on tailscale0 only, while the forward
+    # arrives on eth0.
     services.openssh = {
       enable = true;
+      openFirewall = lib.mkForce true;
       settings = {
         PermitRootLogin = lib.mkForce "yes";
         PasswordAuthentication = lib.mkForce false;

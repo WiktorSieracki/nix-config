@@ -4,6 +4,7 @@
     "desktop",
     "fonts",
     "nix",
+    "zram",
     "sops",
     "cachix",
     "tailscale",

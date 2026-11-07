@@ -1,4 +1,4 @@
-{...}: {
+_: {
   flake.modules.nixos.open-webui = {
     services.open-webui = {
       enable = true;

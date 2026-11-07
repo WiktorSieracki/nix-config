@@ -5,6 +5,7 @@
     "fonts",
     "nvidia",
     "nix",
+    "zram",
     "sops",
     "cachix",
     "tailscale",

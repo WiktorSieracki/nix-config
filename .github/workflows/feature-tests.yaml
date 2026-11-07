@@ -46,6 +46,8 @@ jobs:
         run: nix build -L '.#checks.x86_64-linux.feature-coverage'
       - name: formatting
         run: nix build -L '.#checks.x86_64-linux.formatting'
+      - name: lint
+        run: nix build -L '.#checks.x86_64-linux.lint'
 
   # Full VM feature tests. KVM can be flaky on runners — so not on every PR,
   # only on main and manually; green builds land in Cachix, so later ones are fast.

@@ -23,7 +23,7 @@ let
   mkNoctaliaPlugin = pkgs:
     pkgs.stdenvNoCC.mkDerivation {
       pname = "noctalia-plugin-todoist";
-      version = (builtins.fromJSON (builtins.readFile ./noctalia-plugin/manifest.json)).version;
+      inherit (builtins.fromJSON (builtins.readFile ./noctalia-plugin/manifest.json)) version;
       src = ./noctalia-plugin;
 
       doCheck = true;

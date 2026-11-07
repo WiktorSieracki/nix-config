@@ -1,0 +1,3 @@
+# statix config, read by `statix check` / checks.lint (modules/formatting.nix).
+# repeated_keys: the dendritic layout repeats flake.modules.* keys on purpose.
+disabled = ["repeated_keys"]

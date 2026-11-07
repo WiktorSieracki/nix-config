@@ -1,4 +1,4 @@
-{...}: let
+_: let
   ollamaVersion = "0.30.11";
 
   # Upstream's prebuilt release, autoPatchelf'd into the Nix store.
