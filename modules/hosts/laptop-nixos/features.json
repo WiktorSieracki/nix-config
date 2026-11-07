@@ -21,7 +21,10 @@
     "codex",
     "home-wifi",
     "firecrawl-api",
-    "openrouter-api"
+    "openrouter-api",
+    "printing",
+    "hardware-health",
+    "appimage"
   ],
   "users": {
     "wiktor": [

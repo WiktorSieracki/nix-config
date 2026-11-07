@@ -13,6 +13,11 @@
         {
           networking.hostName = lib.mkDefault name;
           nixpkgs.hostPlatform = lib.mkDefault system;
+          # The commit a generation was built from, shown by `nixos-version
+          # --configuration-revision` and `nixos-rebuild list-generations`, so
+          # "which commit was the last good one" has an answer. A build from a
+          # dirty tree records the `-dirty` rev.
+          system.configurationRevision = inputs.self.rev or inputs.self.dirtyRev or null;
           # This value determines the NixOS release from which the default
           # settings for stateful data, like file locations and database versions
           # on your system were taken. It‘s perfectly fine and recommended to leave
