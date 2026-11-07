@@ -7,9 +7,9 @@
   # NixOS has no option for it, but points systemd-hostnamed at
   # `/etc/static/machine-info`, so `environment.etc` is the intended route.
   #
-  # T3 Code reads it when the server starts and copies it into a client when
-  # the client pairs, so after a change: restart `t3code.service`, then re-pair
-  # the app (features/apps/t3code/notes.md).
+  # T3 Code reads it when its backend starts, and another machine's client
+  # copies it when it pairs, so after a change: restart the app, then re-pair
+  # those clients (features/apps/t3code/notes.md).
   flake.modules.nixos."hosts/desktopNixos" = {
     environment.etc."machine-info".text = ''
       PRETTY_HOSTNAME="Desktop"

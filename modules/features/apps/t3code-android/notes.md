@@ -20,3 +20,11 @@ on the same LAN.
 `cmdline-tools/latest/bin/avdmanager`, although a physical phone never uses the
 emulator. That is the reason for the ~2 GB closure (emulator 846 MB, JDK 473 MB).
 No system images are installed, so no emulator can boot from this SDK.
+
+## 2026-11-07: the SDK reaches the app's backend through environment.d
+
+The desktop runs the T3 Code app's own backend instead of a `t3code.service`
+unit (t3code notes, same date), so this feature requires `t3code` and puts
+`ANDROID_HOME` in the user manager's environment. The app's transient service
+inherits it from there. environment.d is read when the manager starts: after
+the SDK path changes, log in again before the Device panel sees the new root.
