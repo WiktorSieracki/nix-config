@@ -27,7 +27,10 @@
     "waydroid",
     "firecrawl-api",
     "openrouter-api",
-    "hcloud"
+    "hcloud",
+    "printing",
+    "hardware-health",
+    "appimage"
   ],
   "users": {
     "wiktor": [
