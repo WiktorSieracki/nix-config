@@ -54,7 +54,7 @@ jobs:
             nix eval --raw ".#nixosConfigurations.$host.config.system.build.toplevel.drvPath"
             echo
           done
-      - name: Coverage and formatting
+      - name: Coverage, formatting and lint
         if: steps.update.outputs.pull-request-number != ''
         run: |
-          nix build -L '.#checks.x86_64-linux.feature-coverage' '.#checks.x86_64-linux.formatting'
+          nix build -L '.#checks.x86_64-linux.feature-coverage' '.#checks.x86_64-linux.formatting' '.#checks.x86_64-linux.lint'

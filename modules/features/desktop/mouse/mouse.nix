@@ -112,7 +112,7 @@
   # Remapped mouse keys -> mute scripts (scripts are on PATH via systemPackages).
   # NB: this xkb keymap maps the KEY_F13/KEY_F14 keycodes the mouse emits to the
   # XF86Tools / XF86Launch5 keysyms, so niri must bind *those* (verified via wev).
-  flake.niriBinds.mouse = {...}: {
+  flake.niriBinds.mouse = _: {
     "XF86Tools".spawn-sh = "mic-mute-toggle"; # button 7 (KEY_F13) -> mute
     "XF86Launch5".spawn-sh = "deafen-toggle"; # button 6 (KEY_F14) -> deafen
   };

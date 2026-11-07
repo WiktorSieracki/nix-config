@@ -300,7 +300,7 @@ in {
     };
 
     homeManager = {
-      t3code = {...}: {
+      t3code = _: {
         xdg.desktopEntries.t3code = {
           name = "T3 Code";
           exec = "t3code-desktop";
