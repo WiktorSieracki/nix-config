@@ -1,8 +1,9 @@
 {inputs, ...}: let
   # nixpkgs ships the whole of upstream in one derivation: `bin/t3` (the Node
-  # server + CLI) and `bin/t3code-desktop` (the Electron client). Each feature
-  # takes one half — `t3CliFor` for the server, `t3codeAppFor` for the client —
-  # and neither takes the package as-is.
+  # server + CLI) and `bin/t3code-desktop` (the Electron app). Each feature
+  # takes one half — `t3CliFor` for the always-on server, `t3codeAppFor` for the
+  # app, whose backend lives only while its window does — and neither takes the
+  # package as-is. A host runs one or the other, never both (notes.md).
   #
   # nixpkgs wraps every t3code binary with a PATH prefix of the agents it should
   # drive. We swap nixpkgs' claude-code for the llm-agents one so t3code runs the
@@ -130,13 +131,11 @@
       enableCodex = false;
     };
 
-  # `t3` on its own. Upstream's own desktop entry is the trap: it runs
-  # `t3code-desktop` bare, and a bare app forks a second backend onto the unit's
-  # own `~/.t3` database, where the two servers' projections drift (notes.md).
-  # Dropping `share/applications` is what keeps that entry out of the launcher,
-  # leaving `t3codeAppFor`'s wrapper — which isolates the app's backend — as the
-  # only way in. Everything else the package ships (icons, shell completions) is
-  # kept; the launcher entry below takes its icon from here.
+  # `t3` on its own. Upstream's own desktop entry runs `t3code-desktop` bare,
+  # without the wrapper's cgroup, browser and CA bundle (see `t3codeAppFor`).
+  # Dropping `share/applications` keeps that entry out of the launcher, leaving
+  # the wrapper as the only way in. Everything else the package ships (icons,
+  # shell completions) is kept; the launcher entry below takes its icon from here.
   t3CliFor = pkgs: let
     full = t3codeFor pkgs;
   in
@@ -153,15 +152,19 @@
       done
     '';
 
-  # V2 can run the app with no backend of its own: with
-  # `localEnvironmentEnabled = false` in its desktop-settings.json it skips the
-  # local server and serves the UI from its bundled assets ("bootstrap skipping
-  # local environment (disabled in settings)"). Left on, that backend shows up
-  # as a second environment with the host's name next to the unit, on an
-  # empty database of its own (notes.md). No flag or variable sets it, and the
-  # app owns the rest of the file (window bounds, update channel), so the
-  # wrapper sets just this key before every launch. A file jq cannot parse is
-  # left for the app to deal with instead of blocking the launch.
+  # The app's backend *is* this host's environment, so the app must run it.
+  # V2 can switch it off (`localEnvironmentEnabled = false` in its
+  # desktop-settings.json, which is how the app ran while this host had a
+  # `t3code-server` unit), and the setting outlives that era in `~/.t3`. No flag
+  # or variable sets it, and the app owns the rest of the file (window bounds,
+  # update channel), so the wrapper sets just this key before every launch. A
+  # file jq cannot parse is left for the app to deal with instead of blocking
+  # the launch.
+  #
+  # The same step carries the saved environments (the VPS, …) over from the
+  # data directory the app used next to the unit, once: the catalog is
+  # encrypted with a keyring key named after `keyringName`, not after the
+  # directory, so the copy decrypts as-is (notes.md, 2026-11-07).
   desktopSettingsFor = pkgs:
     pkgs.writeShellApplication {
       name = "t3code-desktop-settings";
@@ -171,22 +174,32 @@
         mkdir -p "$(dirname "$doc")"
         [ -s "$doc" ] || echo '{}' > "$doc"
         tmp="$(mktemp "$doc.XXXXXX")"
-        if jq '.localEnvironmentEnabled = false' "$doc" > "$tmp"; then
+        if jq '.localEnvironmentEnabled = true' "$doc" > "$tmp"; then
           mv "$tmp" "$doc"
         else
           rm -f "$tmp"
         fi
+
+        catalog="$1/userdata/connection-catalog.json"
+        old="$2/userdata/connection-catalog.json"
+        if [ ! -e "$catalog" ] && [ -s "$old" ]; then
+          cp "$old" "$catalog"
+        fi
       '';
     };
 
-  # The client: the Electron app, kept off the unit's data by construction.
-  # Its only environment is the unit, paired once as a saved environment in
-  # Settings → Connections (notes.md has the recipe and what it buys: the
-  # preview panel and the agent's `preview_*` tools, which no browser client
-  # can have). `T3CODE_HOME` is where the app keeps that pairing and its
-  # settings, apart from the unit's `~/.t3`. Before V2 the app *always* forked a
-  # backend onto it, and `T3CODE_PORT` kept that backend off the unit's port. It
-  # still matters if the local environment is ever switched back on in the UI.
+  # The app: the Electron window plus its own backend, on the `~/.t3` data the
+  # `t3code-server` unit used to own (threads, projects, provider logins, the
+  # server browser's profile). Only one backend may ever open that database —
+  # two servers on one `state.sqlite` drift apart (notes.md) — which is why the
+  # NixOS half refuses an account that enables both features. `T3CODE_PORT`
+  # pins the backend to one port; the app spawns it, so it is never in the way
+  # of anything else. Other machines' backends (the VPS) are saved environments
+  # in Settings → Connections.
+  #
+  # The backend runs the same patched server browser the unit ran: a headed
+  # Google Chrome on the virtual display (`browserDisplay`), which the transient
+  # service pulls in with `Wants=` and which stops again once nothing wants it.
   #
   # A forked backend does not die with the app: when the main Electron
   # process goes away its children are re-parented to `systemd` and the backend
@@ -202,7 +215,9 @@
   # we are trying to kill. A service is started by the `systemd --user`
   # manager, so it inherits that manager's environment (the Wayland session
   # variables niri puts there) and nothing from this shell — hence `--setenv`
-  # rather than `export` for the three variables below.
+  # rather than `export` for the variables below. The same reaping is what ends
+  # every agent session on this host when the window closes: long work belongs
+  # on a host with `t3code-server`.
   #
   # `--ozone-platform=wayland` is passed explicitly instead of the NIXOS_OZONE_WL
   # dance in `discord.nix`: nixpkgs' t3code wrapper only prefixes PATH, so it acts
@@ -217,39 +232,30 @@
       name = "t3code-desktop";
       runtimeInputs = [pkgs.systemd];
       text = ''
-        home="''${XDG_DATA_HOME:-$HOME/.local/share}/t3code-desktop"
-        ${pkgs.lib.getExe (desktopSettingsFor pkgs)} "$home"
+        home="$HOME/.t3"
+        ${pkgs.lib.getExe (desktopSettingsFor pkgs)} "$home" \
+          "''${XDG_DATA_HOME:-$HOME/.local/share}/t3code-desktop"
         exec systemd-run --user --collect \
-          --description="T3 Code desktop client" \
+          --description="T3 Code desktop app" \
+          --property=Wants=t3code-display.service \
+          --property=After=t3code-display.service \
           --setenv=T3CODE_HOME="$home" \
           --setenv=T3CODE_PORT=3799 \
           --setenv=SSL_CERT_FILE=${caBundle} \
+          --setenv=T3CODE_SERVER_BROWSER_DISPLAY=${browserDisplay} \
+          --setenv=T3CODE_SERVER_BROWSER_EXECUTABLE=${pkgs.lib.getExe pkgs.google-chrome} \
           -- ${full}/bin/t3code-desktop --ozone-platform=wayland "$@"
       '';
     };
-in {
-  flake.modules = {
-    nixos = {
-      # The client. See notes.md.
-      t3code = {pkgs, ...}: {
-        environment.systemPackages = [(t3codeAppFor pkgs)];
-      };
 
-      # Without lingering, a user service only exists between login and logout —
-      # which defeats the point of reaching this machine from a phone. `hostUsers`
-      # is the loader's account → features map, so only the accounts that actually
-      # enable this feature get it.
-      t3code-server = {
-        lib,
-        pkgs,
-        hostUsers ? {},
-        ...
-      }: {
-        users.users =
-          lib.genAttrs
-          (lib.filter (u: builtins.elem "t3code-server" hostUsers.${u}) (builtins.attrNames hostUsers))
-          (_: {linger = true;});
-
+  # What the server browser needs from the system, whichever backend runs it:
+  # Chrome's libraries for the headless shell T3 falls back to, and the managed
+  # policy of the headed Chrome. `key` lets the module system import it once
+  # even if both features end up on one host.
+  browserNixos = {
+    key = "t3code-server-browser";
+    imports = [
+      ({pkgs, ...}: {
         # The server renders previews (browser tabs,
         # `html_render`) in a headless Chrome it downloads into ~/.t3/tools.
         # That binary is foreign, so it loads through nix-ld, whose base set
@@ -296,11 +302,75 @@ in {
           # refused" (`Target.attachToTarget: Not allowed`). 1 allows it.
           DeveloperToolsAvailability = 1;
         };
+      })
+    ];
+  };
+
+  # The server browser's virtual display (see `browserDisplay`). 4K so the
+  # 2× browser has room for its 1280×800 viewport and the page's `screen`
+  # is a real monitor's rather than the viewport's. It runs while a backend
+  # wants it: the unit always (with `Install`), the app while its window is open.
+  browserDisplayHm = {
+    key = "t3code-server-browser-display";
+    imports = [
+      ({pkgs, ...}: {
+        systemd.user.services.t3code-display = {
+          Unit = {
+            Description = "Virtual X display for the T3 Code server's browser";
+            StopWhenUnneeded = true;
+          };
+          Service = {
+            ExecStart = "${pkgs.xvfb}/bin/Xvfb ${browserDisplay} -screen 0 3840x2160x24 -nolisten tcp -noreset";
+            Restart = "on-failure";
+          };
+        };
+      })
+    ];
+  };
+in {
+  flake.modules = {
+    nixos = {
+      # The app. See notes.md.
+      t3code = {
+        lib,
+        pkgs,
+        hostUsers ? {},
+        ...
+      }: {
+        imports = [browserNixos];
+        environment.systemPackages = [(t3codeAppFor pkgs)];
+
+        # Both features run a backend on the account's `~/.t3`, and two
+        # backends on one database drift apart (notes.md).
+        assertions = map (u: {
+          assertion = !(builtins.elem "t3code-server" hostUsers.${u});
+          message = "${u} enables both `t3code` and `t3code-server`: the app's backend and the unit would share ~/.t3. Pick one.";
+        }) (lib.filter (u: builtins.elem "t3code" hostUsers.${u}) (builtins.attrNames hostUsers));
+      };
+
+      # Without lingering, a user service only exists between login and logout —
+      # which defeats the point of reaching this machine from a phone. `hostUsers`
+      # is the loader's account → features map, so only the accounts that actually
+      # enable this feature get it.
+      t3code-server = {
+        lib,
+        hostUsers ? {},
+        ...
+      }: {
+        imports = [browserNixos];
+        users.users =
+          lib.genAttrs
+          (lib.filter (u: builtins.elem "t3code-server" hostUsers.${u}) (builtins.attrNames hostUsers))
+          (_: {linger = true;});
       };
     };
 
     homeManager = {
-      t3code = {...}: {
+      t3code = {pkgs, ...}: {
+        imports = [browserDisplayHm];
+        # `t3 pair` for the phone, `t3 project …`, and the launcher's icon.
+        home.packages = [(t3CliFor pkgs)];
+
         xdg.desktopEntries.t3code = {
           name = "T3 Code";
           exec = "t3code-desktop";
@@ -322,19 +392,10 @@ in {
       }: let
         t3 = t3CliFor pkgs;
       in {
+        imports = [browserDisplayHm];
         home.packages = [t3];
 
-        # The server browser's virtual display (see `browserDisplay`). 4K so the
-        # 2× browser has room for its 1280×800 viewport and the page's `screen`
-        # is a real monitor's rather than the viewport's.
-        systemd.user.services.t3code-display = {
-          Unit.Description = "Virtual X display for the T3 Code server's browser";
-          Service = {
-            ExecStart = "${pkgs.xvfb}/bin/Xvfb ${browserDisplay} -screen 0 3840x2160x24 -nolisten tcp -noreset";
-            Restart = "on-failure";
-          };
-          Install.WantedBy = ["default.target"];
-        };
+        systemd.user.services.t3code-display.Install.WantedBy = ["default.target"];
 
         systemd.user.services.t3code = {
           Unit = {
@@ -376,14 +437,18 @@ in {
   };
 
   flake.featureMeta.t3code = {
-    # The app is paired to *this* host's unit, and takes its icon from the CLI
-    # package `t3code-server` installs, so the server belongs on the same host.
-    # A machine that only wants to *reach* another host's t3code needs no
+    # The app brings its own backend, so it needs no server on the host. A
+    # machine that only wants to *reach* another host's t3code still needs no
     # feature at all — it opens the tailnet URL in a browser (and gets no
-    # preview there; notes.md).
-    requires = ["desktop" "t3code-server"];
+    # preview there; notes.md) — or pairs this app to it.
+    requires = ["desktop"];
     kind = "gui";
-    provides.systemBins = ["t3code-desktop"];
+    provides = {
+      systemBins = ["t3code-desktop"];
+      userBins = ["t3"];
+      userFiles = [".config/systemd/user/t3code-display.service"];
+      files = ["/etc/opt/chrome/policies/managed/t3code-server.json"];
+    };
   };
 
   # feature test: the app needs a live niri session and a paired environment, so
@@ -402,10 +467,11 @@ in {
       machine.succeed(f"grep -qx 'Exec=t3code-desktop' {entry}")
       machine.succeed(f"grep -qx 'StartupWMClass=t3code' {entry}")
 
-      # The two variables that keep the app's own backend off the unit's
-      # database and port, and the flag without which it dies on a Wayland-only
-      # session. Losing any of them is silent at eval time.
+      # The app's backend owns ~/.t3 now, on its own fixed port, and the app
+      # dies on a Wayland-only session without the ozone flag. Losing any of
+      # them is silent at eval time.
       wrapper = machine.succeed("command -v t3code-desktop").strip()
+      machine.succeed(f"grep -q 'home=\"$HOME/.t3\"' {wrapper}")
       machine.succeed(f"grep -q 'T3CODE_HOME=' {wrapper}")
       machine.succeed(f"grep -q 'T3CODE_PORT=3799' {wrapper}")
       machine.succeed(f"grep -q -- '--ozone-platform=wayland' {wrapper}")
@@ -420,32 +486,69 @@ in {
       # store and every model call comes back as a bogus 502 (see notes.md).
       machine.succeed(f"grep -q 'SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt' {wrapper}")
 
-      # The app must not start a local backend of its own: the unit is its only
-      # environment (see `desktopSettingsFor`). The wrapper runs the settings
-      # step before every launch; drive it directly against three states.
+      # The backend's browser is the headed Chrome on the virtual display, which
+      # the app's service pulls in and lets go of again (see `browserDisplayHm`).
+      machine.succeed(f"grep -q 'T3CODE_SERVER_BROWSER_DISPLAY=${browserDisplay}' {wrapper}")
+      chrome = machine.succeed(
+          f"grep -oP 'T3CODE_SERVER_BROWSER_EXECUTABLE=\\K\\S+' {wrapper}"
+      ).strip()
+      machine.succeed(f"test -x {chrome}")
+      machine.succeed(f"grep -q 'Wants=t3code-display.service' {wrapper}")
+      display = "/home/tester/.config/systemd/user/t3code-display.service"
+      machine.succeed(f"grep -qx 'StopWhenUnneeded=true' {display}")
+      # Not started with the session: nothing of T3 runs without the window.
+      machine.fail("test -e /home/tester/.config/systemd/user/default.target.wants/t3code-display.service")
+      # The way the wrapper pulls it in: a transient service that wants it. The
+      # display comes up with it and, being unneeded, goes away after it.
+      machine.succeed("systemctl start user@$(id -u tester).service")
+      machine.succeed(
+          "su tester -c 'XDG_RUNTIME_DIR=/run/user/$(id -u tester) systemd-run --user --collect "
+          + "--unit=app-probe --property=Wants=t3code-display.service "
+          + "--property=After=t3code-display.service sleep 300'"
+      )
+      machine.wait_for_file("/tmp/.X11-unix/X${browserDisplayNumber}")
+      user_ctl = "su tester -c 'XDG_RUNTIME_DIR=/run/user/$(id -u tester) systemctl --user {}'"
+      machine.succeed(user_ctl.format("stop app-probe.service"))
+      machine.wait_until_fails(user_ctl.format("is-active --quiet t3code-display.service"), timeout=30)
+
+      # The app must run its local backend: it is this host's environment
+      # (see `desktopSettingsFor`). The wrapper runs the settings step before
+      # every launch; drive it directly against each state.
       settings_bin = machine.succeed(
           f"grep -o '/nix/store/[^ ]*/bin/t3code-desktop-settings' {wrapper}"
       ).strip()
       home = "/tmp/t3home"
+      old = "/tmp/t3old"
       doc = f"{home}/userdata/desktop-settings.json"
-      local = "jq -e '.localEnvironmentEnabled == false'"
+      local = "jq -e '.localEnvironmentEnabled == true'"
 
-      # First launch: no settings file yet.
-      machine.succeed(f"{settings_bin} {home}")
+      # First launch: no settings file yet, no old data directory either.
+      machine.succeed(f"{settings_bin} {home} {old}")
       machine.succeed(f"{local} {doc}")
+      machine.fail(f"test -e {home}/userdata/connection-catalog.json")
 
-      # The app's own keys (window bounds, update channel) survive the rewrite.
+      # The switch-off from the `t3code-server` era is undone, and the app's
+      # own keys (window bounds, update channel) survive the rewrite.
       machine.succeed(
-          f"echo '{{\"localEnvironmentEnabled\":true,\"updateChannel\":\"nightly\"}}' > {doc}"
+          f"echo '{{\"localEnvironmentEnabled\":false,\"updateChannel\":\"nightly\"}}' > {doc}"
       )
-      machine.succeed(f"{settings_bin} {home}")
+      machine.succeed(f"{settings_bin} {home} {old}")
       machine.succeed(f"{local} {doc}")
       machine.succeed(f"jq -e '.updateChannel == \"nightly\"' {doc}")
 
       # A file jq cannot parse is left alone, and the launch still goes ahead.
       machine.succeed(f"echo 'not json' > {doc}")
-      machine.succeed(f"{settings_bin} {home}")
+      machine.succeed(f"{settings_bin} {home} {old}")
       machine.succeed(f"grep -qx 'not json' {doc}")
+
+      # Saved environments come over from the old data directory once, and a
+      # catalog the app has since written is never overwritten.
+      machine.succeed(f"mkdir -p {old}/userdata && echo old > {old}/userdata/connection-catalog.json")
+      machine.succeed(f"{settings_bin} {home} {old}")
+      machine.succeed(f"grep -qx old {home}/userdata/connection-catalog.json")
+      machine.succeed(f"echo new > {home}/userdata/connection-catalog.json")
+      machine.succeed(f"{settings_bin} {home} {old}")
+      machine.succeed(f"grep -qx new {home}/userdata/connection-catalog.json")
 
       # The app's backend runs under Electron, and node-pty's native module
       # must load there, or the backend dies at startup with
@@ -467,7 +570,7 @@ in {
           + f"{pkg}/libexec/t3code/apps/desktop/package.json"
       )
 
-      # "Open in VS Code" on the unit (loopback) is a local `vscode://file`
+      # "Open in VS Code" on a loopback environment is a local `vscode://file`
       # link, not SSH: the client must build it and the app's shell must let
       # it through (`open-local-editor.patch`).
       machine.succeed(f"grep -Rlq 'this-machine' {pkg}/libexec/t3code/apps/server/dist/client/assets/")
@@ -507,7 +610,7 @@ in {
       # The server's headless Chrome (previews, html_render) is a downloaded
       # binary that loads through nix-ld; each of these is a library its
       # loader refused on this host before (see `programs.nix-ld.libraries`
-      # in `nixos.t3code-server`).
+      # in `browserNixos`).
       for lib in [
           "libglib-2.0.so.0", "libgobject-2.0.so.0", "libgio-2.0.so.0",
           "libnspr4.so", "libnss3.so", "libnssutil3.so",

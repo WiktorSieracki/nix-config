@@ -36,14 +36,19 @@ in {
       sdk = androidSdkFor pkgs;
     in {
       home.packages = [sdk];
-      # The server reads the SDK root when it starts and hands it to the device
-      # hub, so a new root takes effect only after the unit restarts.
-      systemd.user.services.t3code.Service.Environment = ["ANDROID_HOME=${sdk}"];
+      # The backend reads the SDK root when it starts and hands it to the device
+      # hub. It is the app's backend, a transient service of the user manager,
+      # so it can only inherit the root from the manager's environment, which
+      # environment.d sets when the manager starts: a new root takes effect at
+      # the next login (notes.md).
+      systemd.user.sessionVariables.ANDROID_HOME = "${sdk}";
     };
   };
 
   flake.featureMeta.t3code-android = {
-    requires = ["t3code-server"];
+    # The Device panel lives in the app and the devices on its host: a phone
+    # plugs into the machine you sit at.
+    requires = ["t3code"];
     kind = "cli";
     # The check that matters needs a real phone on the LAN. The feature test
     # guards the SDK layout T3 Code insists on and adb's mDNS support.
@@ -53,10 +58,8 @@ in {
 
   flake.featureTests.t3code-android = {
     testScript = ''
-      unit = "/home/tester/.config/systemd/user/t3code.service"
-      sdk = machine.succeed(
-          f"grep -oP 'Environment=ANDROID_HOME=\\K\\S+' {unit}"
-      ).strip()
+      env = "/home/tester/.config/environment.d/10-home-manager.conf"
+      sdk = machine.succeed(f"grep -oP '^ANDROID_HOME=\\K\\S+' {env}").strip()
 
       # The three paths LocalDeviceHost.ts checks before it offers Android.
       for tool in ["platform-tools/adb", "emulator/emulator", "cmdline-tools/latest/bin/avdmanager"]:

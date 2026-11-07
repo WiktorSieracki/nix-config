@@ -5,12 +5,19 @@ coding agents. The nixpkgs package ships two binaries; we use one:
 
 - **`t3`** — the Node server + CLI (`serve`, `pair`, `auth`, `project`). The
   server owns the projects, files, git state, terminals and agent sessions;
-  every client (browser, phone) is just a WebSocket client of it. Feature
-  `t3code-server` runs it as a user service.
-- **`t3code-desktop`** — the Electron client. **Deliberately not installed**; see
-  "The desktop app is not a client of this server" below. Feature `t3code` is
-  the client instead: a launcher entry that opens the server in a chromeless
-  browser window.
+  every client (browser, phone, another machine's app) is just a WebSocket
+  client of it. Feature `t3code-server` runs it as an always-on user service,
+  for a host that has to be reachable while nobody sits at it (the VPS).
+- **`t3code-desktop`** — the Electron app. Feature `t3code` installs it behind
+  a wrapper. The app spawns its own backend on `~/.t3`, which lives exactly as
+  long as the window does, and reaches other hosts' servers as saved
+  environments. Since 2026-11-07 this is how the desktop runs T3 Code (see the
+  section of that date). A host enables one of the two features, never both:
+  the NixOS half asserts it.
+
+Most sections below are dated history from the era when the desktop ran
+`t3code-server` *and* the app paired to it; what they measured about the server,
+the browser and the app still holds, the topology does not.
 
 The canonical docs are `docs/user/*.md` **in the upstream repo**, not the
 mintlify site — the site is stale (it still documents a `--auth-token` flag that
@@ -833,6 +840,54 @@ never adopted twice.
 Verified live: "Pop out to a new window" in a Bitwarden tab produced a panel
 tab at `popup/index.html?uilocation=popout`, both with another tab open and
 with the clicked tab being the only one.
+
+## 2026-11-07 — the desktop runs the app's own backend, no server unit
+
+With the VPS running `t3code-server` around the clock (scheduled tasks moved
+there on 2026-11-03), the desktop no longer needs to be reachable while nobody
+sits at it. `desktopNixos` dropped `t3code-server`; feature `t3code` stopped
+requiring it. What changed:
+
+- **One backend, the app's.** The wrapper flips `localEnvironmentEnabled` back
+  to `true` (the 2026-10-16 section switched it off) and sets
+  `T3CODE_HOME=~/.t3`, the data the unit used. Threads, projects, provider
+  logins, the server browser's profile (Google, Bitwarden) and `environment-id`
+  stay where they were. The unit is gone, so the app's backend is the only one
+  opening `state.sqlite`, and the drift of two servers on one database (*The
+  desktop app spawns its own backend*) cannot happen. An account with both
+  features fails an assertion.
+- **Saved environments move once.** The app used to keep its catalog in
+  `~/.local/share/t3code-desktop`. `desktopSettingsFor` copies
+  `connection-catalog.json` into `~/.t3/userdata` if none is there yet. The
+  catalog is encrypted with the keyring key named after `keyringName`, not the
+  directory, so it decrypts as-is. The old entry for the desktop's own unit
+  (`http://127.0.0.1:3773`) is dead after the switch: remove it in Settings →
+  Connections. The old directory is left alone; delete it once the app works.
+- **Closing the window ends the backend and every agent in it.** That is the
+  transient service's `KillMode=control-group` doing its job (*The forked
+  backend outlives the app*). Work that has to outlive the window goes to the
+  VPS environment.
+- **The server browser follows the backend.** The wrapper hands the app's
+  service the same `T3CODE_SERVER_BROWSER_*` variables the unit had, and pulls
+  in `t3code-display` (Xvfb on `:99`) with `Wants=`. The display has
+  `StopWhenUnneeded`, so it goes away with the window. Chrome's libraries and
+  managed policy sit in a shared NixOS module (`browserNixos`) both features
+  import.
+- **The phone (`t3code-android`) requires `t3code`.** `ANDROID_HOME` now comes
+  from the user manager's environment (`systemd.user.sessionVariables`,
+  environment.d), because the app's service inherits only that. It is read when
+  the manager starts, so a changed SDK path needs a new login.
+- **Nothing is published on the tailnet.** Tailscale Serve was the unit's, and
+  it tears the mapping down when the unit stops. The phone reaches the VPS
+  instead. Lingering for this account still comes from `syncthing`; no T3 unit
+  is started by it.
+- **`t3 pair` with the app open** pairs against the app's backend. That is now
+  the right one, but its listener is loopback-only, so only this machine can
+  use it.
+
+Activating this generation stops `t3code.service`, and with it every agent
+session running in the unit, including one doing the switch. Switch from a
+terminal (or from the VPS), not from an agent on the desktop's unit.
 
 ## Updating
 
