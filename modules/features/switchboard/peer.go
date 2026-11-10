@@ -4,8 +4,8 @@ package main
 //
 // 127.0.0.1 is shared by every account on the machine, and whoever can use the
 // web UI's API can switch the system — so the server answers only to the user
-// who started it. (The work user has no sudo on purpose; a server that took
-// its requests would hand it one.) TCP has no SO_PEERCRED, so the owner of the
+// who started it. (Any account without sudo — a service user, a guest — would
+// otherwise be handed one.) TCP has no SO_PEERCRED, so the owner of the
 // client's socket is read from the kernel's socket table, /proc/net/tcp{,6}.
 
 import (

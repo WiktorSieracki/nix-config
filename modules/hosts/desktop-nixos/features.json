@@ -65,16 +65,6 @@
       "todoist",
       "bitwarden",
       "pokexgames"
-    ],
-    "work": [
-      "fish",
-      "git",
-      "ssh",
-      "vscode",
-      "slack",
-      "chrome",
-      "wallpapers",
-      "claude-agent-acp"
     ]
   }
 }

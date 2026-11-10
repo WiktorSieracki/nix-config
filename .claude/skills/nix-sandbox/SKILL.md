@@ -149,6 +149,6 @@ user cannot check.
 - **NAT only.** QEMU user-net has no LAN. `localsend`/`tailscale` reach "the
   process listens", never "it found the other device".
 - **One feature, one VM.** Interactions *between* features are Tier 2, not this.
-- **No second account.** `work`-vs-`wiktor` isolation is Tier 2 as well.
+- **No second account.** How two accounts keep apart is Tier 2 as well.
 - **Not in CI.** `nix flake check` stays the automated gate; this is a tool for
   discovery, and its output is a report plus whatever you managed to harden.

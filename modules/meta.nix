@@ -21,10 +21,6 @@
     users = {
       wiktor = {
         fullName = "Wiktor Sieracki";
-        # Both accounts belong to the same person, so a bare fullName made the
-        # greeter show two identical entries. displayName disambiguates them
-        # there without touching the git identity (fullName).
-        displayName = "Personal";
         groups = ["networkmanager" "wheel"];
         shell = "fish";
         emailSecret = "personalEmail";
@@ -49,17 +45,6 @@
         authorizedKeys = [
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDwctBSDTMy2mf8LC0WKXnEbYl5mlBLGmtmEJNBpNXR"
         ];
-      };
-
-      # Work account: separation of data and identity from `wiktor` (no wheel,
-      # homeMode 700 from the NixOS default). Managed by wiktor.
-      work = {
-        fullName = "Wiktor Sieracki";
-        displayName = "Work";
-        groups = [];
-        shell = "fish";
-        emailSecret = "workEmail";
-        passwordSecret = "workPasswordHash";
       };
     };
   };

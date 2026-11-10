@@ -1,7 +1,7 @@
 {
-  # Google Chrome (not `brave`, the meta chromium-browser) — deliberate for the
-  # work account's Google workspace. Installed via home-manager so it stays out
-  # of other accounts' PATH/launcher.
+  # Google Chrome (not `brave`, the meta chromium-browser) — for a Google
+  # Workspace that wants the real thing. Installed via home-manager, so it is
+  # on the accounts' PATH/launcher rather than the system profile.
   flake.modules.homeManager.chrome = {pkgs, ...}: {
     home.packages = [pkgs.google-chrome];
   };

@@ -155,18 +155,10 @@ only checks that the module integrates and the system boots (eval/boot
 regression), not the hardware/secret itself.
 _Avoid_: untestable, skip.
 
-**Work user**:
-A second ordinary Unix account (`work`) on the same **Host** as the main user —
-separation of *data and identity* (profiles, accounts, secrets, history), not of
-executability (no MAC). No sudo, homeMode 700. A **managed** account: its **user
-features** are switched and activated by the main user — the right to rebuild the
-system would equal root and void the isolation.
-_Avoid_: separate host, work VM, work account as a machine.
-
 **Switchboard**:
 The tool (feature `switchboard`, binary `switchboard`) for managing the feature
 lists of real **hosts** — separately for the `system` section and each
-`users.<login>` (including the **work user**, in the main user's hands):
+`users.<login>`:
 explicit **Requires** closure on selection, a feature diff as confirmation,
 finishing through `nh os test`/`switch`. It has two faces over one set of
 rules: a TUI (`switchboard`: checkboxes with search, one host and section at a
@@ -211,11 +203,10 @@ _Avoid_: snapshot, versioned release.
 > — You boot the same **ISO** and run `nixos-install --flake .#laptopNixos` — the
 >   **host** choice happens at install time, not at download time.
 >
-> — I want slack on the work account.
-> — `slack` is a **user feature** — with Switchboard you add it to `users.work`
->   on the desktop and activate it as wiktor; the **work user** is a managed
->   account.
-> — And how does the work git know which email to commit with?
-> — From the **Identity**: `meta.users.work` points at the secret with the work
+> — I want slack on the desktop.
+> — `slack` is a **user feature** — with Switchboard you add it to
+>   `users.wiktor` on the desktop.
+> — And how does git know which email to commit with?
+> — From the **Identity**: `meta.users.wiktor` points at the secret with the
 >   email, and the `git` feature receives it injected — it knows no login itself,
 >   which its **feature test** on the `tester` account enforces.

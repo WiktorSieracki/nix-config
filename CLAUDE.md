@@ -132,7 +132,7 @@ for the full model; the harness lives in `modules/feature-tests.nix`. Key pieces
 
 | Host           | Key extras                                                                                  |
 | -------------- | ------------------------------------------------------------------------------------------- |
-| `desktopNixos` | NVIDIA GPU, mouse, latex, ollama, obsidian, waydroid, zeditor, Handy, t3code (with a phone over adb), todoist, a second `work` account |
+| `desktopNixos` | NVIDIA GPU, mouse, latex, ollama, obsidian, waydroid, zeditor, Handy, t3code (with a phone over adb), todoist |
 | `laptopNixos`  | Eduroam WiFi, pstack; omits nvidia/mouse/latex/ollama/obsidian/waydroid/zeditor/handy/t3code/todoist |
 | `vpsNixos`     | Headless cloud VPS: t3code-server + agents over Tailscale, todoist-cli, disko layout, installed with nixos-anywhere (see `modules/hosts/vps-nixos/notes.md`) |
 

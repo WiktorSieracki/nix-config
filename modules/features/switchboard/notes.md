@@ -162,8 +162,9 @@ listens on loopback — which every account on the machine and every page open i
 the browser can reach. Four separate attacks, four checks (each has a test in
 `web_test.go`/`peer_test.go`, and the feature test repeats the first three
 against the real binary):
-1. *Another local user* — the **work user** has no sudo on purpose; its `curl`
-   sends the right `Host`, no `Origin`, and could read the token off the page.
+1. *Another local user* — an account without sudo (a service user, a second
+   login) must not get one through us; its `curl` sends the right `Host`, no
+   `Origin`, and could read the token off the page.
    So every connection is attributed first: the uid owning the client socket,
    read from `/proc/net/tcp{,6}` (TCP has no `SO_PEERCRED`), must be the uid
    that started the server (`peer.go`). A connection that cannot be attributed
