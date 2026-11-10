@@ -63,9 +63,11 @@ jobs:
           name: wiktor-nixos
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
+      # --inputs-from: nix-fast-build from the nixpkgs in flake.lock (see
+      # feature-tests.yaml).
       - name: Build ISO
         run: |
-          nix run nixpkgs#nix-fast-build -- \
+          nix run --inputs-from . nixpkgs#nix-fast-build -- \
             --no-nom \
             --skip-cached \
             --retries 3 \

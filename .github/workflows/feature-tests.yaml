@@ -122,9 +122,12 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       # ciChecks = every check except the feature tests of features no host
       # enables (see modules/feature-tests.nix); those stay buildable locally.
+      # --inputs-from: take nix-fast-build from the nixpkgs in flake.lock, not
+      # from whatever `nixpkgs` the global registry points at that day. Same
+      # tool version for every run of a commit, and no second nixpkgs to fetch.
       - name: Build feature tests of enabled features
         run: |
-          nix run nixpkgs#nix-fast-build -- \
+          nix run --inputs-from . nixpkgs#nix-fast-build -- \
             --no-nom \
             --skip-cached \
             --retries 2 \
