@@ -86,12 +86,13 @@ for the full model; the harness lives in `modules/feature-tests.nix`. Key pieces
   without all of its `requires` also enabled (no auto-pulling). `kind ∈ {config,
   cli, service, gui}` sets the rigor level of the test. `runtimeUntestable`
   exempts features whose runtime can't be checked in a VM (e.g. `nvidia`,
-  `wacom`, `mouse`, `eduroam`, `home-wifi`, `sops`, `docker`, `waydroid`).
+  `wacom`, `mouse`, `eduroam`, `home-wifi`, `sops`, `waydroid`).
 - **`provides`** — what the feature puts on the system: `systemBins`, `userBins`,
-  `units`, `ports`, `files`, `userFiles`. `mkFeatureTest` generates the matching
-  assertions (plus the boot and home-manager-activation waits), so a feature test
-  only writes what a declaration can't express. `kind` decides what must be
-  declared — a `cli`/`gui` feature needs a binary, a `service` needs a unit —
+  `units`, `userUnits`, `ports`, `files`, `userFiles`. `mkFeatureTest` generates
+  the matching assertions (plus the boot and home-manager-activation waits), so a
+  feature test only writes what a declaration can't express. `kind` decides what
+  must be declared — a `cli`/`gui` feature needs a binary, a `service` needs a
+  unit (`units`, or `userUnits` when it runs in the user's systemd instance) —
   and `feature-coverage` fails the build otherwise.
 - **feature test** — every feature ships a mandatory headless `nixosTest`, registered
   under `flake.featureTests.<name>` and built via `flake.featureTestLib.mkFeatureTest`. It builds a

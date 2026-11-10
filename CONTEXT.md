@@ -57,13 +57,16 @@ _Avoid_: type, category.
 
 **Provides** (`featureMeta.<feature>.provides`):
 What a feature puts on the system, declared rather than asserted by hand:
-`systemBins`, `userBins`, `units`, `ports`, `files`, `userFiles`. `mkFeatureTest`
-turns each entry into the corresponding assertion, so the boot/activation/PATH
-lines every **feature test** used to hand-copy live in one place. A feature test's
-`testScript` is what's left over — behaviour a declaration can't express — and is
-optional. The pairing with **Kind** is what stops a feature test from existing
-while asserting nothing: a `cli`/`gui` feature must name a binary, a `service`
-must name a unit, unless it is **runtimeUntestable**.
+`systemBins`, `userBins`, `units`, `userUnits`, `ports`, `files`, `userFiles`.
+`mkFeatureTest` turns each entry into the corresponding assertion, so the
+boot/activation/PATH lines every **feature test** used to hand-copy live in one
+place. `userUnits` are units of the account's own systemd instance (rootless
+docker, syncthing); the test account lingers so that instance is up without a
+login. A feature test's `testScript` is what's left over — behaviour a
+declaration can't express — and is optional. The pairing with **Kind** is what
+stops a feature test from existing while asserting nothing: a `cli`/`gui`
+feature must name a binary, a `service` must name a unit (`units` or
+`userUnits`), unless it is **runtimeUntestable**.
 _Avoid_: outputs, artifacts, expectations.
 
 **Requires**:

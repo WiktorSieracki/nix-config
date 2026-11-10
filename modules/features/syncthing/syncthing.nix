@@ -73,10 +73,11 @@ in {
   flake.featureMeta.syncthing = {
     requires = ["tailscale"];
     kind = "service";
-    # The feature's own units are user units, which `provides.units` can't name;
-    # the feature test waits on those. tailscaled is what its peers depend on.
+    # Syncthing runs in the account's own systemd instance. tailscaled is what
+    # its peers depend on.
     provides = {
       units = ["tailscaled.service"];
+      userUnits = ["syncthing.service" "syncthing-init.service"];
       ports = [8384 22000];
     };
   };
@@ -88,8 +89,6 @@ in {
     testScript = ''
       import json
 
-      machine.wait_for_unit("syncthing.service", "tester")
-      machine.wait_for_unit("syncthing-init.service", "tester")
       key = machine.succeed(
           "grep -oP '(?<=<apikey>)[^<]+' /home/tester/.local/state/syncthing/config.xml"
       ).strip()
