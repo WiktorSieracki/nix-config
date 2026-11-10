@@ -2,6 +2,7 @@ name: Feature tests
 
 # Feature tests (harness: modules/feature-tests.nix, glossary: CONTEXT.md).
 #  - coverage:      cheap eval-time gate (every feature has meta+test) — no KVM, on PRs.
+#  - hosts:         every host and image still evaluates — no KVM, on PRs.
 #  - feature-tests: full VM feature tests (nixosTest) — needs KVM, on main / manual, via Cachix.
 
 on:
@@ -49,6 +50,39 @@ jobs:
       - name: lint
         run: nix build -L '.#checks.x86_64-linux.lint'
 
+  # Hard gate: every host still evaluates. A feature test boots `core` plus one
+  # feature, so a change that only breaks a whole host — two features defining
+  # the same option, a host file, flake.meta, a package dropped from nixpkgs —
+  # passed every check a PR runs and surfaced at the next `nh os switch`.
+  # Evaluation only: forcing the toplevel's drvPath runs every assertion and
+  # every option merge of the host without building anything. One host per
+  # `nix eval`, so memory is released in between (a single process holding all
+  # of them is what OOMs the desktop).
+  hosts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Same cache lines as every other install-nix-action step; keep them identical.
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            extra-substituters = https://nix-community.cachix.org https://cache.numtide.com https://wiktor-nixos.cachix.org
+            extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g= wiktor-nixos.cachix.org-1:3DOZHbBhM0h+YZFUZ1zZikBSLC7cTbZglgQEhF7Gi2M=
+      # The three real hosts plus the two image hosts (the ISO is otherwise
+      # first evaluated by iso.yaml, after the merge). The per-feature
+      # `sandbox-*` configurations are covered by checks.sandbox-eval.
+      - name: Evaluate hosts
+        run: |
+          for host in desktopNixos laptopNixos vpsNixos iso vm; do
+            echo "::group::$host"
+            nix eval --raw ".#nixosConfigurations.$host.config.system.build.toplevel.drvPath"
+            echo
+            echo "::endgroup::"
+          done
+
   # Full VM feature tests. KVM can be flaky on runners — so not on every PR,
   # only on main and manually; green builds land in Cachix, so later ones are fast.
   feature-tests:
@@ -88,9 +122,12 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       # ciChecks = every check except the feature tests of features no host
       # enables (see modules/feature-tests.nix); those stay buildable locally.
+      # --inputs-from: take nix-fast-build from the nixpkgs in flake.lock, not
+      # from whatever `nixpkgs` the global registry points at that day. Same
+      # tool version for every run of a commit, and no second nixpkgs to fetch.
       - name: Build feature tests of enabled features
         run: |
-          nix run nixpkgs#nix-fast-build -- \
+          nix run --inputs-from . nixpkgs#nix-fast-build -- \
             --no-nom \
             --skip-cached \
             --retries 2 \
