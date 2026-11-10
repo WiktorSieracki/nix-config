@@ -1,7 +1,7 @@
 package main
 
 // Git plumbing for the one-key commit offer: `git add` the touched data files
-// and commit with a `switchboard: …` message. Never pushes.
+// and commit exactly those with a `switchboard: …` message. Never pushes.
 
 import (
 	"os/exec"
@@ -15,7 +15,10 @@ func gitCommit(repo string, paths []string, message string) (string, error) {
 	if err != nil {
 		return string(out), err
 	}
-	commit := exec.Command("git", "commit", "-m", message)
+	// The pathspec limits the commit to these files. Without it git commits
+	// the whole index, so anything the user had staged for their own next
+	// commit went out under a `switchboard: …` subject.
+	commit := exec.Command("git", append([]string{"commit", "-m", message, "--"}, paths...)...)
 	commit.Dir = repo
 	out2, err := commit.CombinedOutput()
 	return strings.TrimSpace(string(out) + string(out2)), err
