@@ -172,7 +172,16 @@
             # SDL on wayland so Ctrl+Alt+G can grab into the guest if a human
             # wants to poke it; the app_id/title is what the niri window rule
             # matches to park this window on the right monitor.
+            #
+            # --collect: a VM that dies on its own (MemoryMax, a guest that
+            # never boots) leaves a transient unit in `failed`, and systemd
+            # keeps a failed unit loaded until someone resets it. Without the
+            # flag the next `up` stopped right here with "Unit … was already
+            # loaded", and `down` did not help because stopping a dead unit
+            # unloads nothing. The journal outlives the unit, so the log
+            # wait_for_ssh prints on a dead VM is still there.
             systemd-run --user --quiet \
+              --collect \
               --unit="$unit" \
               --description="nix-config live sandbox VM ($feature)" \
               --property=MemoryMax="$mem_max" \
@@ -295,6 +304,8 @@
           # ── down ───────────────────────────────────────────────────────────
           down)
             systemctl --user stop "$unit" 2>/dev/null || true
+            # Clears a unit left in `failed` by a runner older than --collect.
+            systemctl --user reset-failed "$unit" 2>/dev/null || true
             rm -rf "$state"
             echo "sandbox: down (screenshots kept under /tmp/sandbox/)"
             ;;
