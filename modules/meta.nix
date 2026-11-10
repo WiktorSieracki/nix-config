@@ -8,11 +8,11 @@
       fileManager = "nautilus";
     };
 
-    # Account identities. An account exists on a host ⇔ its login is
-    # a key of that host's `users` section in features.json; the loader
-    # (hosts/configurations.nix) creates it, reading the data from here. User
-    # features receive this attrset injected as `userMeta` (+ `login`) into their
-    # home-manager evaluation and hardcode no login.
+    # Account identities. An account exists on a host ⇔ the host's spec lists
+    # its login in `users` (hosts/<host>/default.nix); the loader
+    # (hosts/configurations.nix) creates it, reading the data from here. A
+    # feature's home-manager part receives this attrset injected as `userMeta`
+    # (+ `login`) and hardcodes no login.
     #
     # Fields: fullName (git user.name), displayName (GECOS — the label the SDDM
     # greeter shows for the account; defaults to fullName), groups, shell (package name),

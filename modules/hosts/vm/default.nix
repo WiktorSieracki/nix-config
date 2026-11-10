@@ -8,14 +8,13 @@
   # minus hardware-specific (nvidia/wacom/mouse) and secret-dependent
   # (sops/git/personal-snippets/eduroam/home-wifi) modules.
   vmSpec = {
-    system = [
+    users = ["wiktor"];
+    features = [
       "niri"
       "desktop"
       "nix"
       "python"
       "nodejs"
-    ];
-    users.wiktor = [
       "fish"
       "vscode"
       "firefox"

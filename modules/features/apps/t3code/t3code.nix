@@ -237,8 +237,8 @@ in {
 
       # Without lingering, a user service only exists between login and logout —
       # which defeats the point of reaching this machine from a phone. `hostUsers`
-      # is the loader's account → features map, so only the accounts that actually
-      # enable this feature get it.
+      # is the loader's account → features map: every account that has this
+      # feature — on a host that enables it, all of them — lingers.
       t3code-server = {
         lib,
         pkgs,

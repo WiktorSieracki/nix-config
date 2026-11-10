@@ -5,7 +5,7 @@
 The qylock "forest" greeter theme (video background) used to be hardwired into
 the `desktop` feature. It is now its own feature so the greeter can be flipped
 between native and themed by adding/removing `"sddm-theme"` from a host's
-`features.json` `system` list. `desktop` alone gives the stock NixOS SDDM
+`features.json`. `desktop` alone gives the stock NixOS SDDM
 greeter with no wallpaper (`services.displayManager.sddm.theme` left at its
 default `""`).
 

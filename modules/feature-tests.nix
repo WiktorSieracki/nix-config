@@ -107,25 +107,27 @@
       default = {};
       description = "Per-feature feature-test specs: { <feature> = { testScript?; extraNixosModules?; extraHmModules?; }; }.";
     };
-    # Every host's features.json spec, keyed by host name. Read by the CI check
-    # set below: a feature no host enables keeps its feature test (buildable as
+    # Every host's spec, keyed by host name. Read by the CI check set below: a
+    # feature no host enables keeps its feature test (buildable as
     # checks.<system>.feature-<name>, still audited by feature-coverage), but CI
     # stops booting a VM for it on every push to main.
     hostSpecs = lib.mkOption {
       type = lib.types.attrsOf (lib.types.submodule {
         options = {
-          system = lib.mkOption {
+          users = lib.mkOption {
             type = lib.types.listOf lib.types.str;
             default = [];
+            description = "Logins of the accounts the host has (keys of flake.meta.users).";
           };
-          users = lib.mkOption {
-            type = lib.types.attrsOf (lib.types.listOf lib.types.str);
-            default = {};
+          features = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [];
+            description = "Every feature the host enables — its features.json.";
           };
         };
       });
       default = {};
-      description = "Per-host feature specs ({ system; users.<login>; }), as passed to loadHost.";
+      description = "Per-host specs ({ users; features; }), as passed to loadHost.";
     };
     featureTestLib = lib.mkOption {
       type = lib.types.attrsOf lib.types.anything;
@@ -354,12 +356,10 @@
         )
         tests;
 
-      # Features some host actually enables (system + every account's list).
-      # `requires` needs no closure here: loadHost already hard-fails unless
-      # every dependency is enabled on the same host.
-      enabledFeatures = lib.unique (lib.concatMap (
-        spec: spec.system ++ lib.concatLists (lib.attrValues spec.users)
-      ) (lib.attrValues config.flake.hostSpecs));
+      # Features some host actually enables. `requires` needs no closure here:
+      # loadHost already hard-fails unless every dependency is enabled on the
+      # same host.
+      enabledFeatures = lib.unique (lib.concatMap (spec: spec.features) (lib.attrValues config.flake.hostSpecs));
       unusedTestChecks = map (f: "feature-${f}") (lib.subtractLists enabledFeatures testNames);
     in {
       # What CI builds: every check minus the feature tests of features no host
@@ -390,12 +390,12 @@
             '';
           };
 
-          # Mechanism feature test: the per-user wiring itself. Two test
-          # accounts built by the same mkHostUser factory the hosts use; asserts
-          # what used to live in the dissolved `work-user` feature — isolation is
-          # a property of the loader, not of any feature: HM parts attach only to
-          # the listing account, shell/privileges come only from the identity
-          # (meta.users), homes are mutually unreadable (default homeMode 700).
+          # Mechanism feature test: the account wiring itself. Two test accounts
+          # built by the same mkHostUser factory the hosts use; asserts what is
+          # a property of that factory, not of any feature: an account gets
+          # exactly the HM parts it is handed, shell/privileges come only from
+          # the identity (meta.users), homes are mutually unreadable (default
+          # homeMode 700).
           host-users = pkgs.testers.runNixOSTest {
             name = "host-users-mechanism";
             nodes.machine = {...}: {
@@ -454,7 +454,7 @@
               machine.succeed("getent passwd tester | cut -d: -f7 | grep -q fish")
               machine.fail("getent passwd tester2 | cut -d: -f7 | grep -q fish")
 
-              # HM parts attach ONLY to the account that lists the feature.
+              # HM parts attach ONLY to the account they were handed to.
               machine.succeed("test -f /home/tester/Pictures/Wallpapers/wallhaven_p92g1m.jpg")
               machine.fail("test -e /home/tester2/Pictures")
               machine.succeed("su - tester -c 'command -v direnv'")

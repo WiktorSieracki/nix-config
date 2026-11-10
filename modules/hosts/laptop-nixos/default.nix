@@ -1,5 +1,9 @@
 {config, ...}: let
-  spec = builtins.fromJSON (builtins.readFile ./features.json);
+  spec = {
+    users = ["wiktor"];
+    # Everything this machine enables, one list — the file Switchboard edits.
+    features = builtins.fromJSON (builtins.readFile ./features.json);
+  };
 in {
   flake = {
     hostSpecs.laptopNixos = spec;

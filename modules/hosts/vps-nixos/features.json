@@ -1,29 +1,23 @@
-{
-  "system": [
-    "nix",
-    "sops",
-    "cachix",
-    "tailscale",
-    "ssh-server",
-    "pre-commit",
-    "python",
-    "nodejs",
-    "claude-agent-acp",
-    "codex",
-    "firecrawl-api",
-    "openrouter-api"
-  ],
-  "users": {
-    "wiktor": [
-      "fish",
-      "claude-code",
-      "local-skills",
-      "git",
-      "ssh",
-      "ssh-personal-hosts",
-      "syncthing",
-      "t3code-server",
-      "todoist-cli"
-    ]
-  }
-}
+[
+  "nix",
+  "sops",
+  "cachix",
+  "tailscale",
+  "ssh-server",
+  "pre-commit",
+  "python",
+  "nodejs",
+  "claude-agent-acp",
+  "codex",
+  "firecrawl-api",
+  "openrouter-api",
+  "fish",
+  "claude-code",
+  "local-skills",
+  "git",
+  "ssh",
+  "ssh-personal-hosts",
+  "syncthing",
+  "t3code-server",
+  "todoist-cli"
+]

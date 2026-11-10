@@ -25,9 +25,9 @@ in {
       };
     };
 
-    # The NixOS part renders one email template per account that enables git
-    # on this host (`hostUsers` is injected by the loader) and has an
-    # emailSecret in flake.meta.users.
+    # The NixOS part renders one email template per account of this host
+    # (`hostUsers` is injected by the loader) that has an emailSecret in
+    # flake.meta.users.
     nixos.git = {
       pkgs,
       config,
