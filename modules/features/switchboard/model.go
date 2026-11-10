@@ -1,8 +1,8 @@
 package main
 
-// Pure domain logic of Switchboard — no I/O, no TUI. Everything here mirrors
-// the behaviour of the retired Python implementation 1:1 and is covered by
-// unit tests in model_test.go.
+// Pure domain logic of Switchboard — no I/O, no UI: a host's feature list
+// (features.json is a JSON array of names) and the featureMeta catalog.
+// Covered by unit tests in model_test.go.
 
 import (
 	"encoding/json"
@@ -29,76 +29,6 @@ type Provides struct {
 	Ports      []int    `json:"ports"`
 	Files      []string `json:"files"`
 	UserFiles  []string `json:"userFiles"`
-}
-
-// Catalog is what the UIs know about features beyond the host files:
-// featureMeta, plus which features have a home-manager part.
-type Catalog struct {
-	Meta    map[string]FeatureMeta
-	HMNames map[string]bool
-}
-
-// HostSpec mirrors features.json: machine features in
-// `system`, per-account user features in `users.<login>`.
-type HostSpec struct {
-	System []string            `json:"system"`
-	Users  map[string][]string `json:"users"`
-}
-
-const sectionSystem = "system"
-
-// Sections lists the editable sections: "system" first, then logins sorted.
-func (s HostSpec) Sections() []string {
-	logins := make([]string, 0, len(s.Users))
-	for u := range s.Users {
-		logins = append(logins, u)
-	}
-	sort.Strings(logins)
-	return append([]string{sectionSystem}, logins...)
-}
-
-// Get returns the feature list of a section ("system" or a login).
-func (s HostSpec) Get(section string) []string {
-	if section == sectionSystem {
-		return s.System
-	}
-	return s.Users[section]
-}
-
-// Set replaces the feature list of a section.
-func (s *HostSpec) Set(section string, list []string) {
-	if section == sectionSystem {
-		s.System = list
-		return
-	}
-	s.Users[section] = list
-}
-
-// Clone deep-copies the spec so edits never alias the original.
-func (s HostSpec) Clone() HostSpec {
-	c := HostSpec{
-		System: append([]string(nil), s.System...),
-		Users:  make(map[string][]string, len(s.Users)),
-	}
-	for u, l := range s.Users {
-		c.Users[u] = append([]string(nil), l...)
-	}
-	return c
-}
-
-// SpecEqual compares two specs section-by-section, order-sensitively (the
-// file order is meaningful — see ReconcileOrder).
-func SpecEqual(a, b HostSpec) bool {
-	if len(a.Users) != len(b.Users) || !equalLists(a.System, b.System) {
-		return false
-	}
-	for u, l := range a.Users {
-		bl, ok := b.Users[u]
-		if !ok || !equalLists(l, bl) {
-			return false
-		}
-	}
-	return true
 }
 
 func equalLists(a, b []string) bool {
@@ -202,23 +132,16 @@ func ReconcileOrder(original, enabled []string) []string {
 	return out
 }
 
-// MarshalSpec renders a features.json body in the repo's canonical shape:
-// {"system": [...], "users": {...}}, pretty-printed with a 2-space indent,
-// one name per line, trailing newline. Object keys sort deterministically
-// (encoding/json sorts map keys).
-func MarshalSpec(spec HostSpec) []byte {
-	spec = spec.Clone()
-	if spec.System == nil {
-		spec.System = []string{}
+// MarshalFeatures renders a features.json body in the repo's canonical shape:
+// a JSON array, pretty-printed with a 2-space indent, one name per line,
+// trailing newline.
+func MarshalFeatures(features []string) []byte {
+	if features == nil {
+		features = []string{}
 	}
-	for u, l := range spec.Users {
-		if l == nil {
-			spec.Users[u] = []string{}
-		}
-	}
-	data, err := json.MarshalIndent(spec, "", "  ")
+	data, err := json.MarshalIndent(features, "", "  ")
 	if err != nil {
-		// HostSpec cannot fail to marshal.
+		// A list of strings cannot fail to marshal.
 		panic(err)
 	}
 	return append(data, '\n')

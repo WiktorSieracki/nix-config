@@ -80,7 +80,7 @@
       # flake to evaluate the feature catalog from; the server has to survive
       # that and still list the hosts.
       machine.succeed("mkdir -p /tmp/repo/modules/hosts/test-host && touch /tmp/repo/flake.nix")
-      machine.succeed("echo '{\"system\": [\"nix\"], \"users\": {}}' > /tmp/repo/modules/hosts/test-host/features.json")
+      machine.succeed("echo '[\"nix\"]' > /tmp/repo/modules/hosts/test-host/features.json")
       machine.succeed("systemd-run --unit=switchboard-web switchboard --flake /tmp/repo web --no-open")
       machine.wait_for_open_port(7391)
 

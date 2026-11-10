@@ -35,10 +35,8 @@ func newWebTest(t *testing.T) *webTest {
 	repo := newRepo(t)
 	for name, content := range map[string]string{
 		"flake.nix": "{}\n",
-		desktopFile: string(MarshalSpec(spec([]string{"niri", "desktop", "sops"},
-			map[string][]string{"wiktor": {"git"}}))),
-		laptopFile: string(MarshalSpec(spec([]string{"sops"},
-			map[string][]string{"wiktor": {"git"}}))),
+		desktopFile: string(MarshalFeatures([]string{"niri", "desktop", "sops", "git"})),
+		laptopFile:  string(MarshalFeatures([]string{"sops", "git"})),
 	} {
 		if err := os.MkdirAll(filepath.Dir(filepath.Join(repo, name)), 0o755); err != nil {
 			t.Fatal(err)
@@ -57,7 +55,7 @@ func newWebTest(t *testing.T) *webTest {
 		t.Fatal(err)
 	}
 	s.hostname = "desktopNixos"
-	s.catalogLoader = func(string) (Catalog, error) { return rulesCat, nil }
+	s.metaLoader = func(string) (map[string]FeatureMeta, error) { return rulesMeta, nil }
 	s.jobCommand = func(action, host string) []string {
 		return []string{"sh", "-c", "echo " + action + " " + host}
 	}
@@ -122,13 +120,13 @@ func (w *webTest) host(name string) map[string]any {
 	return nil
 }
 
-func (w *webTest) fileSpec(file string) HostSpec {
+func (w *webTest) fileFeatures(file string) []string {
 	w.t.Helper()
-	s, err := readSpec(filepath.Join(w.repo, filepath.FromSlash(file)))
+	features, err := readFeatures(filepath.Join(w.repo, filepath.FromSlash(file)))
 	if err != nil {
 		w.t.Fatal(err)
 	}
-	return s
+	return features
 }
 
 // strs reads a JSON array of strings.
@@ -322,28 +320,40 @@ func TestWebState(t *testing.T) {
 	if desktop["local"] != true || w.host("laptopNixos")["local"] != false {
 		t.Error("only desktopNixos is this machine")
 	}
-	if got := strings.Join(strs(desktop["sections"]), " "); got != "system wiktor" {
-		t.Errorf("sections = %q", got)
+	if got := strings.Join(strs(desktop["features"]), " "); got != "niri desktop sops git" {
+		t.Errorf("features = %q", got)
 	}
-	if got := strings.Join(strs(desktop["spec"].(map[string]any)["system"]), " "); got != "niri desktop sops" {
-		t.Errorf("system = %q", got)
+	// A freshly committed file has nothing git has not seen.
+	if diff, _ := json.Marshal(desktop["uncommitted"]); desktop["tracked"] != true || string(diff) != `{"added":[],"removed":[]}` {
+		t.Errorf("tracked = %v, uncommitted = %s; want a tracked file with nothing uncommitted", desktop["tracked"], diff)
 	}
-	if n := len(desktop["uncommitted"].([]any)); n != 0 {
-		t.Errorf("a freshly committed file reports %d uncommitted sections", n)
-	}
-	features := state["features"].(map[string]any)
-	if features["git"].(map[string]any)["hm"] != true || features["niri"].(map[string]any)["hm"] != false {
-		t.Error("hm must mark exactly the features with a home-manager part")
-	}
-	if got := strs(features["vscode"].(map[string]any)["requires"]); len(got) != 1 || got[0] != "desktop" {
+	catalog := state["catalog"].(map[string]any)
+	if got := strs(catalog["vscode"].(map[string]any)["requires"]); len(got) != 1 || got[0] != "desktop" {
 		t.Errorf("vscode requires = %v", got)
+	}
+	if catalog["git"].(map[string]any)["kind"] != "cli" {
+		t.Errorf("git = %v, want kind cli", catalog["git"])
+	}
+}
+
+// "Nothing uncommitted" is a claim about git. Where git has no committed list
+// to compare with, the page must not be told the file is committed.
+func TestWebStateDoesNotCallAnUntrackedFileCommitted(t *testing.T) {
+	w := newWebTest(t)
+	git(t, w.repo, "rm", "-q", "--cached", "--", laptopFile)
+	git(t, w.repo, "commit", "-q", "-m", "untrack the laptop")
+	if host := w.host("laptopNixos"); host["tracked"] != false {
+		t.Errorf("tracked = %v for a file git has no committed version of", host["tracked"])
+	}
+	if status, _ := w.post("/api/commit", map[string]string{"host": "laptopNixos"}); status != http.StatusUnprocessableEntity {
+		t.Errorf("commit of an untracked list = %d, want 422", status)
 	}
 }
 
 // A catalog that cannot be evaluated must not take the host lists down with it.
 func TestWebStateSurvivesACatalogFailure(t *testing.T) {
 	w := newWebTest(t)
-	w.s.catalogLoader = func(string) (Catalog, error) { return Catalog{}, os.ErrDeadlineExceeded }
+	w.s.metaLoader = func(string) (map[string]FeatureMeta, error) { return nil, os.ErrDeadlineExceeded }
 	status, state := w.get("/api/state")
 	if status != http.StatusOK || state["catalogError"] == nil {
 		t.Fatalf("GET /api/state = %d, catalogError = %v", status, state["catalogError"])
@@ -352,8 +362,7 @@ func TestWebStateSurvivesACatalogFailure(t *testing.T) {
 		t.Error("the hosts must still be listed")
 	}
 	if status, _ := w.post("/api/toggle", map[string]any{
-		"host": "desktopNixos", "section": "system", "feature": "tailscale",
-		"spec": w.fileSpec(desktopFile),
+		"host": "desktopNixos", "feature": "tailscale", "features": w.fileFeatures(desktopFile),
 	}); status != http.StatusServiceUnavailable {
 		t.Errorf("toggle without a catalog = %d, want 503", status)
 	}
@@ -363,53 +372,50 @@ func TestWebStateSurvivesACatalogFailure(t *testing.T) {
 
 func TestWebToggle(t *testing.T) {
 	w := newWebTest(t)
-	draft := w.fileSpec(laptopFile)
+	draft := w.fileFeatures(laptopFile)
 
 	status, res := w.post("/api/toggle", map[string]any{
-		"host": "laptopNixos", "section": "wiktor", "feature": "vscode", "spec": draft,
+		"host": "laptopNixos", "feature": "vscode", "features": draft,
 	})
 	if status != http.StatusOK || res["changed"] != true {
 		t.Fatalf("toggle = %d %v", status, res)
 	}
-	got := strings.Join(strs(res["spec"].(map[string]any)["users"].(map[string]any)["wiktor"]), " ")
-	if got != "git vscode desktop niri" {
-		t.Errorf("wiktor = %q, want the feature plus its pulled requires", got)
+	if got := strings.Join(strs(res["features"]), " "); got != "sops git vscode desktop niri" {
+		t.Errorf("features = %q, want the feature plus its pulled requires", got)
 	}
 	if res["message"] != "Also enabled (required by vscode): desktop, niri" {
 		t.Errorf("message = %q", res["message"])
 	}
 
 	_, res = w.post("/api/toggle", map[string]any{
-		"host": "laptopNixos", "section": "system", "feature": "sops", "spec": draft,
+		"host": "laptopNixos", "feature": "sops", "features": draft,
 	})
 	if res["refused"] != true || res["changed"] != false {
-		t.Errorf("disabling sops (required by wiktor's git) must be refused: %v", res)
+		t.Errorf("disabling sops (required by git) must be refused: %v", res)
 	}
 	// The draft never touched the disk.
-	if !SpecEqual(w.fileSpec(laptopFile), draft) {
+	if !equalLists(w.fileFeatures(laptopFile), draft) {
 		t.Error("toggle must not write the file")
 	}
 }
 
 func TestWebSaveWritesTheReconciledFile(t *testing.T) {
 	w := newWebTest(t)
-	// The page hands the lists back in its own order: retained features must
+	// The page hands the list back in its own order: retained features must
 	// keep the file's order, new ones go last.
-	draft := spec([]string{"sops", "tailscale", "desktop", "niri"},
-		map[string][]string{"wiktor": {"git", "vscode"}})
+	draft := []string{"git", "sops", "tailscale", "desktop", "niri", "vscode"}
 	status, res := w.post("/api/save", map[string]any{
-		"host": "desktopNixos", "rev": w.host("desktopNixos")["rev"], "spec": draft,
+		"host": "desktopNixos", "rev": w.host("desktopNixos")["rev"], "features": draft,
 	})
 	if status != http.StatusOK || res["changed"] != true {
 		t.Fatalf("save = %d %v", status, res)
 	}
-	want := spec([]string{"niri", "desktop", "sops", "tailscale"},
-		map[string][]string{"wiktor": {"git", "vscode"}})
-	if got := w.fileSpec(desktopFile); !SpecEqual(got, want) {
-		t.Errorf("file = %+v, want %+v", got, want)
+	want := []string{"niri", "desktop", "sops", "git", "tailscale", "vscode"}
+	if got := w.fileFeatures(desktopFile); !equalLists(got, want) {
+		t.Errorf("file = %v, want %v", got, want)
 	}
 	data, _ := os.ReadFile(filepath.Join(w.repo, desktopFile))
-	if !bytes.Equal(data, MarshalSpec(want)) {
+	if !bytes.Equal(data, MarshalFeatures(want)) {
 		t.Errorf("file is not in the canonical shape:\n%s", data)
 	}
 
@@ -419,7 +425,7 @@ func TestWebSaveWritesTheReconciledFile(t *testing.T) {
 		t.Error("save must hand back the new rev")
 	}
 	diff, _ := json.Marshal(host["uncommitted"])
-	if want := `[{"added":["tailscale"],"removed":[],"section":"system"},{"added":["vscode"],"removed":[],"section":"wiktor"}]`; string(diff) != want {
+	if want := `{"added":["tailscale","vscode"],"removed":[]}`; string(diff) != want {
 		t.Errorf("uncommitted = %s, want %s", diff, want)
 	}
 }
@@ -428,51 +434,39 @@ func TestWebSaveRefusesAStaleRev(t *testing.T) {
 	w := newWebTest(t)
 	rev := w.host("desktopNixos")["rev"]
 	// Somebody else (the TUI, an editor) rewrites the file under the page.
-	changed := spec([]string{"niri", "desktop", "sops", "tailscale"}, map[string][]string{"wiktor": {"git"}})
-	write(t, w.repo, desktopFile, string(MarshalSpec(changed)))
+	changed := []string{"niri", "desktop", "sops", "git", "tailscale"}
+	write(t, w.repo, desktopFile, string(MarshalFeatures(changed)))
 
 	status, res := w.post("/api/save", map[string]any{
 		"host": "desktopNixos", "rev": rev,
-		"spec": spec([]string{"niri", "desktop", "sops"}, map[string][]string{"wiktor": {"git", "vscode"}}),
+		"features": []string{"niri", "desktop", "sops", "git", "vscode"},
 	})
 	if status != http.StatusConflict {
 		t.Fatalf("save over a changed file = %d %v, want 409", status, res)
 	}
-	if !SpecEqual(w.fileSpec(desktopFile), changed) {
+	if !equalLists(w.fileFeatures(desktopFile), changed) {
 		t.Error("a refused save must leave the other writer's file alone")
 	}
 }
 
 func TestWebSaveRefusesWhatTheLoaderWouldReject(t *testing.T) {
 	w := newWebTest(t)
-	before := w.fileSpec(desktopFile)
-	cases := map[string]HostSpec{
-		"requires unmet":          spec([]string{"niri", "desktop"}, map[string][]string{"wiktor": {"git"}}),
-		"home-manager in system":  spec([]string{"niri", "desktop", "sops", "git"}, map[string][]string{"wiktor": {"git"}}),
-		"not a feature":           spec([]string{"niri", "desktop", "sops", "typo"}, map[string][]string{"wiktor": {"git"}}),
-		"conflict in one account": spec([]string{"niri", "desktop", "sops"}, map[string][]string{"wiktor": {"git", "pstack", "other-skills"}}),
+	before := w.fileFeatures(desktopFile)
+	cases := map[string][]string{
+		"requires unmet": {"niri", "desktop", "git"},
+		"not a feature":  {"niri", "desktop", "sops", "git", "typo"},
+		"conflict":       {"niri", "desktop", "sops", "git", "pstack", "other-skills"},
 	}
 	for name, draft := range cases {
 		status, res := w.post("/api/save", map[string]any{
-			"host": "desktopNixos", "rev": w.host("desktopNixos")["rev"], "spec": draft,
+			"host": "desktopNixos", "rev": w.host("desktopNixos")["rev"], "features": draft,
 		})
 		if status != http.StatusUnprocessableEntity {
 			t.Errorf("%s: save = %d %v, want 422", name, status, res)
 		}
-		if !SpecEqual(w.fileSpec(desktopFile), before) {
+		if !equalLists(w.fileFeatures(desktopFile), before) {
 			t.Fatalf("%s: a refused save wrote the file", name)
 		}
-	}
-}
-
-func TestWebSaveRefusesAccountChanges(t *testing.T) {
-	w := newWebTest(t)
-	status, _ := w.post("/api/save", map[string]any{
-		"host": "desktopNixos", "rev": w.host("desktopNixos")["rev"],
-		"spec": spec([]string{"niri", "desktop", "sops"}, map[string][]string{"wiktor": {"git"}, "intruder": {}}),
-	})
-	if status != http.StatusUnprocessableEntity {
-		t.Errorf("save that adds an account = %d, want 422", status)
 	}
 }
 
@@ -484,7 +478,7 @@ func TestWebCommit(t *testing.T) {
 
 	w.post("/api/save", map[string]any{
 		"host": "desktopNixos", "rev": w.host("desktopNixos")["rev"],
-		"spec": spec([]string{"niri", "desktop", "sops", "tailscale"}, map[string][]string{"wiktor": {"git"}}),
+		"features": []string{"niri", "desktop", "sops", "tailscale"},
 	})
 	// Something the user staged for a commit of their own must stay out.
 	write(t, w.repo, "other.nix", "other v2\n")
@@ -494,14 +488,14 @@ func TestWebCommit(t *testing.T) {
 	if status != http.StatusOK {
 		t.Fatalf("commit = %d %v", status, res)
 	}
-	if got, want := git(t, w.repo, "log", "-1", "--format=%s"), "switchboard: desktopNixos system: +tailscale"; got != want {
+	if got, want := git(t, w.repo, "log", "-1", "--format=%s"), "switchboard: desktopNixos +tailscale -git"; got != want {
 		t.Errorf("subject = %q, want %q", got, want)
 	}
 	if got := git(t, w.repo, "show", "--name-only", "--format=", "HEAD"); got != desktopFile {
 		t.Errorf("committed files = %q, want only %s", got, desktopFile)
 	}
-	if n := len(res["host"].(map[string]any)["uncommitted"].([]any)); n != 0 {
-		t.Errorf("after the commit %d sections still count as uncommitted", n)
+	if diff, _ := json.Marshal(res["host"].(map[string]any)["uncommitted"]); string(diff) != `{"added":[],"removed":[]}` {
+		t.Errorf("after the commit git still lacks %s", diff)
 	}
 }
 

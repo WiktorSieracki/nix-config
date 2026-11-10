@@ -18,9 +18,9 @@ import (
 	"time"
 )
 
-// hostSet is the real hosts of a repo: the ones that keep their spec in a
-// features.json. Image hosts (iso/vm/sandbox) keep inline specs and are not
-// Switchboard's target.
+// hostSet is the real hosts of a repo: the ones that keep their feature list
+// in a features.json. Image hosts (iso/vm/sandbox) list theirs inline and are
+// not Switchboard's target.
 type hostSet struct {
 	order []string          // flake names, sorted
 	files map[string]string // flake name → features.json, repo-relative, slash form
@@ -77,29 +77,28 @@ func hostName(dir string) string {
 	return strings.Join(parts, "")
 }
 
-func readSpec(path string) (HostSpec, error) {
+func readFeatures(path string) ([]string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return HostSpec{}, err
+		return nil, err
 	}
-	return parseSpec(data)
+	return parseFeatures(data)
 }
 
-func parseSpec(data []byte) (HostSpec, error) {
-	var spec HostSpec
-	if err := json.Unmarshal(data, &spec); err != nil {
-		return HostSpec{}, fmt.Errorf("parsing features.json: %w", err)
+// parseFeatures reads a features.json: one JSON array with every feature the
+// host enables.
+func parseFeatures(data []byte) ([]string, error) {
+	var features []string
+	if err := json.Unmarshal(data, &features); err != nil {
+		return nil, fmt.Errorf("parsing features.json (it has to be a JSON array of feature names): %w", err)
 	}
-	if spec.Users == nil {
-		spec.Users = map[string][]string{}
-	}
-	return spec, nil
+	return features, nil
 }
 
-// writeSpec replaces the file in one step — a sibling written in full, then
+// writeFeatures replaces the file in one step — a sibling written in full, then
 // renamed over it — so nothing reading it meanwhile (the other UI, a `nix
 // eval`) ever sees half a list.
-func writeSpec(path string, spec HostSpec) error {
+func writeFeatures(path string, features []string) error {
 	mode := os.FileMode(0o644)
 	if st, err := os.Stat(path); err == nil {
 		mode = st.Mode().Perm()
@@ -109,7 +108,7 @@ func writeSpec(path string, spec HostSpec) error {
 		return err
 	}
 	defer os.Remove(tmp.Name()) // a no-op once it has been renamed
-	if _, err := tmp.Write(MarshalSpec(spec)); err != nil {
+	if _, err := tmp.Write(MarshalFeatures(features)); err != nil {
 		tmp.Close()
 		return err
 	}
@@ -131,65 +130,27 @@ func parseMeta(data []byte) (map[string]FeatureMeta, error) {
 	return meta, nil
 }
 
-func parseNames(data []byte) (map[string]bool, error) {
-	var names []string
-	if err := json.Unmarshal(data, &names); err != nil {
-		return nil, fmt.Errorf("parsing module names: %w", err)
-	}
-	set := make(map[string]bool, len(names))
-	for _, n := range names {
-		set[n] = true
-	}
-	return set, nil
-}
-
 const catalogTimeout = 5 * time.Minute
 
-// loadCatalog asks the flake for featureMeta and for the names of the
-// home-manager modules. The latter matters because a feature with a
-// home-manager part may not sit in `system` (its HM half would attach to
-// nobody — the loader hard-fails on it, so the UIs refuse it already).
-func loadCatalog(repo string) (Catalog, error) {
+// loadFeatureMeta asks the flake for the feature catalog, `featureMeta`.
+func loadFeatureMeta(repo string) (map[string]FeatureMeta, error) {
 	// Seconds normally; minutes when inputs have to be fetched first. A hung
 	// eval must not hold up whoever waits on the catalog forever.
 	ctx, cancel := context.WithTimeout(context.Background(), catalogTimeout)
 	defer cancel()
-	evalJSON := func(attr, apply string) ([]byte, error) {
-		args := []string{"eval", repo + "#" + attr, "--json"}
-		if apply != "" {
-			args = append(args, "--apply", apply)
+	out, err := exec.CommandContext(ctx, "nix", "eval", repo+"#featureMeta", "--json").Output()
+	if ctx.Err() != nil {
+		return nil, fmt.Errorf("nix eval featureMeta did not finish within %s", catalogTimeout)
+	}
+	if err != nil {
+		msg := err.Error()
+		var ee *exec.ExitError
+		if errors.As(err, &ee) && len(ee.Stderr) > 0 {
+			msg = tail(string(ee.Stderr), 300)
 		}
-		out, err := exec.CommandContext(ctx, "nix", args...).Output()
-		if ctx.Err() != nil {
-			return nil, fmt.Errorf("nix eval %s did not finish within %s", attr, catalogTimeout)
-		}
-		if err != nil {
-			msg := err.Error()
-			var ee *exec.ExitError
-			if errors.As(err, &ee) && len(ee.Stderr) > 0 {
-				msg = tail(string(ee.Stderr), 300)
-			}
-			return nil, fmt.Errorf("nix eval %s failed: %s", attr, msg)
-		}
-		return out, nil
+		return nil, fmt.Errorf("nix eval featureMeta failed: %s", msg)
 	}
-	out, err := evalJSON("featureMeta", "")
-	if err != nil {
-		return Catalog{}, err
-	}
-	meta, err := parseMeta(out)
-	if err != nil {
-		return Catalog{}, err
-	}
-	out, err = evalJSON("modules.homeManager", "builtins.attrNames")
-	if err != nil {
-		return Catalog{}, err
-	}
-	hmNames, err := parseNames(out)
-	if err != nil {
-		return Catalog{}, err
-	}
-	return Catalog{Meta: meta, HMNames: hmNames}, nil
+	return parseMeta(out)
 }
 
 // featureSource is where a feature lives in the repo (all repo-relative, slash

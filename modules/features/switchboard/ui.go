@@ -40,7 +40,6 @@ var (
 	styleGreen  = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	styleRed    = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 	styleYellow = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
-	styleBlue   = lipgloss.NewStyle().Foreground(lipgloss.Color("4"))
 )
 
 // finale is the post-save / post-update state: apply locally with
@@ -75,12 +74,9 @@ type model struct {
 
 	// host (feature grid)
 	host       string
-	origSpec   HostSpec
-	spec       HostSpec // per-section order preserved for the file
-	sections   []string // "system" + logins; the grid edits sections[section]
-	section    int
+	saved      []string // the host's feature list as read from its file
+	draft      []string // the list being edited
 	meta       map[string]FeatureMeta
-	hmNames    map[string]bool // features with a home-manager part
 	metaLoaded bool
 	metaErr    string
 	search     textinput.Model
@@ -90,7 +86,7 @@ type model struct {
 	cellWidth  int
 
 	// confirm
-	newSpec HostSpec
+	toSave []string // draft, back in the file's order
 
 	fin finale
 }
@@ -107,9 +103,8 @@ func (m model) Init() tea.Cmd { return nil }
 // ── messages ────────────────────────────────────────────────────────────────
 
 type metaLoadedMsg struct {
-	meta    map[string]FeatureMeta
-	hmNames map[string]bool
-	err     error
+	meta map[string]FeatureMeta
+	err  error
 }
 
 type execDoneMsg struct {
@@ -124,8 +119,8 @@ type gitDoneMsg struct {
 
 func loadMeta(repo string) tea.Cmd {
 	return func() tea.Msg {
-		cat, err := loadCatalog(repo)
-		return metaLoadedMsg{meta: cat.Meta, hmNames: cat.HMNames, err: err}
+		meta, err := loadFeatureMeta(repo)
+		return metaLoadedMsg{meta: meta, err: err}
 	}
 }
 
@@ -180,7 +175,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.meta = msg.meta
-		m.hmNames = msg.hmNames
 		m.metaLoaded = true
 		m.metaErr = ""
 		m.rebuildGrid()
@@ -405,16 +399,14 @@ func (m model) handleHomeKey(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m model) enterHost(host string) (tea.Model, tea.Cmd) {
-	spec, err := readSpec(m.hosts.path(m.repo, host))
+	features, err := readFeatures(m.hosts.path(m.repo, host))
 	if err != nil {
 		m.setStatus(err.Error(), statusError)
 		return m, nil
 	}
 	m.host = host
-	m.origSpec = spec
-	m.spec = spec.Clone()
-	m.sections = spec.Sections()
-	m.section = 0
+	m.saved = features
+	m.draft = append([]string(nil), features...)
 	m.metaLoaded = false
 	m.metaErr = ""
 	m.meta = nil
@@ -426,12 +418,6 @@ func (m model) enterHost(host string) (tea.Model, tea.Cmd) {
 	m.grid = Grid{}
 	return m, loadMeta(m.repo)
 }
-
-// sectionName is the current section key ("system" or a login).
-func (m model) sectionName() string { return m.sections[m.section] }
-
-// enabled is the working feature list of the current section.
-func (m model) enabled() []string { return m.spec.Get(m.sectionName()) }
 
 func (m model) handleHostKey(key string) (tea.Model, tea.Cmd) {
 	switch key {
@@ -460,14 +446,6 @@ func (m model) handleHostKey(key string) (tea.Model, tea.Cmd) {
 		if m.grid.Total > 0 {
 			m.cursor = m.grid.Total - 1
 		}
-	case "tab", "]":
-		if len(m.sections) > 1 {
-			m.switchSection((m.section + 1) % len(m.sections))
-		}
-	case "shift+tab", "[":
-		if len(m.sections) > 1 {
-			m.switchSection((m.section - 1 + len(m.sections)) % len(m.sections))
-		}
 	case " ":
 		m.toggle(m.grid.NameAt(m.cursor))
 	case "enter":
@@ -476,26 +454,14 @@ func (m model) handleHostKey(key string) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// switchSection changes the edited section, keeping the cursor on the same
-// feature (the catalog is shared across sections, so it's almost always there).
-func (m *model) switchSection(section int) {
-	name := m.grid.NameAt(m.cursor)
-	m.section = section
-	m.status = ""
-	m.rebuildGrid()
-	if idx := m.grid.IndexOf(name); idx >= 0 {
-		m.cursor = idx
-	}
-}
-
 func (m *model) toggle(name string) {
 	if name == "" || !m.metaLoaded {
 		return
 	}
 	// The rules (requires closure, refusals) live in rules.go, shared with
 	// the web UI.
-	res := Toggle(Catalog{Meta: m.meta, HMNames: m.hmNames}, m.spec, m.sectionName(), name)
-	m.spec = res.Spec
+	res := Toggle(m.meta, m.draft, name)
+	m.draft = res.Features
 	level := statusInfo
 	if res.Refused {
 		level = statusWarn
@@ -507,11 +473,8 @@ func (m model) review() (tea.Model, tea.Cmd) {
 	if !m.metaLoaded {
 		return m, nil
 	}
-	m.newSpec = m.spec.Clone()
-	for _, s := range m.sections {
-		m.newSpec.Set(s, ReconcileOrder(m.origSpec.Get(s), m.spec.Get(s)))
-	}
-	if SpecEqual(m.newSpec, m.origSpec) {
+	m.toSave = ReconcileOrder(m.saved, m.draft)
+	if equalLists(m.toSave, m.saved) {
 		m.setStatus("No changes.", statusInfo)
 		return m, nil
 	}
@@ -532,12 +495,12 @@ func (m model) handleConfirmKey(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m model) save() (tea.Model, tea.Cmd) {
-	if err := writeSpec(m.hosts.path(m.repo, m.host), m.newSpec); err != nil {
+	if err := writeFeatures(m.hosts.path(m.repo, m.host), m.toSave); err != nil {
 		m.setStatus("saving: "+err.Error(), statusError)
 		return m, nil
 	}
 	file := m.hosts.files[m.host]
-	diff := SpecDiffString(SpecDiff(m.origSpec, m.newSpec))
+	diff := DiffString(FeatureDiff(m.saved, m.toSave))
 	local := m.host == m.hostname
 	m.fin = finale{
 		commitPaths: []string{file},
@@ -587,7 +550,7 @@ func (m *model) rebuildGrid() {
 		m.grid = Grid{}
 		return
 	}
-	groups := BuildGroups(m.meta, m.enabled(), m.search.Value())
+	groups := BuildGroups(m.meta, m.draft, m.search.Value())
 	maxLen := 0
 	for _, g := range groups {
 		for _, item := range g.Items {
@@ -613,18 +576,7 @@ func (m *model) rebuildGrid() {
 }
 
 func (m model) isEnabled(name string) bool {
-	return contains(m.enabled(), name)
-}
-
-// isSystemProvided reports whether name is reachable in a user section only
-// because `system` already enables it — not because this user's own list
-// does. Lets the grid show "you already have this, via system" without
-// implying the user owns it (toggling it still adds it explicitly to the
-// user's own list, same as any other feature).
-func (m model) isSystemProvided(name string) bool {
-	return m.sectionName() != sectionSystem &&
-		contains(m.spec.System, name) &&
-		!m.isEnabled(name)
+	return contains(m.draft, name)
 }
 
 func (m *model) setStatus(s string, level int) {
@@ -687,14 +639,8 @@ func (m model) viewHome() string {
 
 func (m model) viewHost() string {
 	title := styleTitle.Render(m.host) +
-		styleDim.Render(fmt.Sprintf("  %d enabled", len(m.enabled())))
+		styleDim.Render(fmt.Sprintf("  %d enabled", len(m.draft)))
 	lines := []string{title}
-	if len(m.sections) > 1 {
-		lines = append(lines, m.viewSectionTabs())
-	}
-	if m.sectionName() != sectionSystem {
-		lines = append(lines, styleBlue.Render("[s]")+styleDim.Render(" = enabled via system, not on this user's own list"))
-	}
 	if m.searching {
 		lines = append(lines, m.search.View())
 	} else if q := m.search.Value(); q != "" {
@@ -724,23 +670,16 @@ func (m model) viewHost() string {
 					}
 					name := grp.Items[li]
 					box := "[ ]"
-					systemProvided := m.isSystemProvided(name)
-					switch {
-					case m.isEnabled(name):
+					if m.isEnabled(name) {
 						box = "[x]"
-					case systemProvided:
-						box = "[s]"
 					}
 					cell := box + " " + name
 					if pad := m.cellWidth - len(cell); pad > 0 {
 						cell += strings.Repeat(" ", pad)
 					}
-					switch {
-					case m.grid.Start(gi)+li == m.cursor:
+					if m.grid.Start(gi)+li == m.cursor {
 						cursorLine = len(lines)
 						cell = styleCursor.Render(cell)
-					case systemProvided:
-						cell = styleBlue.Render(cell)
 					}
 					b.WriteString(cell)
 				}
@@ -750,42 +689,17 @@ func (m model) viewHost() string {
 		}
 	}
 	return m.frame(lines, cursorLine,
-		"space toggle · tab/[/] section · enter review · / search · h/j/k/l move · gg/G · esc back")
-}
-
-// viewSectionTabs renders the editable sections ("system" + each user login)
-// as a tab bar, e.g. "[ system ]  wiktor   work", with the active one boxed
-// so tab/[/] switching between accounts is visible, not just documented in
-// the help line.
-func (m model) viewSectionTabs() string {
-	parts := make([]string, len(m.sections))
-	for i, s := range m.sections {
-		label := s
-		if i == m.section {
-			label = styleCursor.Render("[ " + label + " ]")
-		} else {
-			label = styleDim.Render("  " + label + "  ")
-		}
-		parts[i] = label
-	}
-	return strings.Join(parts, " ")
+		"space toggle · enter review · / search · h/j/k/l move · gg/G · esc back")
 }
 
 func (m model) viewConfirm() string {
 	lines := []string{styleTitle.Render("Changes for " + m.host), ""}
-	for _, s := range m.sections {
-		added, removed := FeatureDiff(m.origSpec.Get(s), m.newSpec.Get(s))
-		if len(added) == 0 && len(removed) == 0 {
-			continue
-		}
-		lines = append(lines, styleHeader.Render(s))
-		for _, f := range added {
-			lines = append(lines, styleGreen.Render("+"+f))
-		}
-		for _, f := range removed {
-			lines = append(lines, styleRed.Render("−"+f))
-		}
-		lines = append(lines, "")
+	added, removed := FeatureDiff(m.saved, m.toSave)
+	for _, f := range added {
+		lines = append(lines, styleGreen.Render("+"+f))
+	}
+	for _, f := range removed {
+		lines = append(lines, styleRed.Render("−"+f))
 	}
 	return m.frame(lines, 0, "enter save · esc back")
 }

@@ -206,14 +206,14 @@ type webServer struct {
 	listenAddr string // host:port actually bound; decides which Host headers are ours
 
 	// Seams for the tests — the real ones shell out to nix and nh.
-	catalogLoader func(repo string) (Catalog, error)
-	jobCommand    func(action, host string) []string
+	metaLoader func(repo string) (map[string]FeatureMeta, error)
+	jobCommand func(action, host string) []string
 
 	catMu  sync.Mutex // one catalog load at a time
 	fileMu sync.Mutex // one save or commit at a time: each is read, check, write
 	mu     sync.Mutex // guards everything below
 
-	cat      *Catalog
+	meta     map[string]FeatureMeta // the catalog; nil until it has loaded
 	catErr   string
 	catTried bool
 	sources  map[string]featureSource
@@ -230,12 +230,12 @@ func newWebServer(repo string, hosts hostSet) (*webServer, error) {
 	}
 	hostname, _ := os.Hostname()
 	return &webServer{
-		repo:          repo,
-		hosts:         hosts,
-		hostname:      hostname,
-		uid:           uint32(os.Getuid()),
-		token:         hex.EncodeToString(raw),
-		catalogLoader: loadCatalog,
+		repo:       repo,
+		hosts:      hosts,
+		hostname:   hostname,
+		uid:        uint32(os.Getuid()),
+		token:      hex.EncodeToString(raw),
+		metaLoader: loadFeatureMeta,
 		jobCommand: func(action, host string) []string {
 			if action == "check" {
 				return dryRunCommand(repo, host)
@@ -401,7 +401,7 @@ type stateView struct {
 	Repo         string                 `json:"repo"`
 	Hostname     string                 `json:"hostname"`
 	Hosts        []hostView             `json:"hosts"`
-	Features     map[string]featureView `json:"features"`
+	Catalog      map[string]featureView `json:"catalog"`
 	CatalogError string                 `json:"catalogError,omitempty"`
 }
 
@@ -410,13 +410,27 @@ type hostView struct {
 	File     string   `json:"file"`
 	Local    bool     `json:"local"` // this machine: test/switch apply here
 	Rev      string   `json:"rev"`   // hash of the file; a save must quote it
-	Spec     HostSpec `json:"spec"`
-	Sections []string `json:"sections"`
-	// What the file holds that the last commit does not.
-	Uncommitted []SectionDiff `json:"uncommitted"`
+	Features []string `json:"features"`
+	// What the file holds that the last commit does not. Tracked is false
+	// when git has no committed list to compare with (no repo, a new file) —
+	// then the diff says nothing, and there is nothing to offer a commit for.
+	Tracked     bool     `json:"tracked"`
+	Uncommitted diffView `json:"uncommitted"`
 	// What the loader would reject in the file as it is.
 	Problems []string `json:"problems"`
 	Error    string   `json:"error,omitempty"`
+}
+
+type diffView struct {
+	Added   []string `json:"added"`
+	Removed []string `json:"removed"`
+}
+
+// diffOf is FeatureDiff with lists that are never nil: the page reads them as
+// JSON arrays.
+func diffOf(before, after []string) diffView {
+	added, removed := FeatureDiff(before, after)
+	return diffView{Added: append([]string{}, added...), Removed: append([]string{}, removed...)}
 }
 
 type featureView struct {
@@ -425,7 +439,6 @@ type featureView struct {
 	Conflicts         []string `json:"conflicts"`
 	RuntimeUntestable bool     `json:"runtimeUntestable"`
 	Provides          Provides `json:"provides"`
-	HM                bool     `json:"hm"` // has a home-manager part: account-only
 	Source            string   `json:"source,omitempty"`
 	Notes             string   `json:"notes,omitempty"`
 	Group             string   `json:"group,omitempty"`
@@ -433,68 +446,65 @@ type featureView struct {
 
 // catalog returns the feature catalog, loading it on first use (or again on
 // reload). A failed reload keeps the catalog that was there and reports why.
-func (s *webServer) catalog(reload bool) (*Catalog, map[string]featureSource, string) {
+func (s *webServer) catalog(reload bool) (map[string]FeatureMeta, map[string]featureSource, string) {
 	s.catMu.Lock()
 	defer s.catMu.Unlock()
 	s.mu.Lock()
 	tried := s.catTried
 	s.mu.Unlock()
 	if !tried || reload {
-		cat, err := s.catalogLoader(s.repo)
+		meta, err := s.metaLoader(s.repo)
 		sources := indexSources(s.repo)
 		s.mu.Lock()
 		s.catTried = true
 		if err != nil {
 			s.catErr = err.Error()
 		} else {
-			s.cat, s.catErr, s.sources = &cat, "", sources
+			s.meta, s.catErr, s.sources = meta, "", sources
 		}
 		s.mu.Unlock()
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.cat, s.sources, s.catErr
+	return s.meta, s.sources, s.catErr
 }
 
 func (s *webServer) handleState(w http.ResponseWriter, r *http.Request) {
-	cat, sources, catErr := s.catalog(r.URL.Query().Get("reload") == "1")
+	meta, sources, catErr := s.catalog(r.URL.Query().Get("reload") == "1")
 	view := stateView{
 		Version:      version,
 		Repo:         s.repo,
 		Hostname:     s.hostname,
-		Features:     map[string]featureView{},
+		Catalog:      map[string]featureView{},
 		CatalogError: catErr,
 	}
 	for _, name := range s.hosts.order {
-		view.Hosts = append(view.Hosts, s.hostView(name, cat))
+		view.Hosts = append(view.Hosts, s.hostView(name, meta))
 	}
-	if cat != nil {
-		for name, m := range cat.Meta {
-			src := sources[name]
-			view.Features[name] = featureView{
-				Kind:              m.Kind,
-				Requires:          append([]string{}, m.Requires...),
-				Conflicts:         append([]string{}, m.Conflicts...),
-				RuntimeUntestable: m.RuntimeUntestable,
-				Provides:          m.Provides,
-				HM:                cat.HMNames[name],
-				Source:            src.File,
-				Notes:             src.Notes,
-				Group:             src.Group,
-			}
+	for name, m := range meta {
+		src := sources[name]
+		view.Catalog[name] = featureView{
+			Kind:              m.Kind,
+			Requires:          append([]string{}, m.Requires...),
+			Conflicts:         append([]string{}, m.Conflicts...),
+			RuntimeUntestable: m.RuntimeUntestable,
+			Provides:          m.Provides,
+			Source:            src.File,
+			Notes:             src.Notes,
+			Group:             src.Group,
 		}
 	}
 	writeJSON(w, http.StatusOK, view)
 }
 
-func (s *webServer) hostView(name string, cat *Catalog) hostView {
+// hostView reads one host's file. meta is nil while the catalog is not loaded.
+func (s *webServer) hostView(name string, meta map[string]FeatureMeta) hostView {
 	v := hostView{
 		Name:        name,
 		File:        s.hosts.files[name],
 		Local:       name == s.hostname,
-		Spec:        HostSpec{System: []string{}, Users: map[string][]string{}},
-		Sections:    []string{sectionSystem},
-		Uncommitted: []SectionDiff{},
+		Features:    []string{},
+		Uncommitted: diffOf(nil, nil),
 		Problems:    []string{},
 	}
 	data, err := os.ReadFile(s.hosts.path(s.repo, name))
@@ -503,20 +513,18 @@ func (s *webServer) hostView(name string, cat *Catalog) hostView {
 		return v
 	}
 	v.Rev = revOf(data)
-	spec, err := parseSpec(data)
+	features, err := parseFeatures(data)
 	if err != nil {
 		v.Error = v.File + ": " + err.Error()
 		return v
 	}
-	v.Spec = withLists(spec)
-	v.Sections = spec.Sections()
-	// No answer from git (no repo, file not committed yet) just means there
-	// is nothing to offer a commit for.
-	if head, err := headSpec(s.repo, v.File); err == nil {
-		v.Uncommitted = append(v.Uncommitted, SpecDiff(head, spec)...)
+	v.Features = append(v.Features, features...)
+	if head, err := headFeatures(s.repo, v.File); err == nil {
+		v.Tracked = true
+		v.Uncommitted = diffOf(head, features)
 	}
-	if cat != nil {
-		v.Problems = append(v.Problems, ValidateSpec(*cat, spec)...)
+	if meta != nil {
+		v.Problems = append(v.Problems, ValidateFeatures(meta, features)...)
 	}
 	return v
 }
@@ -526,31 +534,15 @@ func revOf(data []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// withLists returns spec with every list non-nil, so the page always gets
-// JSON arrays.
-func withLists(spec HostSpec) HostSpec {
-	out := spec.Clone()
-	if out.System == nil {
-		out.System = []string{}
-	}
-	for u, l := range out.Users {
-		if l == nil {
-			out.Users[u] = []string{}
-		}
-	}
-	return out
-}
-
 // ── editing ─────────────────────────────────────────────────────────────────
 
-// handleToggle flips one feature in the page's draft of a host. Nothing is
-// stored: the draft comes in, the next draft goes out.
+// handleToggle flips one feature in the page's draft of a host's list. Nothing
+// is stored: the draft comes in, the next draft goes out.
 func (s *webServer) handleToggle(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Host    string   `json:"host"`
-		Section string   `json:"section"`
-		Feature string   `json:"feature"`
-		Spec    HostSpec `json:"spec"`
+		Host     string   `json:"host"`
+		Feature  string   `json:"feature"`
+		Features []string `json:"features"`
 	}
 	if !readJSON(w, r, &req) {
 		return
@@ -559,28 +551,25 @@ func (s *webServer) handleToggle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "no such host: "+req.Host)
 		return
 	}
-	cat, _, catErr := s.catalog(false)
-	if cat == nil {
+	meta, _, catErr := s.catalog(false)
+	if meta == nil {
 		writeError(w, http.StatusServiceUnavailable, "the feature catalog is not loaded: "+catErr)
 		return
 	}
-	if req.Spec.Users == nil {
-		req.Spec.Users = map[string][]string{}
-	}
-	res := Toggle(*cat, req.Spec, req.Section, req.Feature)
+	res := Toggle(meta, req.Features, req.Feature)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"spec":    withLists(res.Spec),
-		"changed": res.Changed,
-		"refused": res.Refused,
-		"message": res.Message,
+		"features": append([]string{}, res.Features...),
+		"changed":  res.Changed,
+		"refused":  res.Refused,
+		"message":  res.Message,
 	})
 }
 
 func (s *webServer) handleSave(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Host string   `json:"host"`
-		Rev  string   `json:"rev"`
-		Spec HostSpec `json:"spec"`
+		Host     string   `json:"host"`
+		Rev      string   `json:"rev"`
+		Features []string `json:"features"`
 	}
 	if !readJSON(w, r, &req) {
 		return
@@ -589,8 +578,8 @@ func (s *webServer) handleSave(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "no such host: "+req.Host)
 		return
 	}
-	cat, _, catErr := s.catalog(false)
-	if cat == nil {
+	meta, _, catErr := s.catalog(false)
+	if meta == nil {
 		writeError(w, http.StatusServiceUnavailable, "the feature catalog is not loaded: "+catErr)
 		return
 	}
@@ -609,40 +598,31 @@ func (s *webServer) handleSave(w http.ResponseWriter, r *http.Request) {
 			s.hosts.files[req.Host]+" changed on disk since these edits began. Drop this host's unsaved edits to load the file as it is now, then redo the change.")
 		return
 	}
-	current, err := parseSpec(data)
+	current, err := parseFeatures(data)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if req.Spec.Users == nil {
-		req.Spec.Users = map[string][]string{}
-	}
-	if !equalLists(current.Sections(), req.Spec.Sections()) {
-		writeError(w, http.StatusUnprocessableEntity,
-			"Switchboard does not add or remove accounts — the sections must stay "+strings.Join(current.Sections(), ", "))
-		return
-	}
-	next := current.Clone()
-	for _, section := range current.Sections() {
-		next.Set(section, ReconcileOrder(current.Get(section), unique(req.Spec.Get(section))))
-	}
-	if problems := NewProblems(*cat, current, next); len(problems) > 0 {
+	// Retained features keep the file's order, new ones go last — a toggle
+	// off and on again must not reorder the file.
+	next := ReconcileOrder(current, unique(req.Features))
+	if problems := NewProblems(meta, current, next); len(problems) > 0 {
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
 			"error":    "the loader would reject this: " + strings.Join(problems, "; "),
 			"problems": problems,
 		})
 		return
 	}
-	changed := !SpecEqual(next, current)
+	changed := !equalLists(next, current)
 	if changed {
-		if err := writeSpec(path, next); err != nil {
+		if err := writeFeatures(path, next); err != nil {
 			writeError(w, http.StatusInternalServerError, "saving: "+err.Error())
 			return
 		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"changed": changed,
-		"host":    s.hostView(req.Host, cat),
+		"host":    s.hostView(req.Host, meta),
 	})
 }
 
@@ -674,30 +654,30 @@ func (s *webServer) handleCommit(w http.ResponseWriter, r *http.Request) {
 	s.fileMu.Lock()
 	defer s.fileMu.Unlock()
 	file := s.hosts.files[req.Host]
-	current, err := readSpec(s.hosts.path(s.repo, req.Host))
+	current, err := readFeatures(s.hosts.path(s.repo, req.Host))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	head, err := headSpec(s.repo, file)
+	head, err := headFeatures(s.repo, file)
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "git has no committed "+file+" to compare with")
 		return
 	}
-	diff := SpecDiff(head, current)
-	if len(diff) == 0 {
+	added, removed := FeatureDiff(head, current)
+	if len(added) == 0 && len(removed) == 0 {
 		writeError(w, http.StatusUnprocessableEntity, "nothing to commit for "+req.Host)
 		return
 	}
-	message := commitMessage(req.Host, SpecDiffString(diff))
+	message := commitMessage(req.Host, DiffString(added, removed))
 	if out, err := gitCommit(s.repo, []string{file}, message); err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "git commit failed: "+tail(out, 400))
 		return
 	}
-	cat, _, _ := s.catalog(false)
+	meta, _, _ := s.catalog(false)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"message": message,
-		"host":    s.hostView(req.Host, cat),
+		"host":    s.hostView(req.Host, meta),
 	})
 }
 

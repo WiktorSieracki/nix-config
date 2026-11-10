@@ -22,7 +22,6 @@
   --amber: #ffb224;
   --amber-rim: #b97a08;
   --amber-glow: rgb(255 178 36 / 0.55);
-  --amber-dim: #a8802c;
   --green: #62d882;
   --green-rim: #2f9a4d;
   --green-glow: rgb(98 216 130 / 0.6);
@@ -36,8 +35,7 @@
   --font-id: 'Adwaita Mono', Iosevka, 'DejaVu Sans Mono', ui-monospace, monospace;
 
   --row: 26px;
-  --host-row: 40px;
-  --section-row: 36px;
+  --head-row: 64px;
 }
 
 @media (prefers-color-scheme: light) {
@@ -54,7 +52,6 @@
     --amber: #f5a100;
     --amber-rim: #8f5d00;
     --amber-glow: rgb(214 138 0 / 0.5);
-    --amber-dim: #a87412;
     --green: #2fb65a;
     --green-rim: #166b33;
     --green-glow: rgb(31 157 76 / 0.5);
@@ -124,12 +121,6 @@ select {
   box-shadow: 0 0 7px var(--amber-glow);
 }
 
-/* Reaches this account through `system`: a ring with a pilot dot, not lit. */
-[data-state='via'] > .lens {
-  border-color: var(--amber-dim);
-  background-image: radial-gradient(circle, var(--amber-dim) 0 2.4px, transparent 2.9px);
-}
-
 /* The two pending states carry a +/− as well as a colour. */
 [data-state='adding'] > .lens {
   border-color: var(--green-rim);
@@ -152,15 +143,6 @@ select {
   background-position: center;
   background-repeat: no-repeat;
   box-shadow: 0 0 8px var(--red-glow);
-}
-
-/* No socket here at all: an account feature cannot sit in `system`. */
-[data-state='na'] > .lens {
-  width: 7px;
-  height: 1.5px;
-  border: 0;
-  border-radius: 0;
-  background-color: var(--rule);
 }
 
 /* A lamp that lit because something else was switched on. */
@@ -394,19 +376,11 @@ select {
 
 .matrix thead th {
   position: sticky;
-  z-index: 2;
-  background: var(--panel);
-}
-
-.matrix thead .hosts th {
   top: 0;
-  height: var(--host-row);
-}
-
-.matrix thead .sections th {
-  top: var(--host-row);
-  height: var(--section-row);
+  z-index: 2;
+  height: var(--head-row);
   border-bottom: 1px solid var(--rule);
+  background: var(--panel);
   vertical-align: bottom;
 }
 
@@ -419,27 +393,27 @@ select {
 
 .matrix thead .corner {
   z-index: 3;
-  vertical-align: bottom;
 }
 .matrix tbody .name {
   z-index: 1;
 }
 
-/* Each host's block of columns starts at a rule. */
-.matrix .first {
-  border-left: 1px solid var(--rule);
-}
-
+/* One column per host: its name over its lamps. */
 .matrix .host {
-  padding: 0 12px;
+  padding: 0 14px 6px;
   font: 600 13px var(--font-ui);
+  text-align: center;
 }
 
-.host .flags {
+.host .flags,
+.host .count {
   display: block;
-  min-height: 1.45em;
   color: var(--ink-faint);
   font: 11.5px var(--font-ui);
+}
+
+.host .flags:empty {
+  display: none;
 }
 
 .host .flag + .flag::before {
@@ -458,25 +432,14 @@ select {
   text-underline-offset: 3px;
 }
 
-.section {
-  padding: 0 0 5px;
-  text-align: center !important;
-}
-
-.section .count {
-  display: block;
-  color: var(--ink-faint);
-  font-size: 11px;
-}
-
 .corner .legend {
   display: grid;
-  grid-template-columns: repeat(2, auto auto);
+  grid-template-columns: auto auto;
   justify-content: start;
-  gap: 3px 7px;
+  gap: 2px 7px;
   align-items: center;
   margin: 0;
-  padding: 6px 16px 8px;
+  padding: 0 16px 7px;
   color: var(--ink-soft);
   font: 11.5px var(--font-ui);
 }
@@ -487,7 +450,7 @@ select {
   width: 13px;
 }
 .corner .legend dd {
-  margin: 0 8px 0 0;
+  margin: 0;
 }
 
 /* A kind (or folder) starts a block of rows. */
@@ -556,21 +519,18 @@ select {
   display: grid;
   place-items: center;
   width: 100%;
-  min-width: 62px;
+  min-width: 150px;
   height: var(--row);
   padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
-  /* Keep a focused cell clear of the sticky headers when it scrolls into view. */
-  scroll-margin: calc(var(--host-row) + var(--section-row) + var(--row)) 24px 24px 26ch;
+  /* Keep a focused cell clear of the sticky header when it scrolls into view. */
+  scroll-margin: calc(var(--head-row) + var(--row)) 24px 24px 26ch;
 }
 
 .jack:hover > .lens {
   border-color: var(--ink-soft);
-}
-.jack[data-state='na'] {
-  cursor: default;
 }
 
 /* ── the requires graph ───────────────────────────────────────────────────── */
@@ -764,6 +724,12 @@ select {
   grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
   gap: 22px 32px;
   margin-top: 20px;
+}
+
+/* The last block is the source path: give it the whole row so it does not
+   break in the middle of a file name. */
+.blocks .block:last-child {
+  grid-column: 1 / -1;
 }
 
 .card {
@@ -1071,6 +1037,6 @@ select {
     padding-right: 10px;
   }
   .jack {
-    min-width: 50px;
+    min-width: 96px;
   }
 }

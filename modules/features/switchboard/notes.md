@@ -130,8 +130,8 @@ without carrying that semantics over.
 
 ## 2026-11-10 — `switchboard web`: the same lists in a browser
 
-**Context:** the TUI shows one host and one section at a time. `switchboard web`
-serves a page with every host side by side (a lamp per feature × section), the
+**Context:** the TUI shows one host at a time. `switchboard web`
+serves a page with every host side by side (a lamp per feature and host), the
 `requires` graph, and the same save → test/switch → commit finale. One binary,
 no new dependency: the page (`web/`) is embedded with `go:embed` and written
 without a build step or a framework, so `buildGoModule` stays as it was.
@@ -143,15 +143,38 @@ round trip to `/api/toggle` with the page's draft, and the answer is the next
 draft. The server keeps no draft — reloading the page drops unsaved edits (the
 page warns before it unloads).
 
-**What changed for the TUI by sharing them** (each one a spec the loader would
-have rejected at the next rebuild):
-- disabling a `system` feature is now also blocked by an *account's* dependent
-  (`tailscale` vs wiktor's `t3code-server`) — it used to look at `system` only;
-- disabling an account's copy of a feature `system` provides too is allowed;
-- a feature with a home-manager part is refused in `system` (the `hmNames`
-  lookup was loaded but never consulted), as is a `conflicts` pair;
+**What changed for the TUI by sharing them:**
+- a `conflicts` pair is refused (the TUI did not know the field, so it wrote
+  lists the loader rejected at the next rebuild);
 - the home screen lists every host with a `features.json` — `vpsNixos` was
-  missing from the hardcoded pair.
+  missing from the hardcoded pair;
+- a save replaces the file in one step (a sibling written in full, then renamed
+  over it).
+
+## 2026-11-11 — back to one flat list per host
+
+**Context:** `features.json` is a JSON array again — it was
+`{"system": [...], "users": {"<login>": [...]}}` since 2026-07-06 (entry above).
+With one account per host the split carried no information: the loader can tell
+by itself that a home-manager part goes to the account and everything else to
+the machine. It still had to be decided by hand on every toggle, in both UIs,
+and it was never clear which list a feature belonged on. The work account — the
+reason for the split — went in the same change.
+
+**What it means here:** `HostSpec`, sections, the `[s]` marker and the
+"home-manager feature in `system`" refusal are gone; a host's features are a
+`[]string` end to end, the commit subject is `switchboard: <host> +a -b` again,
+and `ValidateFeatures` follows the loader's new wording. Entries above that talk
+about sections describe the retired model.
+
+**How it was shown to change nothing:** the system derivation of every host
+(desktop, laptop, vps, iso, vm) was identical before and after the flattening —
+compared with `system.configurationRevision` pinned, since that one input moves
+with every tree state.
+
+**Pitfall:** binary and repo must agree on the shape. An older `switchboard`
+against a flat list, or this one against a checkout from before the change,
+stops with "it has to be a JSON array of feature names" rather than guessing.
 
 ## 2026-11-10 — why the web server refuses the way it does
 

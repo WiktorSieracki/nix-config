@@ -25,21 +25,21 @@ func gitCommit(repo string, paths []string, message string) (string, error) {
 }
 
 // commitMessage is the subject of a feature-list commit:
-// "switchboard: desktopNixos system: +a -b · wiktor: +c".
+// "switchboard: desktopNixos +a -b".
 func commitMessage(host, diff string) string {
 	return "switchboard: " + host + " " + diff
 }
 
-// headSpec is a host's feature list as of the last commit — what `git commit`
-// would be diffed against.
-func headSpec(repo, file string) (HostSpec, error) {
+// headFeatures is a host's feature list as of the last commit — what `git
+// commit` would be diffed against.
+func headFeatures(repo, file string) ([]string, error) {
 	show := exec.Command("git", "show", "HEAD:"+file)
 	show.Dir = repo
 	out, err := show.Output()
 	if err != nil {
-		return HostSpec{}, err
+		return nil, err
 	}
-	return parseSpec(out)
+	return parseFeatures(out)
 }
 
 // tail returns at most the last n characters of s (for compact error toasts).

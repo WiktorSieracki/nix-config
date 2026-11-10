@@ -19,11 +19,9 @@
   };
   const STATE_WORDS = {
     on: 'enabled',
-    via: 'enabled through system',
     off: 'off',
     adding: 'will be enabled when you save',
     removing: 'will be disabled when you save',
-    na: 'has a home-manager part, so it cannot go in system',
   };
   const TOP_LEVEL = 'top level';
 
@@ -102,15 +100,13 @@
     return data;
   }
 
-  const clone = (value) => JSON.parse(JSON.stringify(value));
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
   const lamp = (state) => h('span', { dataset: { state } }, h('span', { class: 'lens' }));
 
-  const feat = (name) => S.data.features[name];
-  const hasCatalog = () => Object.keys(S.data.features).length > 0;
-  const listOf = (spec, section) => (section === 'system' ? spec.system : spec.users[section]) || [];
-  const cellKey = (name, host, section) => `${name}|${host.name}|${section}`;
+  const feat = (name) => S.data.catalog[name];
+  const hasCatalog = () => Object.keys(S.data.catalog).length > 0;
+  const cellKey = (name, host) => `${name}|${host.name}`;
 
   function say(text, level = 'info') {
     S.say = { text, level };
@@ -119,51 +115,42 @@
 
   // ── what the lamps show ───────────────────────────────────────────────────
 
-  function cellState(host, section, name) {
-    const inFile = listOf(host.spec, section).includes(name);
-    const inDraft = listOf(S.draft[host.name], section).includes(name);
+  function cellState(host, name) {
+    const inFile = host.features.includes(name);
+    const inDraft = S.draft[host.name].includes(name);
     if (inFile && inDraft) return 'on';
     if (inDraft) return 'adding';
     if (inFile) return 'removing';
-    if (section !== 'system' && S.draft[host.name].system.includes(name)) return 'via';
-    if (section === 'system' && feat(name) && feat(name).hm) return 'na';
     return 'off';
   }
 
-  // The unsaved difference between a host's file and its draft, per section.
+  // The unsaved difference between a host's file and its draft.
   function diffOf(host) {
-    const out = [];
-    for (const section of host.sections) {
-      const file = listOf(host.spec, section);
-      const draft = listOf(S.draft[host.name], section);
-      const added = draft.filter((name) => !file.includes(name));
-      const removed = file.filter((name) => !draft.includes(name));
-      if (added.length || removed.length) out.push({ section, added, removed });
-    }
-    return out;
+    const draft = S.draft[host.name];
+    return {
+      added: draft.filter((name) => !host.features.includes(name)),
+      removed: host.features.filter((name) => !draft.includes(name)),
+    };
   }
 
-  const unsavedHosts = () => S.data.hosts.filter((host) => diffOf(host).length > 0);
+  const changes = (diff) => diff.added.length + diff.removed.length;
 
-  function enabledOn(host, name) {
-    return host.sections.some((section) => listOf(S.draft[host.name], section).includes(name));
-  }
+  const unsavedHosts = () => S.data.hosts.filter((host) => changes(diffOf(host)) > 0);
+  const enabledOn = (host, name) => S.draft[host.name].includes(name);
 
   // Catalog features plus whatever a features.json lists that the catalog lacks.
   function allNames() {
-    const names = new Set(Object.keys(S.data.features));
+    const names = new Set(Object.keys(S.data.catalog));
     for (const host of S.data.hosts) {
-      for (const section of host.sections) {
-        for (const name of listOf(host.spec, section)) names.add(name);
-        for (const name of listOf(S.draft[host.name], section)) names.add(name);
-      }
+      for (const name of host.features) names.add(name);
+      for (const name of S.draft[host.name]) names.add(name);
     }
     return [...names].sort();
   }
 
   function visibleNames() {
     const query = S.query.trim().toLowerCase();
-    const changed = new Set(S.data.hosts.flatMap((host) => diffOf(host).flatMap((d) => [...d.added, ...d.removed])));
+    const changed = new Set(S.data.hosts.flatMap((host) => Object.values(diffOf(host)).flat()));
     return allNames().filter((name) => {
       if (query && !name.toLowerCase().includes(query)) return false;
       const anywhere = S.data.hosts.some((host) => enabledOn(host, name));
@@ -214,8 +201,8 @@
     // matches) until the page takes the file's version.
     data.hosts = data.hosts.map((host) => {
       const old = before && before.hosts.find((x) => x.name === host.name);
-      if (!old || !S.draft[host.name] || !sectionsDiffer(old, S.draft[host.name])) {
-        S.draft[host.name] = clone(host.spec);
+      if (!old || !S.draft[host.name] || changes(diffOf(old)) === 0) {
+        S.draft[host.name] = [...host.features];
         return host;
       }
       return old.rev === host.rev ? host : { ...old, moved: true };
@@ -230,17 +217,9 @@
 
   // Drops one host's unsaved edits so the next load adopts the file as it is.
   async function takeFile(host) {
-    S.draft[host.name] = clone(host.spec);
+    S.draft[host.name] = [...host.features];
     await refresh();
     say(`Loaded ${host.file} as it is on disk.`);
-  }
-
-  function sectionsDiffer(host, draft) {
-    return host.sections.some((section) => {
-      const file = listOf(host.spec, section);
-      const mine = listOf(draft, section);
-      return file.length !== mine.length || file.some((name) => !mine.includes(name));
-    });
   }
 
   async function refresh() {
@@ -253,7 +232,7 @@
 
   // ── editing ───────────────────────────────────────────────────────────────
 
-  function toggle(host, section, name) {
+  function toggle(host, name) {
     S.queue = S.queue.then(async () => {
       if (!hasCatalog()) {
         say('The feature catalog is not loaded, so the lists are read-only for now.', 'warn');
@@ -261,15 +240,14 @@
       }
       const before = S.draft[host.name];
       try {
-        const res = await api('/api/toggle', { host: host.name, section, feature: name, spec: before });
-        S.draft[host.name] = res.spec;
+        const res = await api('/api/toggle', { host: host.name, feature: name, features: before });
+        S.draft[host.name] = res.features;
         // Everything that lit besides the clicked lamp: the pulled requires.
-        S.flash = new Set();
-        for (const sec of host.sections) {
-          for (const pulled of listOf(res.spec, sec)) {
-            if (pulled !== name && !listOf(before, sec).includes(pulled)) S.flash.add(cellKey(pulled, host, sec));
-          }
-        }
+        S.flash = new Set(
+          res.features
+            .filter((pulled) => pulled !== name && !before.includes(pulled))
+            .map((pulled) => cellKey(pulled, host)),
+        );
         S.say = { text: res.message, level: res.refused ? 'warn' : 'info' };
       } catch (err) {
         S.say = { text: err.message, level: 'error' };
@@ -280,7 +258,7 @@
   }
 
   async function discard() {
-    for (const host of S.data.hosts) S.draft[host.name] = clone(host.spec);
+    for (const host of S.data.hosts) S.draft[host.name] = [...host.features];
     render();
     // With the edits gone, a host whose file moved on can take the new file.
     await refresh();
@@ -289,7 +267,7 @@
 
   function replaceHost(fresh) {
     S.data.hosts = S.data.hosts.map((host) => (host.name === fresh.name ? fresh : host));
-    S.draft[fresh.name] = clone(fresh.spec);
+    S.draft[fresh.name] = [...fresh.features];
   }
 
   async function save(dialog, failed, button) {
@@ -298,7 +276,7 @@
     button.disabled = true;
     try {
       for (const host of unsavedHosts()) {
-        const res = await api('/api/save', { host: host.name, rev: host.rev, spec: S.draft[host.name] });
+        const res = await api('/api/save', { host: host.name, rev: host.rev, features: S.draft[host.name] });
         replaceHost(res.host);
         S.touched.add(host.name);
         saved.push(host.name);
@@ -452,12 +430,8 @@
     $('#group-field').hidden = S.view !== 'matrix';
   }
 
-  function columns() {
-    return S.data.hosts.flatMap((host) => host.sections.map((section, i) => ({ host, section, first: i === 0 })));
-  }
-
   function matrixView() {
-    const cols = columns();
+    const hosts = S.data.hosts;
     const groups = groupsOf(visibleNames());
     S.rows = groups.flatMap((group) => group.names);
     if (S.rows.length === 0) {
@@ -476,37 +450,26 @@
       { class: 'legend' },
       ...[
         ['on', 'enabled'],
-        ['via', 'through system'],
         ['adding', 'will enable'],
         ['removing', 'will disable'],
       ].flatMap(([state, words]) => [h('dt', {}, lamp(state)), h('dd', { text: words })]),
     );
 
+    // One column per host: a host has one list, and a feature is on it or not.
     const head = h(
       'thead',
       {},
       h(
         'tr',
-        { class: 'hosts' },
-        h('th', { class: 'corner', rowspan: 2 }, legend),
-        ...S.data.hosts.map((host) =>
+        {},
+        h('th', { class: 'corner' }, legend),
+        ...hosts.map((host) =>
           h(
             'th',
-            { class: 'host first', colspan: host.sections.length, scope: 'colgroup' },
+            { class: 'host', scope: 'col' },
             host.name,
             hostFlags(host),
-          ),
-        ),
-      ),
-      h(
-        'tr',
-        { class: 'sections' },
-        ...cols.map(({ host, section, first }) =>
-          h(
-            'th',
-            { class: 'section' + (first ? ' first' : ''), scope: 'col' },
-            section,
-            h('span', { class: 'count', text: String(listOf(S.draft[host.name], section).length) }),
+            h('span', { class: 'count', text: plural(S.draft[host.name].length, 'feature') }),
           ),
         ),
       ),
@@ -521,7 +484,7 @@
           { class: 'group' },
           h(
             'th',
-            { colspan: cols.length + 1, scope: 'rowgroup' },
+            { colspan: hosts.length + 1, scope: 'rowgroup' },
             h(
               'span',
               { class: 'label' },
@@ -548,9 +511,7 @@
                 onclick: () => select(name === S.selected ? null : name),
               }),
             ),
-            ...cols.map(({ host, section, first }, ci) =>
-              h('td', { class: first ? 'first' : null }, jack(host, section, name, ci)),
-            ),
+            ...hosts.map((host, col) => h('td', {}, jack(host, name, col))),
           ),
         ),
       ),
@@ -573,8 +534,8 @@
           onclick: () => takeFile(host),
         }),
       );
-    } else if (diffOf(host).length) flags.push(h('span', { class: 'flag warn', text: 'unsaved' }));
-    else if (host.uncommitted.length) flags.push(h('span', { class: 'flag', text: 'not committed' }));
+    } else if (changes(diffOf(host))) flags.push(h('span', { class: 'flag warn', text: 'unsaved' }));
+    else if (changes(host.uncommitted)) flags.push(h('span', { class: 'flag', text: 'not committed' }));
     if (host.problems.length) {
       flags.push(
         h('button', {
@@ -589,9 +550,9 @@
     return h('span', { class: 'flags' }, flags);
   }
 
-  function jack(host, section, name, col) {
-    const state = cellState(host, section, name);
-    const key = cellKey(name, host, section);
+  function jack(host, name, col) {
+    const state = cellState(host, name);
+    const key = cellKey(name, host);
     return h(
       'button',
       {
@@ -599,9 +560,9 @@
         class: 'jack' + (S.flash.has(key) ? ' flash' : ''),
         dataset: { state, key, row: name, col },
         'aria-pressed': state === 'on' || state === 'adding' ? 'true' : 'false',
-        'aria-label': `${name}, ${host.name} ${section}: ${STATE_WORDS[state]}`,
-        title: `${host.name} ${section}: ${STATE_WORDS[state]}`,
-        onclick: () => toggle(host, section, name),
+        'aria-label': `${name} on ${host.name}: ${STATE_WORDS[state]}`,
+        title: `${host.name}: ${STATE_WORDS[state]}`,
+        onclick: () => toggle(host, name),
       },
       h('span', { class: 'lens' }),
     );
@@ -622,7 +583,7 @@
   // feature sits one column right of the deepest thing it requires, so every
   // cord runs left, towards the foundations.
   function graphLayout() {
-    const F = S.data.features;
+    const F = S.data.catalog;
     const names = Object.keys(F).sort();
     const requires = (name) => (F[name].requires || []).filter((dep) => F[dep]);
     const dependents = {};
@@ -880,7 +841,7 @@
     const units = provided((p) => [...p.units, ...p.userUnits]);
     const ports = provided((p) => p.ports);
     const rows = [
-      ['Lists', host.sections.map((section) => `${section} ${listOf(S.draft[host.name], section).length}`).join(', ')],
+      ['Features', String(on.length)],
       ['Kinds', kinds.map(([kind, n]) => `${kind} ${n}`).join(', ')],
       ['Units', units.join(', ')],
       ['Listens on', ports.join(', ')],
@@ -900,7 +861,7 @@
 
   function featurePanel(name) {
     const f = feat(name);
-    const F = S.data.features;
+    const F = S.data.catalog;
     const block = (title, ...body) => h('section', { class: 'block' }, h('h3', { text: title }), ...body);
     const chips = (names, extra) => names.map((other) => h('li', {}, chip(other, null, extra)));
     const nothing = (text) => h('p', { class: 'none', text });
@@ -929,21 +890,14 @@
       );
     } else {
       head.push(h('p', { class: 'what', text: `A ${f.kind} feature: ${KIND_GLOSS[f.kind] || f.kind}.` }));
-      head.push(
-        h('p', {
-          class: 'what',
-          text: f.hm
-            ? 'It has a home-manager part, so it is enabled per account.'
-            : 'It has no home-manager part: system or an account can enable it.',
-        }),
-      );
-      if (f.runtimeUntestable)
+      if (f.runtimeUntestable) {
         head.push(
           h('p', {
             class: 'what',
             text: 'Its runtime cannot be checked in a VM; the feature test only guards eval and boot.',
           }),
         );
+      }
     }
 
     const blocks = [
@@ -952,14 +906,17 @@
         h(
           'table',
           { class: 'where' },
-          ...S.data.hosts.flatMap((host) =>
-            host.sections.map((section) =>
+          ...S.data.hosts.map((host) =>
+            h(
+              'tr',
+              {},
               h(
-                'tr',
-                {},
-                h('th', { scope: 'row' }, host.name, ' ', h('span', { class: 'of', text: section })),
-                h('td', {}, jack(host, section, name, 0)),
+                'th',
+                { scope: 'row' },
+                host.name,
+                host.local ? h('span', { class: 'of', text: ' this machine' }) : null,
               ),
+              h('td', {}, jack(host, name, 0)),
             ),
           ),
         ),
@@ -991,19 +948,17 @@
       const conflicts = Object.keys(F)
         .filter((other) => other !== name && (f.conflicts.includes(other) || F[other].conflicts.includes(name)))
         .sort();
-      if (conflicts.length)
+      if (conflicts.length) {
         blocks.push(block('Cannot be on together with', h('ul', { class: 'chips' }, ...chips(conflicts))));
+      }
 
       const p = f.provides;
       const provided = [
-        ['Commands', p.systemBins],
-        ['Account commands', p.userBins],
-        ['Units', p.units],
-        ['Account units', p.userUnits],
+        ['Commands', [...p.systemBins, ...p.userBins]],
+        ['Units', [...p.units, ...p.userUnits]],
         ['Ports', p.ports],
-        ['Files', p.files],
-        ['Account files', p.userFiles],
-      ].filter(([, list]) => list && list.length);
+        ['Files', [...p.files, ...p.userFiles]],
+      ].filter(([, list]) => list.length);
       blocks.push(
         block(
           'Puts on the system',
@@ -1032,15 +987,12 @@
 
   // ── dock ──────────────────────────────────────────────────────────────────
 
-  function diffSpans(diffs) {
+  function diffSpans(diff) {
     return h(
       'span',
       { class: 'diff' },
-      ...diffs.flatMap((d) => [
-        h('span', { class: 'sec', text: ` ${d.section} ` }),
-        ...d.added.map((name) => h('span', { class: 'plus', text: `+${name} ` })),
-        ...d.removed.map((name) => h('span', { class: 'minus', text: `−${name} ` })),
-      ]),
+      ...diff.added.map((name) => h('span', { class: 'plus', text: ` +${name}` })),
+      ...diff.removed.map((name) => h('span', { class: 'minus', text: ` −${name}` })),
     );
   }
 
@@ -1049,7 +1001,7 @@
     const busy = Boolean(S.job && S.job.running);
     const rows = [];
     for (const host of S.data.hosts) {
-      const dirty = host.uncommitted.length > 0;
+      const dirty = changes(host.uncommitted) > 0;
       if (!dirty && !S.touched.has(host.name)) continue;
       rows.push(
         h(
@@ -1059,7 +1011,11 @@
           h(
             'span',
             { class: 'what' },
-            dirty ? 'Saved, not committed:' : 'Saved and committed.',
+            dirty
+              ? 'Saved, not committed:'
+              : host.tracked
+                ? 'Saved and committed.'
+                : 'Saved. git has no committed version of this list to compare it with.',
             dirty ? diffSpans(host.uncommitted) : null,
           ),
           h(
@@ -1097,7 +1053,9 @@
               class: 'btn',
               disabled: !dirty,
               text: 'Commit',
-              title: 'git commit of this feature list only',
+              title: host.tracked
+                ? 'git commit of this feature list only'
+                : 'This list is not in git yet — add and commit it by hand once.',
               onclick: () => commit(host),
             }),
           ),
@@ -1155,10 +1113,7 @@
     const bar = $('#status');
     if (!bar || !S.data) return;
     const unsaved = unsavedHosts();
-    const count = unsaved.reduce(
-      (n, host) => n + diffOf(host).reduce((m, d) => m + d.added.length + d.removed.length, 0),
-      0,
-    );
+    const count = unsaved.reduce((n, host) => n + changes(diffOf(host)), 0);
     fill(
       bar,
       h('p', { class: `say ${S.say.level}`, role: 'status', text: S.say.text }),
@@ -1199,15 +1154,12 @@
           }),
           ...unsavedHosts().flatMap((host) => [
             h('h3', {}, host.name, h('span', { text: host.file })),
-            ...diffOf(host).flatMap((d) => [
-              h('h4', { text: d.section }),
-              h(
-                'ul',
-                { class: 'diff' },
-                ...d.added.map((name) => h('li', { class: 'plus', text: `+ ${name}` })),
-                ...d.removed.map((name) => h('li', { class: 'minus', text: `− ${name}` })),
-              ),
-            ]),
+            h(
+              'ul',
+              { class: 'diff' },
+              ...diffOf(host).added.map((name) => h('li', { class: 'plus', text: `+ ${name}` })),
+              ...diffOf(host).removed.map((name) => h('li', { class: 'minus', text: `− ${name}` })),
+            ),
           ]),
           failed,
         ),
@@ -1258,7 +1210,7 @@
     if (!step) return;
     event.preventDefault();
     const row = S.rows.indexOf(cell.dataset.row) + step[0];
-    const col = Math.max(-1, Math.min(Number(cell.dataset.col) + step[1], columns().length - 1));
+    const col = Math.max(-1, Math.min(Number(cell.dataset.col) + step[1], S.data.hosts.length - 1));
     if (row < 0 || row >= S.rows.length) return;
     const next = $('#board').querySelector(`[data-row="${CSS.escape(S.rows[row])}"][data-col="${col}"]`);
     if (next) next.focus();

@@ -12,14 +12,12 @@ import (
 // terminal involved: keys go straight into Update.
 func newTUI(t *testing.T) model {
 	t.Helper()
-	list := func(system []string, users map[string][]string) string {
-		return string(MarshalSpec(spec(system, users)))
-	}
+	list := func(features ...string) string { return string(MarshalFeatures(features)) }
 	repo := writeTree(t, map[string]string{
 		"flake.nix": "{}\n",
-		"modules/hosts/desktop-nixos/features.json": list([]string{"tailscale"}, map[string][]string{"wiktor": {"t3code-srv"}}),
-		"modules/hosts/laptop-nixos/features.json":  list([]string{"sops"}, map[string][]string{"wiktor": {"git"}}),
-		"modules/hosts/vps-nixos/features.json":     list([]string{"sops"}, map[string][]string{"wiktor": {}}),
+		"modules/hosts/desktop-nixos/features.json": list("tailscale", "t3code-srv"),
+		"modules/hosts/laptop-nixos/features.json":  list("sops", "git"),
+		"modules/hosts/vps-nixos/features.json":     list("sops"),
 	})
 	hosts, err := discoverHosts(repo)
 	if err != nil {
@@ -43,7 +41,7 @@ func press(m model, keys ...string) model {
 
 // withCatalog stands in for the `nix eval` the host screen kicks off.
 func withCatalog(m model) model {
-	next, _ := m.Update(metaLoadedMsg{meta: rulesCat.Meta, hmNames: rulesCat.HMNames})
+	next, _ := m.Update(metaLoadedMsg{meta: rulesMeta})
 	return next.(model)
 }
 
@@ -69,40 +67,38 @@ func TestTUIHomeListsEveryHost(t *testing.T) {
 
 // The TUI toggles through rules.go: what the web UI refuses, it refuses.
 func TestTUIToggleFollowsTheSharedRules(t *testing.T) {
-	m := withCatalog(press(newTUI(t), "enter")) // desktopNixos, section `system`
+	m := withCatalog(press(newTUI(t), "enter")) // desktopNixos
 
 	m.toggle("tailscale")
-	if want := "Cannot disable tailscale — required by: t3code-srv (wiktor)"; m.status != want || m.statusLevel != statusWarn {
+	if want := "Cannot disable tailscale — required by: t3code-srv"; m.status != want || m.statusLevel != statusWarn {
 		t.Errorf("status = %q (level %d), want the refusal %q", m.status, m.statusLevel, want)
 	}
-	if !reflect.DeepEqual(m.spec.System, []string{"tailscale"}) {
-		t.Errorf("system = %v, want it untouched by the refused toggle", m.spec.System)
+	if !reflect.DeepEqual(m.draft, []string{"tailscale", "t3code-srv"}) {
+		t.Errorf("draft = %v, want it untouched by the refused toggle", m.draft)
 	}
 
-	m.toggle("git")
-	if m.isEnabled("git") || !strings.Contains(m.status, "home-manager part") {
-		t.Errorf("a home-manager feature went into system (status %q)", m.status)
-	}
-
-	m.switchSection(1) // wiktor
 	m.toggle("vscode")
-	if want := []string{"t3code-srv", "vscode", "desktop", "niri"}; !reflect.DeepEqual(m.enabled(), want) {
-		t.Errorf("wiktor = %v, want %v", m.enabled(), want)
+	if want := []string{"tailscale", "t3code-srv", "vscode", "desktop", "niri"}; !reflect.DeepEqual(m.draft, want) {
+		t.Errorf("draft = %v, want %v", m.draft, want)
 	}
 	if want := "Also enabled (required by vscode): desktop, niri"; m.status != want || m.statusLevel != statusInfo {
 		t.Errorf("status = %q (level %d), want %q", m.status, m.statusLevel, want)
 	}
+	// One list: the host screen has no sections to tab through.
+	if view := m.View(); strings.Contains(view, "system") {
+		t.Errorf("the host screen still talks about a system section:\n%s", view)
+	}
 
-	// Review and confirm: the file gets the reconciled lists.
+	// Review and confirm: the file gets the list, in the canonical shape.
 	m = press(m, "enter", "enter")
-	saved, err := readSpec(m.hosts.path(m.repo, "desktopNixos"))
+	saved, err := readFeatures(m.hosts.path(m.repo, "desktopNixos"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := []string{"t3code-srv", "vscode", "desktop", "niri"}; !reflect.DeepEqual(saved.Users["wiktor"], want) {
-		t.Errorf("saved wiktor = %v, want %v", saved.Users["wiktor"], want)
+	if want := []string{"tailscale", "t3code-srv", "vscode", "desktop", "niri"}; !reflect.DeepEqual(saved, want) {
+		t.Errorf("saved = %v, want %v", saved, want)
 	}
-	if want := "switchboard: desktopNixos wiktor: +vscode +desktop +niri"; m.fin.commitMsg != want {
+	if want := "switchboard: desktopNixos +vscode +desktop +niri"; m.fin.commitMsg != want {
 		t.Errorf("commit message = %q, want %q", m.fin.commitMsg, want)
 	}
 }

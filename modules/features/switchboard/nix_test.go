@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -40,10 +41,10 @@ func TestHostName(t *testing.T) {
 
 func TestDiscoverHosts(t *testing.T) {
 	repo := writeTree(t, map[string]string{
-		"modules/hosts/desktop-nixos/features.json": `{"system": [], "users": {}}`,
-		"modules/hosts/vps-nixos/features.json":     `{"system": [], "users": {}}`,
+		"modules/hosts/desktop-nixos/features.json": `[]`,
+		"modules/hosts/vps-nixos/features.json":     `[]`,
 		// The name a host registers under wins over its folder name.
-		"modules/hosts/odd-folder/features.json": `{"system": [], "users": {}}`,
+		"modules/hosts/odd-folder/features.json": `[]`,
 		"modules/hosts/odd-folder/default.nix":   "{\n  flake.hostSpecs.realName = spec;\n}\n",
 		// Image hosts keep inline specs: no features.json, not a target.
 		"modules/hosts/iso/default.nix": "{}",
@@ -70,19 +71,19 @@ func TestDiscoverHostsNone(t *testing.T) {
 }
 
 // A save replaces the file in one step and leaves nothing else behind.
-func TestWriteSpecReplacesTheFileCleanly(t *testing.T) {
+func TestWriteFeaturesReplacesTheFileCleanly(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "features.json")
-	if err := os.WriteFile(path, []byte("{}\n"), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte("[]\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	want := spec([]string{"niri"}, map[string][]string{"wiktor": {"git"}})
-	if err := writeSpec(path, want); err != nil {
+	want := []string{"niri", "git"}
+	if err := writeFeatures(path, want); err != nil {
 		t.Fatal(err)
 	}
-	got, err := readSpec(path)
-	if err != nil || !SpecEqual(got, want) {
-		t.Errorf("read back %+v, %v; want %+v", got, err, want)
+	got, err := readFeatures(path)
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Errorf("read back %v, %v; want %v", got, err, want)
 	}
 	entries, _ := os.ReadDir(dir)
 	if len(entries) != 1 {
@@ -90,6 +91,14 @@ func TestWriteSpecReplacesTheFileCleanly(t *testing.T) {
 	}
 	if st, _ := os.Stat(path); st.Mode().Perm() != 0o600 {
 		t.Errorf("mode = %v, want the file's own 0600 kept", st.Mode().Perm())
+	}
+}
+
+// The old shape ({"system": …, "users": …}) is a clear error, not an empty list.
+func TestParseFeaturesRejectsTheOldShape(t *testing.T) {
+	_, err := parseFeatures([]byte(`{"system": ["nix"], "users": {"wiktor": ["git"]}}`))
+	if err == nil || !strings.Contains(err.Error(), "JSON array") {
+		t.Errorf("err = %v, want it to say a JSON array is expected", err)
 	}
 }
 
