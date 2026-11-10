@@ -7,3 +7,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # One PR a week for all action bumps. Ungrouped, every action got its own
+    # PR, and a PR left open was replaced by the next bump of the same action
+    # (#43 -> #53), so they piled up instead of landing.
+    groups:
+      actions:
+        patterns: ["*"]
