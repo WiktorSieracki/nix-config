@@ -1,6 +1,7 @@
 {
   inputs,
   self,
+  config,
   ...
 }: {
   # noctalia rides along with the niri feature (niri spawns it at startup and
@@ -33,11 +34,14 @@
     # the running quickshell process and calls THAT build's client, so the pair
     # can never diverge; a baked store path to this script stays correct even
     # when stale, because the resolution happens at invocation time.
+    # `-u "$EUID"`: with two accounts logged in at once (wiktor and work), an
+    # unscoped pgrep returns the other session's quickshell first, and a
+    # client pointed at someone else's instance finds nothing to talk to.
     packages.noctalia-ipc = pkgs.writeShellApplication {
       name = "noctalia-ipc";
       runtimeInputs = [pkgs.procps pkgs.gnugrep];
       text = ''
-        share=$(pgrep -af 'quickshell -p .*/share/noctalia-shell' \
+        share=$(pgrep -u "$EUID" -af 'quickshell -p .*/share/noctalia-shell' \
           | grep -oE '/nix/store/[^ ]+/share/noctalia-shell' | head -n1) || true
         client="''${share%/share/noctalia-shell}/bin/noctalia-shell"
         if [ -n "$share" ] && [ -x "$client" ]; then
@@ -422,7 +426,7 @@
           viewMode = "list";
           iconMode = "tabler";
           density = "default";
-          terminalCommand = "alacritty -e";
+          terminalCommand = "${config.flake.meta.programs.terminal} -e";
           clipboardWatchTextCommand = "wl-paste --type text --watch cliphist store";
           clipboardWatchImageCommand = "wl-paste --type image --watch cliphist store";
           customLaunchPrefix = "";
