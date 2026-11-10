@@ -11,6 +11,9 @@
         src = ./.;
         vendorHash = "sha256-4rK69s1uTFBV20endymLw6JEUfrh51bznZEgbujUQls=";
 
+        # gitops_test.go drives real `git` in a throwaway repository.
+        nativeCheckInputs = [pkgs.git];
+
         # `sb` shorthand. A symlink in the derivation rather than a shell
         # alias: it works from any shell (and from scripts/exec), and the
         # feature test asserts it via `provides.systemBins`.
