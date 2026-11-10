@@ -39,6 +39,12 @@
     hardware.bluetooth.enable = lib.mkForce false;
     services.power-profiles-daemon.enable = lib.mkForce false;
 
+    # The core floor reads the hardware clock as local time because the
+    # workstations dual-boot Windows. A KVM guest's clock is UTC, so here that
+    # setting started every cold boot an hour or two behind until NTP stepped
+    # the clock forward.
+    time.hardwareClockInLocalTime = lib.mkForce false;
+
     # The always-on HM floor turns on gtk (desktop/cursor.nix), so home-manager
     # runs a dconfSettings step, which dies without a dconf service and takes
     # home-manager-wiktor.service — and with it the t3code units — down. No
