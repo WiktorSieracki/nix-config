@@ -135,7 +135,8 @@ jobs:
 
             Boot it (console login: `wiktor` / `nixos`), get networking up with
             `nmtui`, partition, mount under `/mnt`, then install the host you
-            want:
+            want. sshd on the image accepts wiktor's key only — the console
+            password does not work over the network:
             ```
             sudo nixos-install --flake github:${{ github.repository }}#desktopNixos
             sudo nixos-install --flake github:${{ github.repository }}#laptopNixos
