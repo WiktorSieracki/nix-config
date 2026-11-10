@@ -72,9 +72,27 @@ in {
             "wiktor-nixos.cachix.org-1:3DOZHbBhM0h+YZFUZ1zZikBSLC7cTbZglgQEhF7Gi2M="
           ];
 
-          # Password set so the install procedure can SSH into the live image
-          # as `wiktor`/`nixos` and sudo once inside.
+          # Console password only (tty2+, or after logging out of the tty1
+          # autologin). It is printed in the release notes, so it must never be
+          # enough to get in over the network.
           users.users.wiktor.initialPassword = "nixos";
+
+          # The installer profile starts sshd and opens port 22, and the core
+          # floor makes sudo passwordless for wheel. With password logins on,
+          # that published `wiktor`/`nixos` pair was root for anyone on the same
+          # network as a machine mid-install (eduroam, a hotel). The install
+          # procedure still gets in: wiktor's public key is on the image
+          # through flake.meta.users, like on every other host.
+          services.openssh.settings = {
+            PasswordAuthentication = false;
+            KbdInteractiveAuthentication = false;
+          };
+          assertions = [
+            {
+              assertion = (config.flake.meta.users.wiktor.authorizedKeys or []) != [];
+              message = "iso: sshd is key-only, so flake.meta.users.wiktor.authorizedKeys must not be empty — otherwise nothing can SSH into the installer.";
+            }
+          ];
 
           # The installer profile autologins its own `nixos` account on tty1;
           # land in wiktor's fish instead.
