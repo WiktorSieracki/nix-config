@@ -3,8 +3,10 @@
     services.tailscale = {
       enable = true;
       useRoutingFeatures = "client";
-      # Let the wiktor user run `tailscale funnel/serve` without sudo
-      # (required by agents-of-empire's Tailscale Funnel transport).
+      # Let the wiktor user run `tailscale serve/funnel` without sudo:
+      # t3code-server publishes itself on the tailnet with `tailscale serve`
+      # from its user unit (see hosts/vps-nixos/notes.md for what breaks when
+      # the operator is reset).
       extraSetFlags = ["--operator=wiktor"];
     };
   };

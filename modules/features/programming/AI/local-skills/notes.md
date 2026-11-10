@@ -2,8 +2,8 @@
 
 The skills written (or rescued) in this repo rather than pulled from an upstream
 input: `create-issue/` (hand-written, no upstream) and `obsidian-vault/`
-(rescued from mattpocock, see below). `todo/` lived here until 2026-10-16 and
-now ships with the `todoist` feature.
+(rescued from mattpocock, see below). `todo/` lived here until 2026-10-16, moved
+to the `todoist` feature, and since 2026-11-03 ships with `todoist-cli`.
 
 2026-07-18: Created as `claude-skills`. Replaces the manual `~/.claude/skills/*`
 symlinks (which pointed into `~/.agents/skills/`, populated by the upstream skill

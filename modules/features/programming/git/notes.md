@@ -16,6 +16,9 @@ feature. Without it there's nothing to decrypt with.
 **Fix:** `featureMeta.git.requires = ["wiktor" "sops"]` — the dependency is now
 explicit, and the loader hard-fails a host with git but without sops.
 
+> **[2026-07-06]** After ADR 0004 the `wiktor` feature is gone, so this reads
+> `requires = ["sops"]` today.
+
 ## 2026-06-26 — feature test in a VM without a real SOPS key
 
 **Symptom:** the feature test can't decrypt `secrets.yaml` — the VM has no wiktor

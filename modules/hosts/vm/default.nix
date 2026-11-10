@@ -3,7 +3,8 @@
   config,
   ...
 }: let
-  # Same curated subset as the ISO host: niri desktop + a handful of apps,
+  # A curated desktop subset (unlike the ISO host, which is a console-only
+  # installer): niri desktop + a handful of apps,
   # minus hardware-specific (nvidia/wacom/mouse) and secret-dependent
   # (sops/git/personal-snippets/eduroam/home-wifi) modules.
   vmSpec = {

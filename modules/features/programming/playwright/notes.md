@@ -7,9 +7,9 @@
   (per https://nixos.wiki/wiki/Playwright).
 - **2026-07-02** `home.sessionVariables` isn't enough on its own: it lands in
   `hm-session-vars.sh` (with `useUserPackages=true` →
-  `/etc/profiles/per-user/wiktor/etc/profile.d/`), sourced only by HM-managed shells.
-  The minimal feature-test VM (core+wiktor, without the `fish` feature) doesn't
-  source it → the variable is empty in `su - wiktor`. That's why the `playwright`
+  `/etc/profiles/per-user/<login>/etc/profile.d/`), sourced only by HM-managed shells.
+  The minimal feature-test VM (core + the test account, without the `fish` feature)
+  doesn't source it → the variable is empty in `su - tester`. That's why the `playwright`
   binary is wrapped (`--set-default`) and works from any context.
 - **2026-07-02** In npm projects the version of the `@playwright/test` package
   **must match the nixpkgs version** (currently 1.60.0), because the browser
