@@ -1,0 +1,1076 @@
+/* switchboard web — a lamp panel.
+ *
+ * The one loud thing is the lamp: amber = enabled as saved, green = will be
+ * enabled, red = will be disabled (the line and supervisory lamps of a
+ * telephone switchboard). Everything else is panel paint and label ink, so a
+ * lit lamp is always the brightest thing on screen.
+ *
+ * Fonts are the ones the `fonts` feature installs (Adwaita Sans / Mono); the
+ * page is served offline, so nothing is fetched.
+ */
+
+:root {
+  color-scheme: dark;
+  --panel: #252d2a;
+  --panel-raised: #2f3935;
+  --panel-sunk: #1c2320;
+  --rule: #3d4944;
+  --socket: #56635d;
+  --ink: #ebe6d6;
+  --ink-soft: #a9b2ab;
+  --ink-faint: #7d8881;
+  --amber: #ffb224;
+  --amber-rim: #b97a08;
+  --amber-glow: rgb(255 178 36 / 0.55);
+  --amber-dim: #a8802c;
+  --green: #62d882;
+  --green-rim: #2f9a4d;
+  --green-glow: rgb(98 216 130 / 0.6);
+  --red: #ff6352;
+  --red-rim: #b93325;
+  --red-glow: rgb(255 99 82 / 0.6);
+  --lens-ink: #1c1a10;
+  --shade: rgb(0 0 0 / 0.5);
+
+  --font-ui: 'Adwaita Sans', Inter, 'DejaVu Sans', system-ui, sans-serif;
+  --font-id: 'Adwaita Mono', Iosevka, 'DejaVu Sans Mono', ui-monospace, monospace;
+
+  --row: 26px;
+  --host-row: 40px;
+  --section-row: 36px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --panel: #e2e5dc;
+    --panel-raised: #f0f2ea;
+    --panel-sunk: #d3d8cc;
+    --rule: #bcc3b6;
+    --socket: #98a294;
+    --ink: #1d2521;
+    --ink-soft: #505b54;
+    --ink-faint: #76817a;
+    --amber: #f5a100;
+    --amber-rim: #8f5d00;
+    --amber-glow: rgb(214 138 0 / 0.5);
+    --amber-dim: #a87412;
+    --green: #2fb65a;
+    --green-rim: #166b33;
+    --green-glow: rgb(31 157 76 / 0.5);
+    --red: #e8473a;
+    --red-rim: #8e1f15;
+    --red-glow: rgb(217 58 43 / 0.45);
+    --lens-ink: #1c1a10;
+    --shade: rgb(40 48 44 / 0.35);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--panel);
+  color: var(--ink);
+  font: 13px/1.45 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ── the lamp ─────────────────────────────────────────────────────────────── */
+
+.lens {
+  display: block;
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid var(--socket);
+  border-radius: 50%;
+  background-color: transparent;
+}
+
+[data-state='on'] > .lens {
+  border-color: var(--amber-rim);
+  background-color: var(--amber);
+  box-shadow: 0 0 7px var(--amber-glow);
+}
+
+/* Reaches this account through `system`: a ring with a pilot dot, not lit. */
+[data-state='via'] > .lens {
+  border-color: var(--amber-dim);
+  background-image: radial-gradient(circle, var(--amber-dim) 0 2.4px, transparent 2.9px);
+}
+
+/* The two pending states carry a +/− as well as a colour. */
+[data-state='adding'] > .lens {
+  border-color: var(--green-rim);
+  background-color: var(--green);
+  background-image:
+    linear-gradient(var(--lens-ink), var(--lens-ink)), linear-gradient(var(--lens-ink), var(--lens-ink));
+  background-size:
+    7px 1.5px,
+    1.5px 7px;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 0 8px var(--green-glow);
+}
+
+[data-state='removing'] > .lens {
+  border-color: var(--red-rim);
+  background-color: var(--red);
+  background-image: linear-gradient(var(--lens-ink), var(--lens-ink));
+  background-size: 7px 1.5px;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 0 8px var(--red-glow);
+}
+
+/* No socket here at all: an account feature cannot sit in `system`. */
+[data-state='na'] > .lens {
+  width: 7px;
+  height: 1.5px;
+  border: 0;
+  border-radius: 0;
+  background-color: var(--rule);
+}
+
+/* A lamp that lit because something else was switched on. */
+.flash > .lens {
+  animation: lit 0.45s ease-out;
+}
+
+@keyframes lit {
+  from {
+    transform: scale(2.1);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash > .lens {
+    animation: none;
+  }
+}
+
+/* ── top bar ──────────────────────────────────────────────────────────────── */
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--panel-raised);
+}
+
+.mark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 600 15px/1 var(--font-id);
+  letter-spacing: -0.01em;
+}
+
+.mark .lens {
+  border-color: var(--amber-rim);
+  background-color: var(--amber);
+  box-shadow: 0 0 7px var(--amber-glow);
+}
+
+.repo {
+  overflow: hidden;
+  max-width: 34ch;
+  color: var(--ink-faint);
+  font: 12px var(--font-id);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.views {
+  display: flex;
+  padding: 2px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--panel-sunk);
+}
+
+.tab {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.tab[aria-pressed='true'] {
+  background: var(--panel-raised);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-left: auto;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+}
+
+.field select,
+.field input {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink);
+}
+
+.search {
+  position: relative;
+}
+
+.search input {
+  width: 22ch;
+  padding-right: 26px;
+  font-family: var(--font-id);
+  font-size: 12.5px;
+}
+
+.search input::placeholder {
+  color: var(--ink-faint);
+  font-family: var(--font-ui);
+}
+
+.search kbd {
+  position: absolute;
+  right: 7px;
+  padding: 0 5px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  color: var(--ink-faint);
+  font: 11px/16px var(--font-id);
+  pointer-events: none;
+}
+
+.search input:focus + kbd,
+.search input:not(:placeholder-shown) + kbd {
+  display: none;
+}
+
+.btn {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--ink-faint);
+}
+.btn:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
+.btn.quiet {
+  background: none;
+}
+
+.btn.primary {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--panel);
+  font-weight: 600;
+}
+
+/* ── stage ────────────────────────────────────────────────────────────────── */
+
+/* The board takes what its lamps need; the side panel gets the rest. */
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(340px, 1fr);
+  min-height: 0;
+}
+
+.board {
+  min-width: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  outline: none;
+}
+
+.loading,
+.empty {
+  max-width: 60ch;
+  margin: 0;
+  padding: 28px 18px;
+  color: var(--ink-soft);
+}
+
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  position: sticky;
+  left: 0;
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--panel-sunk);
+}
+
+.notice p {
+  flex: 1 1 40ch;
+  margin: 0;
+}
+.notice code {
+  font: 12px var(--font-id);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+/* ── the matrix ───────────────────────────────────────────────────────────── */
+
+.matrix {
+  border-collapse: separate;
+  border-spacing: 0;
+  font: 12.5px var(--font-id);
+}
+
+.matrix th,
+.matrix td {
+  height: var(--row);
+  padding: 0;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.matrix thead th {
+  position: sticky;
+  z-index: 2;
+  background: var(--panel);
+}
+
+.matrix thead .hosts th {
+  top: 0;
+  height: var(--host-row);
+}
+
+.matrix thead .sections th {
+  top: var(--host-row);
+  height: var(--section-row);
+  border-bottom: 1px solid var(--rule);
+  vertical-align: bottom;
+}
+
+.matrix .corner,
+.matrix .name {
+  position: sticky;
+  left: 0;
+  background: var(--panel);
+}
+
+.matrix thead .corner {
+  z-index: 3;
+  vertical-align: bottom;
+}
+.matrix tbody .name {
+  z-index: 1;
+}
+
+/* Each host's block of columns starts at a rule. */
+.matrix .first {
+  border-left: 1px solid var(--rule);
+}
+
+.matrix .host {
+  padding: 0 12px;
+  font: 600 13px var(--font-ui);
+}
+
+.host .flags {
+  display: block;
+  min-height: 1.45em;
+  color: var(--ink-faint);
+  font: 11.5px var(--font-ui);
+}
+
+.host .flag + .flag::before {
+  content: ', ';
+}
+.host .flag.warn {
+  color: var(--amber);
+}
+
+.host button.flag {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.section {
+  padding: 0 0 5px;
+  text-align: center !important;
+}
+
+.section .count {
+  display: block;
+  color: var(--ink-faint);
+  font-size: 11px;
+}
+
+.corner .legend {
+  display: grid;
+  grid-template-columns: repeat(2, auto auto);
+  justify-content: start;
+  gap: 3px 7px;
+  align-items: center;
+  margin: 0;
+  padding: 6px 16px 8px;
+  color: var(--ink-soft);
+  font: 11.5px var(--font-ui);
+}
+
+.corner .legend dt {
+  display: grid;
+  place-items: center;
+  width: 13px;
+}
+.corner .legend dd {
+  margin: 0 8px 0 0;
+}
+
+/* A kind (or folder) starts a block of rows. */
+.matrix .group th {
+  height: 34px;
+  padding: 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: bottom;
+}
+
+.group .label {
+  position: sticky;
+  left: 0;
+  display: inline-block;
+  padding: 0 16px 5px;
+  font: 600 12.5px var(--font-ui);
+}
+
+.tally {
+  margin-left: 8px;
+  color: var(--ink-soft);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.gloss {
+  margin-left: 14px;
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+
+.matrix tbody tr:not(.group):hover > * {
+  background: var(--panel-raised);
+}
+
+.matrix tr.selected > * {
+  background: var(--panel-raised);
+}
+.matrix tr.selected > .name {
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+
+.name button {
+  display: block;
+  width: 100%;
+  min-width: 21ch;
+  height: var(--row);
+  padding: 0 18px 0 16px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.name button:focus-visible,
+.jack:focus-visible {
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+.name .stray {
+  color: var(--ink-faint);
+}
+
+.jack {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 62px;
+  height: var(--row);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  /* Keep a focused cell clear of the sticky headers when it scrolls into view. */
+  scroll-margin: calc(var(--host-row) + var(--section-row) + var(--row)) 24px 24px 26ch;
+}
+
+.jack:hover > .lens {
+  border-color: var(--ink-soft);
+}
+.jack[data-state='na'] {
+  cursor: default;
+}
+
+/* ── the requires graph ───────────────────────────────────────────────────── */
+
+/* As wide as the chart and no wider: the text and chips around it wrap to it,
+   so the board does not claim the side panel's room. */
+.graph-view {
+  width: min-content;
+}
+
+.graph-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 12px 16px 4px;
+  color: var(--ink-soft);
+}
+
+.graph-tools p {
+  margin: 0;
+}
+
+.graph {
+  display: block;
+  margin: 4px 16px 0;
+}
+
+.graph .cord {
+  fill: none;
+  stroke: var(--socket);
+  stroke-width: 1.3;
+}
+
+.graph .cord.hot {
+  stroke: var(--amber);
+  stroke-width: 2;
+}
+.graph.focused .cord:not(.hot) {
+  opacity: 0.18;
+}
+.graph.focused .node:not(.near) {
+  opacity: 0.3;
+}
+
+.graph .node {
+  cursor: pointer;
+  outline: none;
+}
+.graph .node text {
+  fill: var(--ink);
+  font: 12.5px var(--font-id);
+}
+.graph .node .plate {
+  fill: transparent;
+}
+.graph .node:hover .plate,
+.graph .node.selected .plate {
+  fill: var(--panel-raised);
+}
+.graph .node:focus-visible .plate {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.graph .node circle {
+  fill: var(--panel);
+  stroke: var(--socket);
+  stroke-width: 1.5;
+}
+.graph .node.lit circle {
+  fill: var(--amber);
+  stroke: var(--amber-rim);
+}
+
+.loose {
+  padding: 6px 16px 28px;
+}
+.loose h2 {
+  margin: 18px 0 6px;
+  font: 600 12.5px var(--font-ui);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: none;
+  font: 12px var(--font-id);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--ink-faint);
+}
+.chip .lens {
+  width: 9px;
+  height: 9px;
+}
+.chip.far {
+  color: var(--ink-soft);
+  border-style: dashed;
+}
+
+/* ── side panel ───────────────────────────────────────────────────────────── */
+
+.inspector {
+  min-width: 0;
+  overflow: auto;
+  padding: 16px 20px 28px;
+  border-left: 1px solid var(--rule);
+  background: var(--panel-raised);
+}
+
+.inspector header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.inspector h2 {
+  margin: 0;
+  font: 600 17px/1.25 var(--font-id);
+  overflow-wrap: anywhere;
+}
+
+.inspector h2.plain {
+  font: 600 15px/1.3 var(--font-ui);
+}
+
+.inspector .what {
+  max-width: 62ch;
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+}
+
+.inspector h3 {
+  margin: 0 0 7px;
+  color: var(--ink-soft);
+  font: 600 12px var(--font-ui);
+}
+
+.inspector .none {
+  margin: 0;
+  color: var(--ink-faint);
+}
+.inspector .chips + .none {
+  margin-top: 6px;
+}
+
+.inspector .path {
+  margin: 0;
+  color: var(--ink-soft);
+  font: 12px/1.5 var(--font-id);
+  overflow-wrap: anywhere;
+}
+
+.inspector dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.inspector dt {
+  color: var(--ink-faint);
+}
+.inspector dd {
+  margin: 0;
+  font: 12px/1.5 var(--font-id);
+  overflow-wrap: anywhere;
+}
+
+/* A wide panel sets its blocks side by side instead of stretching them. */
+.blocks,
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 22px 32px;
+  margin-top: 20px;
+}
+
+.card {
+  min-width: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+.card h3 {
+  margin-bottom: 2px;
+  color: var(--ink);
+  font-size: 13px;
+}
+.card h3 span {
+  margin-left: 8px;
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+.card dl {
+  margin-top: 10px;
+}
+.card .trouble {
+  margin: 10px 0 0;
+  color: var(--amber);
+}
+
+.where {
+  border-collapse: collapse;
+}
+.where th {
+  padding: 0 14px 0 0;
+  font: 12px var(--font-id);
+  font-weight: 400;
+  text-align: left;
+}
+.where td {
+  width: 40px;
+  padding: 0;
+}
+.where .jack {
+  min-width: 0;
+}
+.where .of {
+  color: var(--ink-faint);
+}
+
+.close {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink-soft);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover {
+  border-color: var(--rule);
+  color: var(--ink);
+}
+
+/* ── dock ─────────────────────────────────────────────────────────────────── */
+
+.dock {
+  border-top: 1px solid var(--rule);
+  background: var(--panel-sunk);
+}
+
+.apply {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.apply .who {
+  font: 600 13px var(--font-ui);
+}
+.apply .what {
+  flex: 1 1 30ch;
+  color: var(--ink-soft);
+}
+.apply .what .diff {
+  margin-left: 6px;
+}
+.apply .actions {
+  display: flex;
+  gap: 8px;
+}
+
+.diff {
+  font: 12px var(--font-id);
+}
+.diff .plus {
+  color: var(--green);
+}
+.diff .minus {
+  color: var(--red);
+}
+.diff .sec {
+  color: var(--ink-faint);
+}
+
+@media (prefers-color-scheme: light) {
+  .diff .plus {
+    color: var(--green-rim);
+  }
+  .diff .minus {
+    color: var(--red-rim);
+  }
+  .host .flag.warn,
+  .card .trouble {
+    color: var(--amber-rim);
+  }
+}
+
+.console {
+  border-bottom: 1px solid var(--rule);
+}
+
+.console header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 16px;
+}
+
+.console code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font: 12px var(--font-id);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.console .state {
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.console .state.ok {
+  color: var(--green);
+}
+.console .state.bad {
+  color: var(--red);
+}
+
+.console pre {
+  max-height: 32vh;
+  margin: 0;
+  padding: 4px 16px 12px;
+  overflow: auto;
+  color: var(--ink-soft);
+  font: 12px/1.5 var(--font-id);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  min-height: 44px;
+  padding: 8px 16px;
+}
+
+.status .say {
+  flex: 1 1 30ch;
+  margin: 0;
+  color: var(--ink-soft);
+}
+.status .say.warn {
+  color: var(--amber);
+}
+.status .say.error {
+  color: var(--red);
+}
+.status .pending {
+  color: var(--ink);
+}
+.status .actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (prefers-color-scheme: light) {
+  .status .say.warn {
+    color: var(--amber-rim);
+  }
+  .status .say.error {
+    color: var(--red-rim);
+  }
+  .console .state.ok {
+    color: var(--green-rim);
+  }
+  .console .state.bad {
+    color: var(--red-rim);
+  }
+}
+
+/* ── review dialog ────────────────────────────────────────────────────────── */
+
+.review {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--panel-raised);
+  color: var(--ink);
+}
+
+.review::backdrop {
+  background: var(--shade);
+}
+
+.review .form {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: calc(100vh - 66px);
+}
+.review h2 {
+  margin: 0;
+  padding: 16px 20px 4px;
+  font: 600 15px var(--font-ui);
+}
+.review .body {
+  overflow: auto;
+  padding: 4px 20px 12px;
+}
+.review .lead {
+  margin: 0 0 10px;
+  color: var(--ink-soft);
+}
+.review h3 {
+  margin: 14px 0 4px;
+  font: 600 13px var(--font-ui);
+}
+.review h3 span {
+  margin-left: 8px;
+  color: var(--ink-faint);
+  font: 12px var(--font-id);
+  font-weight: 400;
+}
+.review h4 {
+  margin: 8px 0 2px;
+  color: var(--ink-soft);
+  font: 12px var(--font-id);
+  font-weight: 400;
+}
+.review ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 12.5px/1.6 var(--font-id);
+}
+.review .failed {
+  margin: 10px 0 0;
+  color: var(--red);
+}
+
+.review footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--rule);
+}
+
+/* ── narrow screens ───────────────────────────────────────────────────────── */
+
+@media (max-width: 1000px) {
+  .repo {
+    display: none;
+  }
+  .tools {
+    margin-left: 0;
+  }
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* No room beside the board: the panel is a sheet over it, and only while a
+     feature is picked. */
+  .inspector {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 5;
+    max-height: 60vh;
+    border-top: 1px solid var(--rule);
+    border-left: 0;
+    box-shadow: 0 -8px 24px var(--shade);
+  }
+
+  .inspector.idle {
+    display: none;
+  }
+
+  .name button {
+    min-width: 17ch;
+    padding-right: 10px;
+  }
+  .jack {
+    min-width: 50px;
+  }
+}

@@ -24,6 +24,11 @@ nix build .#nixosConfigurations.laptopNixos.config.system.build.toplevel
 # Look up NixOS / home-manager module options
 manix <option>
 
+# Switch features on/off per host (edits features.json, never .nix): the TUI,
+# or the same in a browser with every host side by side and the requires graph
+switchboard
+switchboard web
+
 # Reload niri config without restarting (windows stay open)
 niri msg action load-config-file
 

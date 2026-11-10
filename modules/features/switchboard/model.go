@@ -11,10 +11,31 @@ import (
 )
 
 // FeatureMeta mirrors one entry of `nix eval <repo>#featureMeta --json`.
-// Extra fields (e.g. runtimeUntestable) are ignored on purpose.
 type FeatureMeta struct {
-	Requires []string `json:"requires"`
-	Kind     string   `json:"kind"`
+	Requires          []string `json:"requires"`
+	Kind              string   `json:"kind"`
+	Conflicts         []string `json:"conflicts"`
+	RuntimeUntestable bool     `json:"runtimeUntestable"`
+	Provides          Provides `json:"provides"`
+}
+
+// Provides mirrors `featureMeta.<name>.provides` — what a feature puts on the
+// system. Display only (the web UI's inspector); no rule reads it.
+type Provides struct {
+	SystemBins []string `json:"systemBins"`
+	UserBins   []string `json:"userBins"`
+	Units      []string `json:"units"`
+	UserUnits  []string `json:"userUnits"`
+	Ports      []int    `json:"ports"`
+	Files      []string `json:"files"`
+	UserFiles  []string `json:"userFiles"`
+}
+
+// Catalog is what the UIs know about features beyond the host files:
+// featureMeta, plus which features have a home-manager part.
+type Catalog struct {
+	Meta    map[string]FeatureMeta
+	HMNames map[string]bool
 }
 
 // HostSpec mirrors features.json: machine features in

@@ -1,5 +1,6 @@
-// Command switchboard is a TUI for managing the per-host feature lists of
-// this nix-config. Real hosts keep their enabled features in
+// Command switchboard manages the per-host feature lists of this nix-config,
+// as a TUI (the default) or as a web UI in the browser (`switchboard web`).
+// Real hosts keep their enabled features in
 // modules/hosts/<host>/features.json; Switchboard edits those data
 // files — never .nix — and always writes the full transitive closure of
 // `requires`, because the loader hard-fails on gaps.
@@ -15,7 +16,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 func defaultFlake() string {
 	if v := os.Getenv("SWITCHBOARD_FLAKE"); v != "" {
@@ -33,15 +34,17 @@ func expandUser(path string) string {
 	return path
 }
 
+const flakeUsage = "path to the nix-config repo (override with $SWITCHBOARD_FLAKE)"
+
 func main() {
 	fs := flag.NewFlagSet("switchboard", flag.ExitOnError)
 	fs.SetOutput(os.Stdout)
 	showVersion := fs.Bool("version", false, "print version and exit")
-	flake := fs.String("flake", defaultFlake(),
-		"path to the nix-config repo (override with $SWITCHBOARD_FLAKE)")
+	flake := fs.String("flake", defaultFlake(), flakeUsage)
 	fs.Usage = func() {
 		fmt.Fprintln(fs.Output(), "usage: switchboard [--flake PATH] [--version]")
-		fmt.Fprintln(fs.Output(), "TUI for managing NixOS host feature lists (features.json).")
+		fmt.Fprintln(fs.Output(), "       switchboard web [--flake PATH] [--addr HOST:PORT] [--no-open] [--idle-timeout D]")
+		fmt.Fprintln(fs.Output(), "Manage NixOS host feature lists (features.json): a TUI, or `web` for the same in a browser.")
 		fs.PrintDefaults()
 	}
 	// flag.ExitOnError exits 0 on -h/--help — required by the feature test (no TTY).
@@ -52,6 +55,15 @@ func main() {
 		return
 	}
 
+	var web *webOptions
+	switch fs.Arg(0) {
+	case "":
+	case "web":
+		web = parseWebOptions(fs.Args()[1:], flake)
+	default:
+		fatal(fmt.Sprintf("unknown command %q (the only one is `web`)", fs.Arg(0)))
+	}
+
 	repo, err := filepath.Abs(expandUser(*flake))
 	if err != nil {
 		fatal(err.Error())
@@ -59,17 +71,18 @@ func main() {
 	if st, err := os.Stat(filepath.Join(repo, "flake.nix")); err != nil || st.IsDir() {
 		fatal(fmt.Sprintf("no flake.nix in %s (use --flake or $SWITCHBOARD_FLAKE)", repo))
 	}
-	var missing []string
-	for _, host := range hostOrder {
-		if _, err := os.Stat(featuresPath(repo, host)); err != nil {
-			missing = append(missing, featuresPath(repo, host))
-		}
-	}
-	if len(missing) > 0 {
-		fatal("missing host feature lists: " + strings.Join(missing, ", "))
+	hosts, err := discoverHosts(repo)
+	if err != nil {
+		fatal(err.Error())
 	}
 
-	if _, err := tea.NewProgram(newModel(repo), tea.WithAltScreen()).Run(); err != nil {
+	if web != nil {
+		if err := runWeb(repo, hosts, *web); err != nil {
+			fatal(err.Error())
+		}
+		return
+	}
+	if _, err := tea.NewProgram(newModel(repo, hosts), tea.WithAltScreen()).Run(); err != nil {
 		fatal(err.Error())
 	}
 }

@@ -164,13 +164,17 @@ system would equal root and void the isolation.
 _Avoid_: separate host, work VM, work account as a machine.
 
 **Switchboard**:
-A TUI (feature `switchboard`, binary `switchboard`) for managing the feature
+The tool (feature `switchboard`, binary `switchboard`) for managing the feature
 lists of real **hosts** — separately for the `system` section and each
 `users.<login>` (including the **work user**, in the main user's hands):
-checkboxes with search, explicit **Requires** closure on selection, a feature
-diff as confirmation, finishing through `nh os test`/`switch`; globally it also
-bumps `flake.lock`. It edits host data files — it never touches `.nix`.
-_Avoid_: features-cli, manager, panel.
+explicit **Requires** closure on selection, a feature diff as confirmation,
+finishing through `nh os test`/`switch`. It has two faces over one set of
+rules: a TUI (`switchboard`: checkboxes with search, one host and section at a
+time; it also bumps `flake.lock`) and a web UI (`switchboard web`: a lamp per
+feature × section with every host side by side, the **Requires** graph, and
+what each feature **provides**). Both edit host data files — neither touches
+`.nix`.
+_Avoid_: features-cli, manager, panel, dashboard.
 
 **ISO** (minimal installer):
 A single **generic** installer image (host `iso`), bootable on any machine. It is

@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -58,6 +57,7 @@ type finale struct {
 
 type model struct {
 	repo     string
+	hosts    hostSet
 	hostname string
 	width    int
 	height   int
@@ -95,11 +95,11 @@ type model struct {
 	fin finale
 }
 
-func newModel(repo string) model {
+func newModel(repo string, hosts hostSet) model {
 	hostname, _ := os.Hostname()
 	search := textinput.New()
 	search.Prompt = "/"
-	return model{repo: repo, hostname: hostname, keep: "3", search: search}
+	return model{repo: repo, hosts: hosts, hostname: hostname, keep: "3", search: search}
 }
 
 func (m model) Init() tea.Cmd { return nil }
@@ -124,39 +124,8 @@ type gitDoneMsg struct {
 
 func loadMeta(repo string) tea.Cmd {
 	return func() tea.Msg {
-		evalJSON := func(attr, apply string) ([]byte, error) {
-			args := []string{"eval", repo + "#" + attr, "--json"}
-			if apply != "" {
-				args = append(args, "--apply", apply)
-			}
-			out, err := exec.Command("nix", args...).Output()
-			if err != nil {
-				msg := err.Error()
-				var ee *exec.ExitError
-				if errors.As(err, &ee) && len(ee.Stderr) > 0 {
-					msg = tail(string(ee.Stderr), 300)
-				}
-				return nil, fmt.Errorf("nix eval %s failed: %s", attr, msg)
-			}
-			return out, nil
-		}
-		out, err := evalJSON("featureMeta", "")
-		if err != nil {
-			return metaLoadedMsg{err: err}
-		}
-		meta, err := parseMeta(out)
-		if err != nil {
-			return metaLoadedMsg{err: err}
-		}
-		// Which features have a home-manager part: those may not sit in
-		// `system` (their HM half would attach to nobody — the loader
-		// hard-fails on it, so refuse it in the UI already).
-		out, err = evalJSON("modules.homeManager", "builtins.attrNames")
-		if err != nil {
-			return metaLoadedMsg{err: err}
-		}
-		hmNames, err := parseNames(out)
-		return metaLoadedMsg{meta: meta, hmNames: hmNames, err: err}
+		cat, err := loadCatalog(repo)
+		return metaLoadedMsg{meta: cat.Meta, hmNames: cat.HMNames, err: err}
 	}
 }
 
@@ -263,7 +232,7 @@ func (m model) handleExecDone(msg execDoneMsg) (tea.Model, tea.Cmd) {
 			m.setStatus("All flake inputs already up to date.", statusInfo)
 			return m, nil
 		}
-		local := hostFiles[m.hostname] != ""
+		local := m.hosts.has(m.hostname)
 		body := "Updated flake inputs:\n\n" + strings.Join(changes, "\n")
 		if local {
 			body += "\n\nApply on this machine with t (test) or s (switch)."
@@ -398,14 +367,16 @@ func (m model) moveTop() model {
 	return m
 }
 
-const homeItems = 4 // desktopNixos, laptopNixos, Update flake, Clean
+// The home list is every host, then the two maintenance items.
+func (m model) homeUpdateIdx() int { return len(m.hosts.order) }
+func (m model) homeCleanIdx() int  { return len(m.hosts.order) + 1 }
 
 func (m model) handleHomeKey(key string) (tea.Model, tea.Cmd) {
 	switch key {
 	case "q", "esc":
 		return m, tea.Quit
 	case "j", "down":
-		if m.homeCursor < homeItems-1 {
+		if m.homeCursor < m.homeCleanIdx() {
 			m.homeCursor++
 		}
 	case "k", "up":
@@ -413,12 +384,12 @@ func (m model) handleHomeKey(key string) (tea.Model, tea.Cmd) {
 			m.homeCursor--
 		}
 	case "G":
-		m.homeCursor = homeItems - 1
+		m.homeCursor = m.homeCleanIdx()
 	case "enter", " ", "l":
-		switch m.homeCursor {
-		case 0, 1:
-			return m.enterHost(hostOrder[m.homeCursor])
-		case 2: // Update flake
+		switch {
+		case m.homeCursor < len(m.hosts.order):
+			return m.enterHost(m.hosts.order[m.homeCursor])
+		case m.homeCursor == m.homeUpdateIdx():
 			data, err := os.ReadFile(filepath.Join(m.repo, "flake.lock"))
 			if err != nil {
 				m.setStatus("reading flake.lock: "+err.Error(), statusError)
@@ -426,7 +397,7 @@ func (m model) handleHomeKey(key string) (tea.Model, tea.Cmd) {
 			}
 			m.lockBefore = data
 			return m, runInTerminal(m.repo, "flake-update", []string{"nix", "flake", "update"})
-		case 3: // Clean
+		case m.homeCursor == m.homeCleanIdx():
 			m.editKeep = true
 		}
 	}
@@ -434,7 +405,7 @@ func (m model) handleHomeKey(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m model) enterHost(host string) (tea.Model, tea.Cmd) {
-	spec, err := readSpec(m.repo, host)
+	spec, err := readSpec(m.hosts.path(m.repo, host))
 	if err != nil {
 		m.setStatus(err.Error(), statusError)
 		return m, nil
@@ -461,17 +432,6 @@ func (m model) sectionName() string { return m.sections[m.section] }
 
 // enabled is the working feature list of the current section.
 func (m model) enabled() []string { return m.spec.Get(m.sectionName()) }
-
-func (m *model) setEnabled(list []string) { m.spec.Set(m.sectionName(), list) }
-
-// satisfiers is the set a feature's requires may be met from: the system
-// list plus the current section (system for system, system+user for a user).
-func (m model) satisfiers() []string {
-	if m.sectionName() == sectionSystem {
-		return m.spec.System
-	}
-	return append(append([]string(nil), m.spec.System...), m.enabled()...)
-}
 
 func (m model) handleHostKey(key string) (tea.Model, tea.Cmd) {
 	switch key {
@@ -532,52 +492,15 @@ func (m *model) toggle(name string) {
 	if name == "" || !m.metaLoaded {
 		return
 	}
-	if m.isEnabled(name) {
-		m.disable(name)
-	} else {
-		m.enable(name)
+	// The rules (requires closure, refusals) live in rules.go, shared with
+	// the web UI.
+	res := Toggle(Catalog{Meta: m.meta, HMNames: m.hmNames}, m.spec, m.sectionName(), name)
+	m.spec = res.Spec
+	level := statusInfo
+	if res.Refused {
+		level = statusWarn
 	}
-}
-
-func (m *model) enable(name string) {
-	var pulled []string
-	// A user section's requires may be satisfied by `system` too, so only
-	// pull deps that aren't already covered by system + this section.
-	satisfied := m.satisfiers()
-	for dep := range RequiresClosure(m.meta, []string{name}) {
-		if dep != name && !contains(satisfied, dep) && !contains(m.enabled(), dep) {
-			pulled = append(pulled, dep)
-		}
-	}
-	sort.Strings(pulled)
-	list := append(append([]string(nil), m.enabled()...), name)
-	list = append(list, pulled...) // the file gets the full closure
-	m.setEnabled(list)
-	if len(pulled) > 0 {
-		m.setStatus(fmt.Sprintf("Also enabled (required by %s): %s",
-			name, strings.Join(pulled, ", ")), statusInfo)
-	} else {
-		m.status = ""
-	}
-}
-
-func (m *model) disable(name string) {
-	dependents := Dependents(m.meta, m.enabled(), name)
-	if len(dependents) > 0 {
-		m.setStatus(fmt.Sprintf("Cannot disable %s — required by: %s",
-			name, strings.Join(dependents, ", ")), statusWarn)
-		return
-	}
-	list := append([]string(nil), m.enabled()...)
-	for i, f := range list {
-		if f == name {
-			list = append(list[:i], list[i+1:]...)
-			break
-		}
-	}
-	m.setEnabled(list)
-	// Deps that were auto-pulled for `name` stay enabled on purpose.
-	m.status = ""
+	m.setStatus(res.Message, level)
 }
 
 func (m model) review() (tea.Model, tea.Cmd) {
@@ -609,15 +532,16 @@ func (m model) handleConfirmKey(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m model) save() (tea.Model, tea.Cmd) {
-	if err := writeSpec(m.repo, m.host, m.newSpec); err != nil {
+	if err := writeSpec(m.hosts.path(m.repo, m.host), m.newSpec); err != nil {
 		m.setStatus("saving: "+err.Error(), statusError)
 		return m, nil
 	}
-	diff := m.specDiffString()
+	file := m.hosts.files[m.host]
+	diff := SpecDiffString(SpecDiff(m.origSpec, m.newSpec))
 	local := m.host == m.hostname
 	m.fin = finale{
-		commitPaths: []string{hostFiles[m.host]},
-		commitMsg:   fmt.Sprintf("switchboard: %s %s", m.host, diff),
+		commitPaths: []string{file},
+		commitMsg:   commitMessage(m.host, diff),
 		commitReady: !local,
 	}
 	m.status = ""
@@ -625,14 +549,13 @@ func (m model) save() (tea.Model, tea.Cmd) {
 	if local {
 		m.fin.applyHost = m.host
 		m.fin.body = fmt.Sprintf("Saved %s (%s).\n\nApply it on this machine with t (test) or s (switch).",
-			hostFiles[m.host], diff)
+			file, diff)
 		return m, nil
 	}
 	m.fin.verifyHost = m.host
 	m.fin.body = fmt.Sprintf("Saved %s (%s).\n\nThis machine is not %s — running a dry-run build as an eval check.",
-		hostFiles[m.host], diff, m.host)
-	target := fmt.Sprintf("%s#nixosConfigurations.%s.config.system.build.toplevel", m.repo, m.host)
-	return m, runInTerminal(m.repo, "dry-run", []string{"nix", "build", target, "--dry-run"})
+		file, diff, m.host)
+	return m, runInTerminal(m.repo, "dry-run", dryRunCommand(m.repo, m.host))
 }
 
 func (m model) handleFinaleKey(key string) (tea.Model, tea.Cmd) {
@@ -643,11 +566,11 @@ func (m model) handleFinaleKey(key string) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "t":
 		if m.fin.applyHost != "" {
-			return m, runInTerminal(m.repo, "test", []string{"nh", "os", "test", m.repo})
+			return m, runInTerminal(m.repo, "test", applyCommand("test", m.repo))
 		}
 	case "s":
 		if m.fin.applyHost != "" {
-			return m, runInTerminal(m.repo, "switch", []string{"nh", "os", "switch", m.repo})
+			return m, runInTerminal(m.repo, "switch", applyCommand("switch", m.repo))
 		}
 	case "c":
 		if m.fin.commitReady {
@@ -704,20 +627,6 @@ func (m model) isSystemProvided(name string) bool {
 		!m.isEnabled(name)
 }
 
-// specDiffString renders the diff across every section as
-// "system: +a -b · wiktor: +c" (sections with no change are omitted).
-func (m model) specDiffString() string {
-	var parts []string
-	for _, s := range m.sections {
-		added, removed := FeatureDiff(m.origSpec.Get(s), m.newSpec.Get(s))
-		if len(added) == 0 && len(removed) == 0 {
-			continue
-		}
-		parts = append(parts, s+": "+DiffString(added, removed))
-	}
-	return strings.Join(parts, " · ")
-}
-
 func (m *model) setStatus(s string, level int) {
 	m.status = s
 	m.statusLevel = level
@@ -755,11 +664,11 @@ func (m model) viewHome() string {
 			lines = append(lines, "  "+label)
 		}
 	}
-	for i, h := range hostOrder {
+	for i, h := range m.hosts.order {
 		item(i, h)
 	}
 	lines = append(lines, "", styleHeader.Render("Maintenance"))
-	item(2, "Update flake")
+	item(m.homeUpdateIdx(), "Update flake")
 	clean := "Clean — nh clean all --keep " + m.keep
 	if m.editKeep {
 		cursorLine = len(lines)
@@ -767,7 +676,7 @@ func (m model) viewHome() string {
 			styleCursor.Render("> Clean — nh clean all --keep ")+
 				styleCursor.Underline(true).Render(m.keep+"▏"))
 	} else {
-		item(3, clean)
+		item(m.homeCleanIdx(), clean)
 	}
 	help := "j/k move · enter select · q quit"
 	if m.editKeep {
