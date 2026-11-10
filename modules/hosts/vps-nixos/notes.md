@@ -111,7 +111,7 @@ built elsewhere, as texliveFull (5.8 GiB) is deliberately not on this disk.
 ## Secrets
 
 `secrets-vps.yaml` (recipients: wiktor + the VPS host key, `.sops.yaml`)
-holds `studentEmail`, `personalEmail` (git identity), `cachixAuthToken`,
+holds `studentEmail`, `personalEmail` (git identity, `flake.meta.users.wiktor.emailSecret`), `cachixAuthToken`,
 `firecrawlApiKey`, `openrouterApiKey` (exported as `FIRECRAWL_API_KEY` /
 `OPENROUTER_API_KEY` by the `firecrawl-api` / `openrouter-api` features) and
 `vpsHostKey`. `claudeCodeOauthToken` is a leftover nothing reads anymore —
