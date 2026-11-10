@@ -83,7 +83,7 @@ _Avoid_: base (the `nixos` bag was the "base", but a fat one fused with niri —
 `core` is the deliberately slimmed layer).
 
 **Desktop** (feature):
-The graphical-session layer split out of the old base (`xserver`, `gdm`,
+The graphical-session layer split out of the old base (`xserver`, `sddm`,
 `defaultSession=niri`, GUI packages). A feature of **Kind** `gui` explicitly
 `requires = ["desktop" ...]`. This way a `cli` feature starts on `core` alone and
 its feature test detects a hidden dependency on the desktop.

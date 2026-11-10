@@ -2,8 +2,8 @@ name: Update flake.lock
 
 # Weekly `nix flake update`, proposed as a PR (branch update_flake_lock_action).
 # A PR opened with GITHUB_TOKEN does not trigger the other workflows, so this
-# job validates the new lock itself: both real hosts must evaluate and the
-# cheap gates must pass. The VM feature tests run on main after the merge.
+# job validates the new lock itself: the three real hosts must evaluate and
+# the cheap gates must pass. The VM feature tests run on main after the merge.
 # Needs "Allow GitHub Actions to create and approve pull requests" in the
 # repository's Actions settings.
 

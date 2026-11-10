@@ -1,8 +1,9 @@
 {lib, ...}: {
   # Not a feature — it defines no `flake.modules.*`, so `feature-coverage` never
   # sees it and it needs no featureMeta/feature test of its own. It is the shared
-  # half of the skill features (`mattpocock-skills`, `local-skills`), which
-  # otherwise would hold a copy each of the same discovery + fan-out logic.
+  # half of every feature that ships agent skills (`mattpocock-skills`,
+  # `local-skills`, `pstack`, `todoist-cli`), which otherwise would hold a copy
+  # each of the same discovery + fan-out logic.
   #
   # Declared as its own option rather than added to `flake.lib`: `flake.lib` is an
   # undeclared freeform output with a single writer already (mkHostUser in

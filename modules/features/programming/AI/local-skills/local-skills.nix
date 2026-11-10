@@ -18,7 +18,7 @@ in {
   # kind `config`: static skill files under $HOME; nothing to run. No `requires`
   # — these are plain prompts, useful to whichever agent CLI is installed. (A
   # skill that drives a feature's tool ships with that feature instead, like
-  # `todo` with `todoist`.)
+  # `todo` with `todoist-cli`.)
   flake.featureMeta.local-skills = {
     requires = [];
     kind = "config";

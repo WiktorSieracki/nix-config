@@ -5,4 +5,4 @@ The Cursor IDE editor feature, installed via HM as `pkgs.code-cursor`.
 ## Gotchas
 
 **2026-06-26** — The binary is named `cursor` (mainProgram of nixpkgs `code-cursor`), not `cursor-ide` or `code-cursor`.
-The feature test asserts `command -v cursor` via `su - wiktor`.
+The feature test asserts `command -v cursor` via `su - tester` (the neutral test account since ADR 0004).
