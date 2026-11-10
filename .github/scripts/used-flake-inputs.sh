@@ -12,9 +12,8 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 enabled=$(nix eval --json .#hostSpecs --apply '
-  specs: builtins.concatLists (map
-    (s: s.system ++ builtins.concatLists (builtins.attrValues s.users))
-    (builtins.attrValues specs))' | jq -r '.[]' | sort -u)
+  specs: builtins.concatLists (map (s: s.features) (builtins.attrValues specs))
+' | jq -r '.[]' | sort -u)
 
 used=()
 for input in $(jq -r '.nodes.root.inputs | keys[]' flake.lock); do

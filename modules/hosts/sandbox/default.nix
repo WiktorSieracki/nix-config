@@ -15,8 +15,6 @@
       operator = item: map (d: {key = d;}) ((meta.${item.key} or {}).requires or []);
     });
 
-  hmFeature = m: config.flake.modules.homeManager ? ${m};
-
   # The sandbox's own infrastructure, present in every variant including the
   # base. The desktop is not a convenience here: the probe the agent drives the
   # guest with (`niri msg`, grim, wtype) is a set of Wayland clients, so without
@@ -34,16 +32,12 @@
   testable = f: !((meta.${f} or {}).runtimeUntestable or false);
   sandboxFeatures = lib.filter testable (lib.attrNames meta);
 
-  # A host spec in the features.json shape, so the sandbox goes through the very
-  # same loadHost validation as desktopNixos/laptopNixos (requires closed,
-  # conflicts, no HM-carrying feature in `system`). A feature with a
-  # home-manager part must sit in the account's list — loadHost loads the NixOS
-  # halves of user features too, so nothing is lost by putting it there.
-  mkSpec = features: let
-    all = lib.unique (infraFeatures ++ lib.concatMap (f: [f] ++ reqClosure f) features);
-  in {
-    system = lib.filter (m: !(hmFeature m)) all;
-    users.tester = lib.filter hmFeature all;
+  # A host spec like the real hosts', so the sandbox goes through the very same
+  # loadHost validation as desktopNixos/laptopNixos (every name a feature,
+  # requires closed, conflicts).
+  mkSpec = features: {
+    users = ["tester"];
+    features = lib.unique (infraFeatures ++ lib.concatMap (f: [f] ++ reqClosure f) features);
   };
 
   # Tier-1's escape hatches, reused verbatim: a secret-backed feature (git, …)
@@ -240,8 +234,8 @@ in {
 
   # Guard against generator rot: force the part of every sandbox variant that
   # this file is actually responsible for — the generated spec and loadHost's
-  # validation of it (requires closed, conflicts, no HM-carrying feature in
-  # `system`). That is where a new or edited feature breaks the sandbox, and it
+  # validation of it (requires closed, conflicts). That is where a new or
+  # edited feature breaks the sandbox, and it
   # costs one cheap eval per feature.
   #
   # It deliberately stops short of evaluating the 55 complete NixOS systems:

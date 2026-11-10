@@ -8,29 +8,19 @@
   # minus hardware-specific (nvidia/wacom/mouse) and secret-dependent
   # (sops/git/personal-snippets/eduroam/home-wifi) modules.
   vmSpec = {
-    system = [
+    users = ["wiktor"];
+    features = [
       "niri"
       "desktop"
       "nix"
       "python"
       "nodejs"
-    ];
-    users.wiktor = [
       "fish"
       "vscode"
       "firefox"
       "localsend"
       # Without it noctalia's startup hook points at a wallpaper that doesn't
       # exist in a fresh home, so the VM boots to a bare desktop.
-      "wallpapers"
-    ];
-    # The work account, so switching to it can be exercised in the VM. Its
-    # real feature list needs secrets (git email template, …), so this is the
-    # same secret-free subset as wiktor's.
-    users.work = [
-      "fish"
-      "vscode"
-      "firefox"
       "wallpapers"
     ];
   };
@@ -86,9 +76,6 @@ in {
 
           # Log straight into wiktor's niri session; password set for sudo.
           users.users.wiktor.initialPassword = "nixos";
-          # work's real password comes from sops (absent here), so give it the
-          # same throwaway password to make the SDDM login usable.
-          users.users.work.initialPassword = "nixos";
           services.displayManager.autoLogin = {
             enable = true;
             user = "wiktor";

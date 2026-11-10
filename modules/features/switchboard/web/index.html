@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Swapped for this run's token by the server; every API call sends it back. -->
+    <meta name="switchboard-token" content="__SWITCHBOARD_TOKEN__" />
+    <title>switchboard</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <h1 class="mark"><span class="lens" aria-hidden="true"></span>switchboard</h1>
+      <span class="repo" id="repo"></span>
+
+      <div class="views" role="group" aria-label="View">
+        <button type="button" class="tab" data-view="matrix" aria-pressed="true">Hosts</button>
+        <button type="button" class="tab" data-view="graph" aria-pressed="false">Requires</button>
+      </div>
+
+      <div class="tools">
+        <label class="field search">
+          <span class="sr">Filter features</span>
+          <input id="query" type="search" placeholder="Filter features" autocomplete="off" spellcheck="false" />
+          <kbd aria-hidden="true">/</kbd>
+        </label>
+        <label class="field">
+          <span>Show</span>
+          <select id="show">
+            <option value="all">every feature</option>
+            <option value="enabled">enabled somewhere</option>
+            <option value="unused">enabled nowhere</option>
+            <option value="changed">unsaved changes</option>
+          </select>
+        </label>
+        <label class="field" id="group-field">
+          <span>Group by</span>
+          <select id="group">
+            <option value="kind">kind</option>
+            <option value="folder">folder</option>
+          </select>
+        </label>
+        <button type="button" class="btn quiet" id="reload" title="Read the feature catalog and the host files again">
+          Reload
+        </button>
+      </div>
+    </header>
+
+    <main class="stage">
+      <section class="board" id="board" aria-label="Features by host" tabindex="-1">
+        <p class="loading">Reading the feature catalog…</p>
+      </section>
+      <aside class="inspector idle" id="inspector" aria-label="Details"></aside>
+    </main>
+
+    <footer class="dock" id="dock"></footer>
+
+    <dialog class="review" id="review" aria-labelledby="review-title"></dialog>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

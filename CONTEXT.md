@@ -7,27 +7,19 @@ implementation decisions — just a way to keep the language consistent.
 
 **Host**:
 A named machine configuration in `flake.nixosConfigurations.*`, assembled from
-**system features** (the `system` section) and **user features** enabled per
-account (the `users.<login>` section). Real machines (`desktopNixos`,
-`laptopNixos`) depend on their `hardware-configuration.nix` and SOPS secrets.
+one list of **features** — its `features.json` — and the accounts it has. Real
+machines (`desktopNixos`, `laptopNixos`, `vpsNixos`) depend on their
+`hardware-configuration.nix` and SOPS secrets.
 _Avoid_: machine, target, profile.
-
-**System feature**:
-A **feature** that is a property of the machine (hardware, network, services —
-`nvidia`, `ssh-server`, `tailscale`). A **Host** enables it once, in the
-`system` section; it belongs to no account.
-_Avoid_: global feature.
-
-**User feature**:
-A **feature** that is part of a specific account's environment (`git`, `fish`,
-`vscode`, apps). A **Host** enables it per user in `users.<login>`; the same
-feature may have several users, but its content knows only one *abstract* user —
-identity is injected from the outside.
-_Avoid_: user module, profile feature.
 
 **Feature**:
 A reusable module in `modules/features/*`, usually defining a NixOS part and a
-home-manager part under the same name. A **Host** enables **features** by name.
+home-manager part under the same name. A **Host** enables **features** by name,
+in one list: the NixOS part configures the machine, the home-manager part (when
+there is one) attaches to every account of the host. Which parts a feature has
+is the feature's own business — a host's list is never sorted into "system" and
+"user" halves. The home-manager part knows only one *abstract* user: identity
+is injected from the outside.
 A feature is *self-sufficient*: it declares its dependencies explicitly and has
 no **functional** coupling to neighbouring files (helper .sh/.json live in its
 store path, not imported from outside the module). The layout is
@@ -35,13 +27,15 @@ store path, not imported from outside the module). The layout is
 (**feature notes**) is allowed — it is not a functional dependency, since the
 feature works without it.
 _Avoid_: module (too general — a `feature` is specifically this pattern),
-package (confusing with an nixpkgs package — here the unit is a `feature`).
+package (confusing with an nixpkgs package — here the unit is a `feature`),
+system feature / user feature (the retired split of a host's list in two).
 
 **Identity** (`meta.users`):
 The canonical registry of accounts in `flake.meta.users.<login>`: full name,
-groups, shell, addresses. An account exists on a **Host** ⇔ its login is a key
-of that host's `users` section — the loader creates it, not a feature. A **user
-feature** receives its identity injected and never hardcodes a login.
+groups, shell, addresses. An account exists on a **Host** ⇔ the host's spec
+lists its login in `users` (`modules/hosts/<host>/default.nix`) — the loader
+creates it, not a feature. A **feature**'s home-manager part receives its
+identity injected and never hardcodes a login.
 _Avoid_: user feature (the old `wiktor` feature), account config.
 
 **Kind** (of a feature):
@@ -101,9 +95,9 @@ spec (`flake.featureTests.<name>`) carries only the remainder — an extra
 empty (`{}`). Mandatory for *every* feature (CI fails without it) — even
 a trivial feature with a single `systemPackage` must prove its binary runs. It
 fails when a feature has an undeclared dependency → it forces modularity
-structurally. **User features** are tested on a neutral test account (`tester`),
-not on a real login — hardcoding someone's login in a feature breaks its feature
-test.
+structurally. Home-manager parts are tested on a neutral test account
+(`tester`), not on a real login — hardcoding someone's login in a feature breaks
+its feature test.
 _Avoid_: smoke test, unit test.
 
 **Sandbox** (Tier 1-live):
@@ -155,22 +149,16 @@ only checks that the module integrates and the system boots (eval/boot
 regression), not the hardware/secret itself.
 _Avoid_: untestable, skip.
 
-**Work user**:
-A second ordinary Unix account (`work`) on the same **Host** as the main user —
-separation of *data and identity* (profiles, accounts, secrets, history), not of
-executability (no MAC). No sudo, homeMode 700. A **managed** account: its **user
-features** are switched and activated by the main user — the right to rebuild the
-system would equal root and void the isolation.
-_Avoid_: separate host, work VM, work account as a machine.
-
 **Switchboard**:
-A TUI (feature `switchboard`, binary `switchboard`) for managing the feature
-lists of real **hosts** — separately for the `system` section and each
-`users.<login>` (including the **work user**, in the main user's hands):
-checkboxes with search, explicit **Requires** closure on selection, a feature
-diff as confirmation, finishing through `nh os test`/`switch`; globally it also
-bumps `flake.lock`. It edits host data files — it never touches `.nix`.
-_Avoid_: features-cli, manager, panel.
+The tool (feature `switchboard`, binary `switchboard`) for managing the feature
+lists of real **hosts**: explicit **Requires** closure on selection, a feature
+diff as confirmation, finishing through `nh os test`/`switch`. It has two faces
+over one set of rules: a TUI (`switchboard`: checkboxes with search, one host
+at a time; it also bumps `flake.lock`) and a web UI (`switchboard web`: a lamp
+per feature and host with every host side by side, the **Requires** graph, and
+what each feature **provides**). Both edit host data files — neither touches
+`.nix`.
+_Avoid_: features-cli, manager, panel, dashboard.
 
 **ISO** (minimal installer):
 A single **generic** installer image (host `iso`), bootable on any machine. It is
@@ -207,11 +195,13 @@ _Avoid_: snapshot, versioned release.
 > — You boot the same **ISO** and run `nixos-install --flake .#laptopNixos` — the
 >   **host** choice happens at install time, not at download time.
 >
-> — I want slack on the work account.
-> — `slack` is a **user feature** — with Switchboard you add it to `users.work`
->   on the desktop and activate it as wiktor; the **work user** is a managed
->   account.
-> — And how does the work git know which email to commit with?
-> — From the **Identity**: `meta.users.work` points at the secret with the work
+> — I want slack on the desktop.
+> — `slack` is a **feature** — with Switchboard you switch it on for
+>   `desktopNixos`; its **Requires** (`desktop`) are already on that list.
+> — Does it go under the system or under my account?
+> — Neither: a **host** has one list. `slack` happens to be a home-manager
+>   module, so the loader attaches it to the host's account by itself.
+> — And how does git know which email to commit with?
+> — From the **Identity**: `meta.users.wiktor` points at the secret with the
 >   email, and the `git` feature receives it injected — it knows no login itself,
 >   which its **feature test** on the `tester` account enforces.

@@ -23,8 +23,8 @@
   # has `requires = ["sops"]` (user.email comes from a SOPS template) and the
   # live image has no key.
   isoSpec = {
-    system = ["nix"];
-    users.wiktor = ["fish"];
+    users = ["wiktor"];
+    features = ["nix" "fish"];
   };
 in {
   flake.hostSpecs.iso = isoSpec;

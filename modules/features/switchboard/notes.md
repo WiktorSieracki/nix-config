@@ -127,3 +127,129 @@ The feature test needs `switchboard --help` to exit 0 in a headless VM. The `fla
 package with `flag.ExitOnError` does this out of the box: `-h`/`--help` → usage +
 `os.Exit(0)` (other parse errors → exit 2). Don't change it to ContinueOnError
 without carrying that semantics over.
+
+## 2026-11-10 — `switchboard web`: the same lists in a browser
+
+**Context:** the TUI shows one host at a time. `switchboard web`
+serves a page with every host side by side (a lamp per feature and host), the
+`requires` graph, and the same save → test/switch → commit finale. One binary,
+no new dependency: the page (`web/`) is embedded with `go:embed` and written
+without a build step or a framework, so `buildGoModule` stays as it was.
+
+**The rules moved, they were not copied.** `rules.go` holds the loader's
+validation mirrored in Go (`ValidateSpec`), the toggle (`Toggle`) and the diff;
+the TUI and the HTTP API both call it. The page decides nothing: a click is a
+round trip to `/api/toggle` with the page's draft, and the answer is the next
+draft. The server keeps no draft — reloading the page drops unsaved edits (the
+page warns before it unloads).
+
+**What changed for the TUI by sharing them:**
+- a `conflicts` pair is refused (the TUI did not know the field, so it wrote
+  lists the loader rejected at the next rebuild);
+- the home screen lists every host with a `features.json` — `vpsNixos` was
+  missing from the hardcoded pair;
+- a save replaces the file in one step (a sibling written in full, then renamed
+  over it).
+
+## 2026-11-11 — back to one flat list per host
+
+**Context:** `features.json` is a JSON array again — it was
+`{"system": [...], "users": {"<login>": [...]}}` since 2026-07-06 (entry above).
+With one account per host the split carried no information: the loader can tell
+by itself that a home-manager part goes to the account and everything else to
+the machine. It still had to be decided by hand on every toggle, in both UIs,
+and it was never clear which list a feature belonged on. The work account — the
+reason for the split — went in the same change.
+
+**What it means here:** `HostSpec`, sections, the `[s]` marker and the
+"home-manager feature in `system`" refusal are gone; a host's features are a
+`[]string` end to end, the commit subject is `switchboard: <host> +a -b` again,
+and `ValidateFeatures` follows the loader's new wording. Entries above that talk
+about sections describe the retired model.
+
+**How it was shown to change nothing:** the system derivation of every host
+(desktop, laptop, vps, iso, vm) was identical before and after the flattening —
+compared with `system.configurationRevision` pinned, since that one input moves
+with every tree state.
+
+**Pitfall:** binary and repo must agree on the shape. An older `switchboard`
+against a flat list, or this one against a checkout from before the change,
+stops with "it has to be a JSON array of feature names" rather than guessing.
+
+## 2026-11-10 — why the web server refuses the way it does
+
+**Symptom:** none yet — this is the reasoning to keep when touching `guard()`.
+
+**Cause:** the server can rewrite the config and run `nh os switch`, and it
+listens on loopback — which every account on the machine and every page open in
+the browser can reach. Four separate attacks, four checks (each has a test in
+`web_test.go`/`peer_test.go`, and the feature test repeats the first three
+against the real binary):
+1. *Another local user* — an account without sudo (a service user, a second
+   login) must not get one through us; its `curl` sends the right `Host`, no
+   `Origin`, and could read the token off the page.
+   So every connection is attributed first: the uid owning the client socket,
+   read from `/proc/net/tcp{,6}` (TCP has no `SO_PEERCRED`), must be the uid
+   that started the server (`peer.go`). A connection that cannot be attributed
+   is refused too.
+2. *DNS rebinding* — a page points its own hostname at 127.0.0.1 and becomes
+   "same origin". It cannot fake the `Host` header: anything but the bound
+   address or `localhost`, on our port, is a 403.
+3. *Cross-site writes* — a form or `fetch` from another origin. Non-GET requests
+   with a foreign `Origin`, or `Sec-Fetch-Site` other than `same-origin`, are a
+   403. (Cookies would not do instead: they are not scoped by port, so any other
+   server on 127.0.0.1 would be handed them.)
+4. *Blind requests* — every `/api/*` call except `/api/ping` needs the per-run
+   token that only the served page carries. Only such calls reset the idle
+   clock, so a site looping over `/favicon.svg` cannot keep the server alive.
+
+**Fix / rule:** there is no login, so `--addr` must be loopback — binding
+elsewhere is refused at startup. To use it from another machine, forward the
+port: `ssh -L 7391:127.0.0.1:7391 <host>`, then open `http://localhost:7391`.
+
+## 2026-11-10 — a page under `default-src 'self'` ignores inline styles
+
+**Symptom:** an element built with a `style="…"` attribute (or
+`setAttribute('style', …)`) renders unstyled, with only a console warning.
+
+**Cause:** the Content-Security-Policy the server sends has no
+`'unsafe-inline'`, on purpose.
+
+**Fix:** state goes into classes and `data-state` attributes that `style.css`
+keys on; for a computed value use the CSSOM (`el.style.setProperty`), which the
+policy allows. SVG geometry is attributes, not style, so the graph is unaffected.
+
+## 2026-11-10 — commands run from the web UI have no terminal
+
+**Symptom/knowledge:** `nh os test/switch` started by the page gets no TTY.
+
+**Consequences:**
+- nix-output-monitor would redraw its build tree into the log, so the web jobs
+  pass `--no-nom`; the output is cleaned line by line (ANSI stripped,
+  carriage-return redraws reduced to the last state).
+- `sudo` cannot prompt. These hosts have `wheelNeedsPassword = false`; on a
+  host that asks for a password the job fails with sudo's "a terminal is
+  required" in the console — use the TUI there.
+- *Stop* exists for the build check only. It signals the job's process group,
+  and for `nh os test/switch` that group contains `sudo`, which relays the
+  signal to `switch-to-configuration` — a half-applied activation. So the
+  server refuses to stop those, and on Ctrl+C/SIGTERM it waits for a running
+  activation before exiting (closing the pipe the job writes to would kill it
+  just the same). A second Ctrl+C exits anyway.
+- test/switch are offered for this machine's own host only (the server checks,
+  not just the page); every other host gets a `nix build --dry-run`.
+
+## 2026-11-10 — the web UI's lifetime: one instance, gone when the tabs are
+
+**Knowledge:** `switchboard web` binds `127.0.0.1:7391`. A second invocation
+(the launcher entry clicked twice) finds the first through `/api/ping` and only
+opens the browser at it. Started from the launcher there is no terminal to
+Ctrl+C, so the server exits by itself after `--idle-timeout` (30 min) without a
+request; an open page asks for `/api/state` every 20 s — which is also how
+edits made elsewhere (the TUI, an editor, git) show up — and a running job
+counts as activity. Browsers throttle background tabs to about one timer a
+minute, still far inside the timeout.
+
+**Pitfall:** the assets are compiled in. After editing `web/*`, rebuild
+(`CGO_ENABLED=0 go build`) and restart — a browser reload alone serves the old
+page from the old binary.

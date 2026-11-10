@@ -3,7 +3,7 @@
   # (NixOS default theme); this feature is the toggle that swaps it for qylock's
   # "forest" theme — visually close to the noctalia lockscreen, so greeter and
   # locker read as one screen. Enable it by listing "sddm-theme" in a host's
-  # features.json `system` list; remove it to go back to native.
+  # features.json; remove it to go back to native.
   flake.modules.nixos.sddm-theme = {pkgs, ...}: let
     # Only this theme is fetched (sparse checkout): the full repo carries 40+
     # themes with mp4 backgrounds.

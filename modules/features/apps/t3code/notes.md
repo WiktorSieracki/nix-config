@@ -244,8 +244,8 @@ backend) needed both servers to share `~/.t3`.
   refresh on every websocket reconnect. To see whether a client is really
   attached, look at the sockets instead — `ss -tnp state established | grep
   :3773` names the process holding them.
-- The entry lives in home-manager (`xdg.desktopEntries`), so `t3code` may not
-  sit in a host's `system` list — the loader hard-fails on that.
+- The entry lives in home-manager (`xdg.desktopEntries`), so `t3code` needs a
+  host with an account — the loader hard-fails on a host that has none.
 - `xdg.desktopEntries` is installed as a home-manager **package**
   (`home.packages`, upstream `modules/misc/xdg/desktop-entries.nix`), so under
   `useUserPackages` the file is
