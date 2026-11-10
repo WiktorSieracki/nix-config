@@ -56,6 +56,11 @@
                   default = [];
                   description = "systemd system units → wait_for_unit.";
                 };
+                userUnits = lib.mkOption {
+                  type = lib.types.listOf lib.types.str;
+                  default = [];
+                  description = "systemd user units of the tester account → wait_for_unit(unit, \"tester\"); the account lingers, which stands in for a login.";
+                };
                 ports = lib.mkOption {
                   type = lib.types.listOf lib.types.port;
                   default = [];
@@ -173,9 +178,13 @@
       # feature test uses the neutral `tester` test identity, created by the SAME
       # mkHostUser factory the hosts use — so a hardcoded real login
       # inside a feature fails its feature test, and the wiring itself gets exercised.
-      # Pure-system feature tests (no HM part in the closure) skip it for a leaner VM.
+      # Pure-system feature tests (no HM part in the closure) skip it for a leaner VM
+      # — unless the feature declares `provides.userUnits`: a user unit runs in
+      # some account's systemd instance, and `tester` is that account.
       hasHm = lib.any (m: (config.flake.modules.homeManager or {}) ? ${m}) enabled;
-      hmWiring = lib.optionals hasHm [
+      declared = key: provides.${key} or [];
+      needsTester = hasHm || declared "userUnits" != [];
+      hmWiring = lib.optionals needsTester [
         inputs.home-manager.nixosModules.home-manager
         {
           home-manager = {
@@ -198,14 +207,14 @@
       # The lines every feature test used to hand-copy, derived once from `kind` +
       # `provides`. Order: boot floor → HM activation → units/ports → binaries →
       # files, then the feature's own `testScript` for behaviour a declaration
-      # can't express. `hasHm` above already knows whether a `tester` account
-      # exists, so the HM wait is never guessed at.
-      declared = key: provides.${key} or [];
+      # can't express. `needsTester` above already knows whether a `tester`
+      # account exists, so the HM wait is never guessed at.
       line = s: s + "\n";
       generated =
         line ''machine.wait_for_unit("multi-user.target")''
-        + lib.optionalString hasHm (line ''machine.wait_for_unit("home-manager-tester.service")'')
+        + lib.optionalString needsTester (line ''machine.wait_for_unit("home-manager-tester.service")'')
         + lib.concatMapStrings (u: line ''machine.wait_for_unit("${u}")'') (declared "units")
+        + lib.concatMapStrings (u: line ''machine.wait_for_unit("${u}", "tester")'') (declared "userUnits")
         + lib.concatMapStrings (n: line "machine.wait_for_open_port(${toString n})") (declared "ports")
         + lib.concatMapStrings (b: line ''machine.succeed("command -v ${b}")'') (declared "systemBins")
         + lib.concatMapStrings (b: line ''machine.succeed("su - tester -c 'command -v ${b}'")'') (declared "userBins")
@@ -225,6 +234,11 @@
               # queries _module.args for non-standard args.)
               {_module.args.hostUsers = lib.optionalAttrs hasHm {tester = enabled;};}
             ]
+            # A user's systemd instance only exists while the account has a
+            # session, and nobody logs in to a headless VM. Lingering is the
+            # stand-in for that login: it brings the instance up at boot, so
+            # the `userUnits` waits have something to ask.
+            ++ lib.optional (declared "userUnits" != []) {users.users.tester.linger = true;}
             ++ nixosModules
             ++ extraNixosModules
             ++ hmWiring;
@@ -297,9 +311,9 @@
         map (f: "  ${kindOf f} feature '${f}' declares no binary — add featureMeta.${f}.provides.systemBins or .userBins (or mark it runtimeUntestable)")
         (lib.filter (f: testable f && !(declares f ["systemBins" "userBins"]))
           (lib.filter (f: builtins.elem (kindOf f) ["cli" "gui"]) metaNames))
-        # service must name a unit
-        ++ map (f: "  service feature '${f}' declares no unit — add featureMeta.${f}.provides.units (or mark it runtimeUntestable)")
-        (lib.filter (f: testable f && (provOf f).units or [] == [])
+        # service must name a unit — a system one or one in the user's instance
+        ++ map (f: "  service feature '${f}' declares no unit — add featureMeta.${f}.provides.units or .userUnits (or mark it runtimeUntestable)")
+        (lib.filter (f: testable f && !(declares f ["units" "userUnits"]))
           (lib.filter (f: kindOf f == "service") metaNames))
         # a tester-scoped assertion with no tester account could never run
         ++ map (f: "  feature '${f}' declares provides.userBins/userFiles but neither it nor its `requires` closure has a home-manager part — there is no `tester` account to assert against")
