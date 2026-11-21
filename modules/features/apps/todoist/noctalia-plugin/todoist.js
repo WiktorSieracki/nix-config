@@ -33,6 +33,10 @@ function normalizeTask(t) {
     projectId: t.projectId || "",
     labels: t.labels || [],
     url: t.url || "",
+    addedAt: t.addedAt || "",
+    childOrder: t.childOrder || 0,
+    parentId: t.parentId || "",
+    sectionId: t.sectionId || "",
   };
 }
 
@@ -122,8 +126,26 @@ function dayHeader(day, today) {
 
 // ── shaping ────────────────────────────────────────────────────────────────
 
+// Newest first by addedAt (ISO, so strings compare in time order). 0 when equal
+// or unknown, which lets the caller's index tie-break keep Todoist's own order.
+function compareNewest(a, b) {
+  return a.addedAt === b.addedAt ? 0 : a.addedAt < b.addedAt ? 1 : -1;
+}
+
+// The Inbox runs against Todoist's own order: a new task gets max+1 from any
+// client, so it lands on top here, and a manual move is stored in Todoist.
+function inboxOrder(tasks) {
+  return tasks.map(function (t, i) {
+    return {t: t, i: i};
+  }).sort(function (a, b) {
+    return b.t.childOrder - a.t.childOrder || a.i - b.i;
+  }).map(function (x) {
+    return x.t;
+  });
+}
+
 // Earlier day first; within a day timed tasks first (by time), then by
-// priority; undated last. Ties keep Todoist's own order.
+// priority, then newest first; undated last.
 function sortTasks(tasks) {
   return tasks.map(function (t, i) {
     return {t: t, i: i};
@@ -138,7 +160,7 @@ function sortTasks(tasks) {
       return !ta ? 1 : !tb ? -1 : ta < tb ? -1 : 1;
     if (a.t.priority !== b.t.priority)
       return b.t.priority - a.t.priority;
-    return a.i - b.i;
+    return compareNewest(a.t, b.t) || a.i - b.i;
   }).map(function (x) {
     return x.t;
   });
@@ -155,10 +177,10 @@ function taskRow(task) {
 // Flatten a view into ListView rows: headers interleaved with tasks.
 //   today    — Overdue / Today
 //   upcoming — Overdue, then one group per day
-//   inbox    — Todoist's order, no headers
+//   inbox    — inboxOrder, no headers
 function buildRows(view, tasks, today) {
   if (view === "inbox")
-    return tasks.map(taskRow);
+    return inboxOrder(tasks).map(taskRow);
 
   var sorted = sortTasks(tasks);
   var groups = [];
@@ -186,6 +208,58 @@ function buildRows(view, tasks, today) {
     });
   });
   return rows;
+}
+
+// ── moving tasks ───────────────────────────────────────────────────────────
+
+// childOrder is per parent and section, so a flat list can't express those.
+function canReorder(tasks) {
+  return tasks.every(function (t) {
+    return !t.parentId && !t.sectionId;
+  });
+}
+
+// A drop lands in the gap before row `gap`; taking the task out first shifts
+// every gap below it up by one.
+function gapToIndex(from, gap) {
+  return gap > from ? gap - 1 : gap;
+}
+
+// The childOrder writes that move tasks[from] to index `to`, tasks being top to
+// bottom. Orders must fall going down and td only sets one raw value at a time,
+// so walk up from the bottom: the moved task takes the lowest free value, and
+// anything above it keeps its order unless it has to make room.
+function reorderPlan(tasks, from, to) {
+  if (from === to)
+    return [];
+  var list = tasks.slice();
+  var moved = list.splice(from, 1)[0];
+  list.splice(to, 0, moved);
+  var plan = [];
+  var floor = -1;
+  for (var i = list.length - 1; i >= 0; i--) {
+    var t = list[i];
+    var order = t === moved ? floor + 1 : Math.max(t.childOrder, floor + 1);
+    if (order !== t.childOrder)
+      plan.push({id: t.id, order: order});
+    floor = order;
+  }
+  return plan;
+}
+
+function applyOrders(tasks, plan) {
+  return tasks.map(function (t) {
+    var change = plan.filter(function (c) {
+      return c.id === t.id;
+    })[0];
+    return change ? Object.assign({}, t, {childOrder: change.order}) : t;
+  });
+}
+
+// A refetch that changed nothing must not hand the ListView a new array: that
+// rebuilds every row, which drops the scroll position and any text selection.
+function sameTasks(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 // Bar count: everything in the Inbox (dated or not) plus whatever is due today
@@ -248,12 +322,39 @@ function descriptionFull(description) {
   return descriptionLines(description).join("\n");
 }
 
+// What the row's copy button puts on the clipboard: the markdown as written, so
+// links keep their URLs.
+function taskClipboardText(task) {
+  return task.description ? task.content + "\n\n" + task.description : task.content;
+}
+
 // ── td invocation ──────────────────────────────────────────────────────────
 
 // `--` stops option parsing, so content like "-5 kg" isn't read as a flag.
 function quickAddArgs(text) {
   var trimmed = String(text).trim();
   return trimmed ? ["add", "--json", "--", trimmed] : null;
+}
+
+// `td task update` for the fields that changed; null if there is nothing to send
+// or the title is empty. Values are bound with `=`, so a leading dash isn't read
+// as a flag. An empty description has to go through stdin: td drops an empty
+// --description. runTd closes stdin, so td reads EOF, i.e. "".
+function updateTaskArgs(task, content, description) {
+  var title = String(content).trim();
+  var desc = String(description).trim();
+  if (!title)
+    return null;
+  var changes = [];
+  if (title !== task.content.trim())
+    changes.push("--content=" + title);
+  if (desc !== task.description.trim())
+    changes.push(desc ? "--description=" + desc : "--stdin");
+  return changes.length ? ["task", "update", "id:" + task.id].concat(changes, ["--json"]) : null;
+}
+
+function orderArgs(change) {
+  return ["task", "update", "id:" + change.id, "--order=" + change.order, "--json"];
 }
 
 // In --json mode td reports failures as {"error":{"code","message"}} on
