@@ -804,7 +804,11 @@ the desktop app, a bearer environment paired on loopback resolves to the
 `this-machine` link host. The app then opens `<scheme>://file/<path>`
 (`buildLocalOpenUrl`, VS Code and its forks, Zed) through `shell.openExternal`,
 whose allowlist (`ElectronShell.ts`) now also lets those plain local links
-through. `xdg-open` hands `vscode://` to `code-url-handler.desktop`. The "Opens
+through. *2026-11-10, 0.1.8:* upstream's allowlist now admits
+`<scheme>://file/<path>` itself (`isLocalEditorFileUrl`, `goto` editors only, so
+no Zed), so the patch dropped its `ElectronShell.ts` hunk; the `this-machine`
+case now lives in `buildRemoteOpenUrl` so the new open-in-editor shortcut
+(`OpenInPickerShortcut.ts`) gets it too. `xdg-open` hands `vscode://` to `code-url-handler.desktop`. The "Opens
 over SSH" hint is hidden for that case.
 
 ## 2026-10-25 — extension windows (Bitwarden's passkey prompt) open as tabs
@@ -855,3 +859,13 @@ the same `postFixup`, so it can go once the pin moves past that. The
 `productName` pin (`keyringName`) stays regardless of how the version is
 sourced. It is not a version workaround: dropping it orphans the saved
 environments again.
+
+## 2026-11-23 — 0.1.11: patches rebased
+
+`server-browser-headed.patch` met upstream's new `--user-agent` override
+(`chromeUserAgent`, built from the *downloaded headless shell's* version). It is
+skipped when headed: the full Google Chrome already reports its own version, and
+the override would make the UA claim a different one than the browser really
+is. `server-browser-extension-windows.patch` only had to make room for upstream's new
+`colorScheme` in `adoptPopup`. `native/resource-monitor/Cargo.lock` unchanged
+since 0.1.8, so nixpkgs' `cargoHash` still holds.

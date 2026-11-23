@@ -1,8 +1,8 @@
 diff --git a/apps/server/src/preview/ServerBrowserContexts.ts b/apps/server/src/preview/ServerBrowserContexts.ts
-index 5f5c94b8..415458c1 100644
+index 670ca75e..99f88d6d 100644
 --- a/apps/server/src/preview/ServerBrowserContexts.ts
 +++ b/apps/server/src/preview/ServerBrowserContexts.ts
-@@ -79,6 +79,18 @@ export const presentAsChrome = async (
+@@ -133,6 +133,18 @@ export const presentAsChrome = async (
    if (identity) await cdp.send("Emulation.setUserAgentOverride", identity);
  };
  
@@ -18,10 +18,10 @@ index 5f5c94b8..415458c1 100644
 +  return display ? { ...rest, DISPLAY: display } : rest;
 +};
 +
- /** Persistent human profiles keep their storage; isolated agents share a browser, never a context. */
  export class ServerBrowserContexts {
    private readonly options: Options;
-@@ -92,20 +104,43 @@ export class ServerBrowserContexts {
+   private readonly contexts = new Map<string, Promise<BrowserContext>>();
+@@ -146,22 +158,48 @@ export class ServerBrowserContexts {
      this.options = options;
    }
  
@@ -35,19 +35,25 @@ index 5f5c94b8..415458c1 100644
 +  }
 +
    private async launchOptions() {
--    const executablePath = await this.options.executable();
+-    const executable = await this.options.executable();
 +    const headed = this.headedExecutable();
-+    const executablePath = headed ?? (await this.options.executable());
++    const executable = headed ?? (await this.options.executable());
      const env = this.options.env ?? process.env;
+     // A page's override never reaches its workers, so the browser itself must name Chrome.
+-    const userAgent = chromeUserAgent(this.options.chrome);
++    // A headed full Chrome already does, under its own version; the override would
++    // claim the headless shell's version instead, so it is left out there.
++    const userAgent = headed ? undefined : chromeUserAgent(this.options.chrome);
      return {
-       executablePath,
+       executable,
 -      env,
 +      env: headed ? headedEnv(env) : env,
-       // People drive these tabs, so they must not announce automation (navigator.webdriver).
++      // People drive these tabs, so they must not announce automation (navigator.webdriver).
        args: [
          "--disable-gpu",
          "--force-device-scale-factor=2",
          "--disable-blink-features=AutomationControlled",
+         ...(userAgent ? [`--user-agent=${userAgent}`] : []),
 +        // X11 only, so a Wayland session in the environment can never claim the windows.
 +        ...(headed ? ["--ozone-platform=x11"] : []),
        ],
@@ -69,7 +75,7 @@ index 5f5c94b8..415458c1 100644
        // Only an explicit operator opt-out disables sandboxing. Launch errors never do.
        chromiumSandbox: !sandboxDisabled(env),
      };
-@@ -150,7 +185,10 @@ export class ServerBrowserContexts {
+@@ -245,7 +283,10 @@ export class ServerBrowserContexts {
            if (this.contexts.get(key) === pending) this.contexts.delete(key);
            this.options.onContextClose?.(context);
          });
@@ -82,12 +88,12 @@ index 5f5c94b8..415458c1 100644
            await context.close().catch(constVoid);
            throw new Error("The preview browser is closed.");
 diff --git a/packages/shared/src/preview.ts b/packages/shared/src/preview.ts
-index 393fba0a..712b1696 100644
+index d47ad4b3..e41adb61 100644
 --- a/packages/shared/src/preview.ts
 +++ b/packages/shared/src/preview.ts
-@@ -82,6 +82,13 @@ const KNOWN_NON_WEB_SCHEMES: ReadonlySet<string> = new Set([
-   "wss:",
- ]);
+@@ -112,6 +112,13 @@ function fillSearchUrlTemplate(template: string, query: string): string {
+   return template.replaceAll("%s", encodeURIComponent(query));
+ }
  
 +/**
 + * Schemes a tab may open: the web, and an extension's own pages
@@ -97,9 +103,9 @@ index 393fba0a..712b1696 100644
 +const PAGE_PROTOCOLS: ReadonlySet<string> = new Set(["http:", "https:", "chrome-extension:"]);
 +
  /**
-  * Turns what a user typed in an address bar into the URL to open: an address
-  * as `normalizePreviewUrl` reads it, or else a web search for the text. Text
-@@ -102,7 +109,7 @@ export function resolveAddressBarInput(rawInput: string): string {
+  * Whether a custom search URL is an http(s) URL with `%s` where the query goes.
+  * `%s` in the host or credentials is rejected: the query would never reach a
+@@ -161,7 +168,7 @@ export function resolveAddressBarInput(
        protocol !== undefined &&
        (KNOWN_NON_WEB_SCHEMES.has(protocol) || !BARE_HOST_PORT_PATTERN.test(trimmed))
      ) {
@@ -108,7 +114,7 @@ index 393fba0a..712b1696 100644
          throw new PreviewUrlNormalizationError({
            inputLength: rawInput.length,
            reason: "unsupported-protocol",
-@@ -155,7 +162,7 @@ export function normalizePreviewUrl(rawUrl: string): string {
+@@ -209,7 +216,7 @@ export function normalizePreviewUrl(rawUrl: string): string {
        cause,
      });
    }

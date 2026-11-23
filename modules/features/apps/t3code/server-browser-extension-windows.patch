@@ -1,37 +1,37 @@
 diff --git a/apps/server/src/preview/ServerBrowser.ts b/apps/server/src/preview/ServerBrowser.ts
-index 87789692..b92d39e7 100644
+index 0a0dad06..b3c94726 100644
 --- a/apps/server/src/preview/ServerBrowser.ts
 +++ b/apps/server/src/preview/ServerBrowser.ts
-@@ -500,7 +500,10 @@ const make = Effect.gen(function* () {
-   /** Sessions closed while their tab was still opening; the open discards its page. */
+@@ -600,7 +600,10 @@ const make = Effect.gen(function* () {
+   >();
+ 
    const closedPendingTabs = new Set<string>();
-   /** Popup pages waiting for the tab their `opened` event creates. */
 -  const adoptedPages = new Map<string, { readonly page: Page; readonly openerTabId: string }>();
 +  const adoptedPages = new Map<
 +    string,
 +    { readonly page: Page; readonly openerTabId: string | undefined }
 +  >();
-   /** Sessions the manager closed, so their tabs end for good. Pruned once dropped. */
    const closedSessions = new Set<string>();
    let hostConnectionId: string | null = null;
-@@ -771,6 +774,7 @@ const make = Effect.gen(function* () {
-         isolatedContext ? tabKey(snapshot.threadId, snapshot.tabId) : undefined,
+   let viewerResizeOrder = 0;
+@@ -1135,6 +1138,7 @@ const make = Effect.gen(function* () {
        ));
+     if (isolatedContext) opened.push(() => context.close());
      if (adopted?.page.isClosed()) throw new Error("The popup closed before it opened.");
 +    lastThreads.set(context, { threadId: snapshot.threadId, profileId: snapshot.profileId });
-     // The desktop page already has its own clipboard.
      if (!desktop) await prepareContext(context);
      const page = adopted?.page ?? desktop?.page ?? (await context.newPage());
-@@ -921,6 +925,8 @@ const make = Effect.gen(function* () {
-     page.on("crash", () => dropTab(tab, true));
+     if (!desktop) opened.push(() => page.close());
+@@ -1374,6 +1378,8 @@ const make = Effect.gen(function* () {
+     page.on("crash", () => reopenCrashedTab(tab));
      tabs.set(key, tab);
      reportLiveTabs();
 +    // An extension's window has usually loaded before it became a tab.
 +    if (adopted) void reportLoaded(tab);
-     // A popup is already loading its own URL, and the desktop loads its tab's.
-     if (!adopted && !desktop && snapshot.navStatus._tag === "Loading") {
-       tab.initialNavigation = page
-@@ -1141,9 +1147,72 @@ const make = Effect.gen(function* () {
+     // A desktop page navigates on its own and can finish loading before these listeners attach.
+     if (desktop) void page.waitForLoadState("load").then(() => reportLoaded(tab), constVoid);
+     // Existing desktop and popup PDFs can start loading before interception attaches.
+@@ -1632,9 +1638,72 @@ const make = Effect.gen(function* () {
    const prepareContext = async (context: BrowserContext) => {
      if (preparedContexts.has(context)) return;
      preparedContexts.add(context);
@@ -84,8 +84,8 @@ index 87789692..b92d39e7 100644
 +    if (!last) return;
 +    claimedPages.add(page);
 +    const url = page.url();
-+    await Effect.runPromise(
-+      manager.open({
++    await runPromise(
++      openTab({
 +        threadId: ThreadId.make(last.threadId),
 +        ...(/^(https?|chrome-extension):/i.test(url) ? { url } : {}),
 +        runtime: "server",
@@ -101,40 +101,38 @@ index 87789692..b92d39e7 100644
 +    });
 +  };
 +
-   /** Records the copies made in each frame a session reaches. */
    const recordCopies = async (cdp: CDPSession) => {
      // Scripts for new documents run only while this session's Page domain is on.
-@@ -1219,8 +1288,10 @@ const make = Effect.gen(function* () {
+     await cdp.send("Page.enable");
+@@ -1701,26 +1770,27 @@ const make = Effect.gen(function* () {
      return copies.flat().find((text) => text.length > 0);
    };
  
 -  const adoptPopup = async (opener: ServerTab, popup: Page) => {
--    const agentId = opener.control.agentId;
 +  const adoptPopup = async (opener: ServerTab, popup: Page, fromExtension = false) => {
 +    claimedPages.add(popup);
 +    // An extension's window asks the person, whoever drives the tab behind it.
 +    const agentId = fromExtension ? null : opener.control.agentId;
-     // A popup past an agent's limit closes; its page sees window.open return a closed window.
-     if (opener.closing || (agentId !== null && atTabLimit(agentId))) {
+     if (opener.closing) {
        await popup.close().catch(constVoid);
-@@ -1228,19 +1299,17 @@ const make = Effect.gen(function* () {
+       return;
      }
      const url = popup.url();
-     // Captured now: the person whose click opened the popup gets switched to it.
+ 
 -    const controller = [...opener.viewers].find(
 -      (viewer) => viewer.id === opener.control.controller,
 -    );
 +    const shownTo = fromExtension
 +      ? [...opener.viewers]
 +      : [...opener.viewers].filter((viewer) => viewer.id === opener.control.controller);
-     await Effect.runPromise(
-       manager.open({
+     await runPromise(
+       openTab({
          threadId: opener.threadId,
 -        ...(/^https?:/i.test(url) ? { url } : {}),
 +        ...(/^(https?|chrome-extension):/i.test(url) ? { url } : {}),
          runtime: "server",
          ...(opener.profileId === undefined ? {} : { profileId: opener.profileId }),
-         // Agent popups stay with the agent and only float when it asks, like its own opens.
+         colorScheme: opener.colorScheme,
 -        ...(opener.control.agentId === null
 -          ? {}
 -          : { automationOwner: opener.control.agentId, reveal: false }),
@@ -142,14 +140,13 @@ index 87789692..b92d39e7 100644
          beforePublish: (snapshot) =>
            adoptedPages.set(tabKey(snapshot.threadId, snapshot.tabId), {
              page: popup,
-@@ -1250,8 +1319,8 @@ const make = Effect.gen(function* () {
+@@ -1729,7 +1799,8 @@ const make = Effect.gen(function* () {
+       }),
      ).then(
-       (snapshot) => {
-         // The opener stays open behind it, so `window.opener` can still report back.
--        if (opener.control.agentId === null)
--          controller?.push({ _tag: "popup", tabId: snapshot.tabId });
+       (tab) => {
+-        if (opener.control.agentId === null) controller?.push({ _tag: "popup", tabId: tab.tabId });
 +        if (agentId === null)
-+          for (const viewer of shownTo) viewer.push({ _tag: "popup", tabId: snapshot.tabId });
++          for (const viewer of shownTo) viewer.push({ _tag: "popup", tabId: tab.tabId });
        },
        async () => {
          await popup.close().catch(constVoid);

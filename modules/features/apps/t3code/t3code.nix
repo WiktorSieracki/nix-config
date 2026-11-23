@@ -29,9 +29,9 @@
   # derivation and keeps nixpkgs' `cargoHash`, which stays valid only while
   # `native/resource-monitor/Cargo.lock` is unchanged. Drop the pin once
   # nixpkgs catches up (notes.md, "Updating").
-  version = "0.1.0";
-  srcHash = "sha256-P82DqoY1E9wtROwu5Nr7MB/I1PdmZHWXXR4nRa4GWXM=";
-  pnpmDepsHash = "sha256-oX4tOu20tYO3ci7VvSEL8eFgxAYWp5HlQFSfAWJGJmg=";
+  version = "0.1.11";
+  srcHash = "sha256-oI8gyTWFgtTmVK+0cVQaEcfO8EzxUUOW5s8JFG/z/U8=";
+  pnpmDepsHash = "sha256-bq+hxFjUgRk0NYaMkz7rtpyQtQ3ora5J2efi9fiRk9k=";
 
   # Electron on Linux keeps the app's safeStorage key in the keyring under the
   # `productName` of the app's package.json, and upstream renames it with every
@@ -468,10 +468,10 @@ in {
       )
 
       # "Open in VS Code" on the unit (loopback) is a local `vscode://file`
-      # link, not SSH: the client must build it and the app's shell must let
-      # it through (`open-local-editor.patch`).
+      # link, not SSH: the client must build it (`open-local-editor.patch`) and
+      # the app's shell must let it through (upstream since 0.1.8).
       machine.succeed(f"grep -Rlq 'this-machine' {pkg}/libexec/t3code/apps/server/dist/client/assets/")
-      machine.succeed(f"grep -q 'isLocalEditorUrl(url)' {pkg}/libexec/t3code/apps/desktop/dist-electron/main.cjs")
+      machine.succeed(f"grep -q 'isLocalEditorFileUrl(url)' {pkg}/libexec/t3code/apps/desktop/dist-electron/main.cjs")
     '';
   };
 
